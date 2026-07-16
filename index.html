@@ -1,5 +1,25 @@
 <!DOCTYPE html>
 <!-- ================================================================================================
+     TESTING DEMO v0.5.1 — EXPERIMENTAL FORK, NOT A RELEASE BUILD
+     ================================================================================================
+     This fork explores four concepts without release-level refinement:
+       1. HARD XI CONDITIONS: a returned XI is accepted only when every active condition is met.
+          Conditions are evaluated at complete-XI leaves; ordinary unconditioned solve seeds and
+          resume frontiers are deliberately bypassed while the mode is active.
+       2. RTG / WEEKEND-LEAGUE TEST SOLVER: deterministic synthetic ATK/BAL/DEF values are generated
+          from each DB card. A condition-valid in-position XI is locked first across real formations;
+          only then is it optimised, chemistry-adjusted, and paired with a real manager from the manager DB. The values
+          are fake and printed.
+       3. SBC TEST SOLVER: a condition-led formation-aware DFS first locks any condition-valid XI.
+          It then lowers ratings using only complete replacements that remain valid, and can retry while
+          excluding selected player identities. This is a feasibility prototype, not a price model.
+       4. TEST UTILITIES: conditions include per-player rating bounds, and a random-condition button
+          creates plausible, internally feasible condition stacks from a sampled database XI.
+     Normal DB rows still have no stored promo/card subtype. Board entries therefore expose manual
+     “Is special?” and “Specific card type” fields while Conditions mode is enabled. Icons and Heroes
+     are always special. DB-wide test solvers treat normal rows as non-special with blank subtype.
+     ================================================================================================ -->
+<!-- ================================================================================================
      AI ASSISTANT / FUTURE MAINTAINER — READ THIS BEFORE TOUCHING ANYTHING
      ================================================================================================
      CRITICAL — FIRST CHECK: if there is a handoff comment directly below this block (between
@@ -151,7 +171,7 @@
 <meta property="og:description" content="DraftSolver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Draft Solver v21.11.0.1 + CONDITIONS-POC</title>
+<title>Draft Solver TESTING DEMO v0.5.1</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -177,8 +197,9 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#06223
   border-bottom:1px solid var(--line);padding:14px 16px 10px}
 header h1{font-size:19px;color:var(--cyan)}.cap.sub{color:var(--mut);font-size:11px;margin-top:2px;font-style:normal;letter-spacing:.12em}
 .wrap{padding:14px 12px}
-.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;background:#070d14;border-top:1px solid var(--line)}
-.tabbar button{flex:1;background:none;border:none;color:var(--mut);padding:10px 4px 14px;font-size:11px;
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;overflow-x:auto;background:#070d14;border-top:1px solid var(--line);scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tabbar button{flex:0 0 74px;min-width:74px;background:none;border:none;color:var(--mut);padding:9px 3px 13px;font-size:9px;
   font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .tabbar button.on{color:var(--cyan)}
 .tabbar button .ic{display:block;font-size:18px;margin-bottom:3px}
@@ -294,6 +315,16 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
   .formweights-body #formCalWrap{padding:8px 7px!important}
   .formweights-body #formCalWrap>.row{flex-direction:column}
 }
+@media(min-width:700px){.tabbar button{flex:1;min-width:0;font-size:10px}}
+.testing-banner{margin-top:8px;border:1px solid var(--warn);background:rgba(255,179,64,.10);color:var(--warn);border-radius:9px;padding:7px 10px;font-size:11px;font-weight:800;letter-spacing:.12em;text-align:center}
+.cond-item{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:9px 10px;margin-top:7px;display:flex;gap:8px;align-items:center}
+.cond-item .txt{flex:1;font-size:12px;line-height:1.4}
+.cond-item button{width:auto;padding:5px 9px}
+.test-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px}
+.test-stat{border:1px solid var(--line);border-radius:7px;padding:4px;text-align:center;font-size:10px;color:var(--mut)}
+.test-stat b{display:block;font-size:15px;color:var(--ink)}
+.test-card{border-bottom:1px solid #14212c;padding:8px 0}
+.test-card:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -6002,23 +6033,15 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
 <!-- v21.10.0.1 — Correction: renamed the misentered Saudi Ronaldo 97 to Cristiano Ronaldo and removed the unnecessary Ronaldo pidx registry; merged the misread Calhanoglu 89 CAM/CM row into the genuine CDM/CM card as copies:2. Embedded synchronized JSON v4.97.1. -->
 <!-- v21.11.0 — Pivot-switch guard feedback is now shown directly in the Pivot Analyzer and as a visible toast whenever “use as pivot” is blocked by a running helper or formation calibration; the pivot remains unchanged. -->
 <!-- v21.11.0.1 — Correction: removed the redundant persistent Pivot Analyzer copy of the blocked-switch warning; the toast now clears as soon as the running calibration finishes. -->
-<!-- CONDITIONS-POC (experimental fork of v21.11.0.1, NOT for release, NOT part of the main version line) —
-     Adds a "Hard conditions" panel (Solve tab): a list of must-meet conditions (Team rating / chemistry;
-     count of cards from a specific league/nation/club; total distinct leagues/nations/clubs; max from any
-     single league/nation/club; Icons; Heroes; Special cards; Specific card type), each with a lower / equal /
-     higher (plus ≤/≥) comparison and a value. A complete XI failing ANY enabled condition is discarded at the
-     solver leaf regardless of score, so the result is the highest-scoring COMPLIANT XI (or a "none qualify"
-     message). Same gate mirrored in the bruteForce oracle. Because card type isn't stored beyond
-     normal/icon/hero, "special" and "specific type" are tagged manually per pool card (icons/heroes auto-
-     special). Parallel workers pause while conditions are active — the gate lives on the main thread only.
-     Includes in-file design notes for a future RTG/WL solver (needs ATK/BAL/DEF stats; best-cards-per-stat
-     objective) and SBC solver (cheapest compliant XI; minimise rating/value). Core solver, scorer and DB
-     are otherwise untouched.
-     Fix pass: the cards-from-league/nation/club (and specific-type) conditions now use dropdowns
-     populated from the current pool instead of free text, and the card-tagging list shows the card's
-     label (names no longer render as "undefined"). -->
-<h1 class="cap">&#11041; Draft Solver <span style="font-size:11px;opacity:.55;font-weight:400;letter-spacing:0">v21.11.0.1 &middot; CONDITIONS-POC</span></h1>
-  <div class="cap sub">pacwyn draft optimiser</div>
+<!-- TESTING FORK v0.1 — Added hard XI conditions, manual special/subtype slot metadata, and proof-of-concept RTG/WL plus SBC database solvers. -->
+<!-- TESTING FORK v0.2 — Added per-player rating bounds, Min/Exact/Max wording, feasible random condition stacks, formation-free RTG selection, and rating-anchored synthetic stats with fixed Roberto Carlos/Cafu outliers. -->
+<!-- TESTING FORK v0.3 — RTG/WL now searches real formations, preserves hard-condition paths, prioritises stat-over-rating value, applies 0/1-chem penalties, chooses a synthetic chemistry/stat-boost manager, and filters clubs by league. -->
+<!-- TESTING FORK v0.4 — RTG and SBC now lock a condition-valid XI before optimisation; SBC can iteratively exclude selected player identities and retry. -->
+<!-- TESTING FORK v0.5 — Replaced test-beam optimisation with condition-led feasibility plus bounded DFS, added deeper-search controls, cumulative RTG/SBC player exclusions, RTG manager exclusions, and the real photographed manager stat boosts. -->
+<!-- TESTING FORK v0.5.1 — Corrected manager stat boosts to use only the flag, club, or position printed at the bottom of each manager card; side nation/league metadata is chemistry-only. -->
+<h1 class="cap">&#11041; Draft Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v0.5.1</span></h1>
+  <div class="cap sub">pacwyn draft optimiser · experimental fork</div>
+  <div class="testing-banner">TESTING DEMO · NOT A RELEASE BUILD</div>
   <div style="position:absolute;right:2px;top:40px;text-align:right;font-size:10px;line-height:1.5;color:var(--mut)">Created by <b style="color:var(--ink)">Chenzo</b><br><span style="opacity:.8">Special thanks to BWFCPackfan</span></div>
 </header>
 
@@ -6103,6 +6126,12 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
     </div>
     <div id="f-league-wrap"><label>League</label><div class="combo"><input type="text" id="f-league" placeholder="type to search&hellip;" autocomplete="off"><div class="combolist" id="f-league-list"></div></div></div>
     <div id="f-club-wrap"><label>Club</label><div class="tiny" id="f-club-prompt" style="margin:0">Select a league first.</div><select id="f-club" style="display:none"></select></div>
+    <div id="conditionCardFields" style="display:none;border:1px dashed var(--cyan-dim);border-radius:9px;padding:9px;margin-top:10px">
+      <label style="margin:0 0 7px;display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--ink)"><input type="checkbox" id="f-special"> Is special?</label>
+      <label style="margin-top:0">Specific card type <span style="color:var(--mut)">&mdash; manual text for condition matching</span></label>
+      <input type="text" id="f-cardtype" placeholder="e.g. TOTY, TOTS, Future Stars" autocomplete="off">
+      <div class="tiny">Icons and Heroes are always special. Normal cards must be marked manually.</div>
+    </div>
     <label>Positions <span style="color:var(--mut)">&mdash; tap all it can play</span></label>
     <div class="chips" id="posChips"></div>
     <div style="height:10px"></div>
@@ -6148,34 +6177,6 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
       <div id="editFormList" style="display:flex;flex-direction:column;gap:7px;max-height:55vh;overflow-y:auto"></div>
     </div>
   </div>
-  <!-- ===== CONDITIONS-POC panel (proof of concept, NOT for release) =====
-       RTG/WL note: a real Weekend-League solver would need per-card ATK/BAL/DEF stats in the DB and,
-       after meeting conditions, would prefer the best cards per stat (85-rated 86/83/28 > 85/84/73 >
-       84/84/83). SBC note: an SBC solver would flip the objective to build the CHEAPEST compliant XI,
-       searching the lowest-rated (ideally lowest-value) cards that still meet every condition. -->
-  <details class="hlp" id="pocPanel" style="margin-bottom:10px;border:1px solid var(--warn)" ontoggle="if(this.open){_pocRenderConds();_pocRenderTags();}">
-    <summary style="color:var(--warn);font-weight:800">&#9873; Hard conditions (POC) &mdash; must-meet-or-discard</summary>
-    <div style="margin-top:8px">
-      <div class="tiny" id="pocCondSummary" style="margin-bottom:6px;color:var(--mut)">No active conditions.</div>
-      <div id="pocCondList"></div>
-      <div class="row" style="gap:6px;margin-top:6px">
-        <button class="btn sm" onclick="_pocAddCond()" style="width:auto;padding:6px 12px">+ Add condition</button>
-        <button class="btn gho sm" onclick="_pocClearConds()" style="width:auto;padding:6px 12px">Clear all</button>
-      </div>
-      <details class="hlp" style="margin-top:10px">
-        <summary>Tag cards &mdash; &ldquo;special&rdquo; &amp; card type</summary>
-        <div style="margin-top:6px">
-          <div class="tiny" style="color:var(--mut);margin-bottom:4px">Card type isn&rsquo;t stored beyond normal/icon/hero, so tag it manually here. Icons &amp; heroes are auto-special; normals need the checkbox. Type defaults to the stored type until edited.</div>
-          <div class="row" style="margin-bottom:6px"><button class="btn gho sm" onclick="_pocRenderTags()" style="width:auto;padding:6px 12px">&#8635; Refresh from pool</button></div>
-          <div id="pocTagList" style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px"></div>
-        </div>
-      </details>
-      <div class="tiny" style="color:var(--mut);margin-top:10px;line-height:1.5">
-        <b>How it works:</b> with at least one condition enabled, the solver keeps only XIs satisfying <b>all</b> of them and returns the highest-scoring survivor; if none qualify it says so. Runs on the main thread (parallel workers pause while conditions are active).<br><br>
-        <b>Not built here (design notes):</b> an <b>RTG / Weekend&nbsp;League</b> solver would need per-card ATK/BAL/DEF stats in the DB and, after meeting conditions, would pick the best cards per stat (e.g. 85-rated 86/83/28 &gt; 85/84/73 &gt; 84/84/83). An <b>SBC</b> solver would flip the objective to build the <b>cheapest</b> compliant XI &mdash; searching the lowest-rated (ideally lowest-value) cards that still meet every condition.
-      </div>
-    </div>
-  </details>
   <button class="btn" onclick="runSolve()" style="margin-bottom:8px">Solve best XI</button>
   <details class="hlp" style="margin-bottom:10px"><summary>Advanced &mdash; solver settings</summary>
     <div style="margin-top:8px">
@@ -6449,6 +6450,75 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
 </div>
 </div>
 
+<!-- ===================== CONDITIONS ===================== -->
+<div class="view" id="v-conditions">
+<div class="wrap">
+  <div class="panel">
+    <h2>Hard XI Conditions</h2>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;color:var(--ink);margin:0 0 8px"><input type="checkbox" id="conditionsEnabled" onchange="toggleConditionsMode()"> Conditions mode active</label>
+    <div class="note">When active, a completed XI is discarded unless every listed condition passes. A capped search may need a deeper run before it finds a valid XI.</div>
+    <label>Condition</label>
+    <select id="condKind" onchange="conditionKindChanged()">
+      <option value="team_rating">Team Rating</option>
+      <option value="team_chem">Team Chemistry</option>
+      <option value="player_rating">Player Rating (every card)</option>
+      <option value="cards_from">Cards from League / Nation / Club</option>
+      <option value="total_different">Total different Leagues / Nations / Clubs</option>
+      <option value="max_same">Max cards from same League / Nation / Club</option>
+      <option value="total_icons">Total Icons</option>
+      <option value="total_heroes">Total Heroes</option>
+      <option value="special_cards">Special cards (draft-only for now)</option>
+      <option value="specific_card_type">Specific Card Type (draft-only for now)</option>
+    </select>
+    <div class="tiny" style="margin-top:6px">Special-card and specific-card-type conditions can still be used for manually entered draft cards. RTG/SBC ignore them until those fields exist in the player database.</div>
+    <div id="condAxisWrap" style="display:none"><label>Group</label><select id="condAxis" onchange="conditionAxisChanged()"><option value="league">League</option><option value="nation">Nation</option><option value="club">Club</option></select></div>
+    <div id="condClubLeagueWrap" style="display:none"><label>Club league</label><select id="condClubLeague" onchange="conditionClubLeagueChanged()"></select></div>
+    <div id="condKeyWrap" style="display:none"><label id="condKeyLabel">Which value</label><select id="condKey"></select></div>
+    <div id="condTypeWrap" style="display:none"><label>Card type text</label><input type="text" id="condTypeText" placeholder="e.g. TOTY"></div>
+    <div class="row">
+      <div id="condOpWrap"><label>Rule</label><select id="condOp"><option value="gte">Min (&ge;)</option><option value="eq">Exact (=)</option><option value="lte">Max (&le;)</option></select></div>
+      <div><label>Number</label><input type="number" id="condValue" min="0" step="1" value="1" inputmode="numeric"></div>
+    </div>
+    <button class="btn" style="margin-top:10px" onclick="addCondition()">Add condition</button>
+    <button class="btn sec" style="margin-top:8px" onclick="generateRandomConditions()">&#127922; Generate random conditions</button>
+    <div id="conditionAddErr" class="tiny"></div>
+  </div>
+  <div class="panel">
+    <h2>Condition List</h2>
+    <div id="conditionList"><div class="emptyx">No conditions added.</div></div>
+    <button class="btn gho sm" style="margin-top:8px" onclick="clearConditions()">Clear conditions</button>
+  </div>
+</div>
+</div>
+
+<!-- ===================== TEST IDEAS ===================== -->
+<div class="view" id="v-tests">
+<div class="wrap">
+  <div class="panel">
+    <h2>Test Ideas</h2>
+    <div class="note" style="border-color:var(--warn)"><b>Proof of concept.</b> Both solvers construct a condition-valid XI before optimisation. Search is bounded rather than exhaustive; use <b>Keep searching</b> to spend more nodes without losing the valid fallback. RTG/WL tests every real formation; SBC uses the selected formation.</div>
+    <div class="note" style="border-color:var(--warn)"><b>Known limitation:</b> RTG/SBC currently ignore Special cards and Specific card type conditions because those fields are not stored in the player DB. The manual draft-card toggles are unrelated.</div>
+    <div class="kv"><span>Selected SBC formation</span><b id="testFormation">None selected</b></div>
+    <div class="kv"><span>Conditions</span><b id="testConditionState">Off</b></div>
+    <label>Synthetic stat seed</label>
+    <div class="row"><input type="number" id="testStatSeed" value="1" min="1" step="1"><button class="btn sec sm" onclick="regenerateTestStats()">Regenerate</button></div>
+  </div>
+  <div class="panel">
+    <h2>RTG / WL Solver</h2>
+    <div class="tiny">Generates fake ATK / BAL / DEF values, tests every real formation, prioritises stats above card rating, applies low-chem penalties, and chooses from the real manager DB with the photographed stat boosts.</div>
+    <button class="btn" style="margin-top:10px" onclick="runRtgTestSolver()">Build best synthetic-stat XI</button>
+    <div class="tiny" style="margin-top:6px">Player and manager exclusions remain active across reruns until you clear them.</div>
+    <div id="rtgTestOut" style="margin-top:10px"></div>
+  </div>
+  <div class="panel">
+    <h2>SBC Solver</h2>
+    <div class="tiny">First locks any XI that meets every supported active condition, then uses bounded DFS to lower its card ratings without ever discarding the valid fallback. Excluded players stay excluded until cleared.</div>
+    <button class="btn" style="margin-top:10px" onclick="runSbcTestSolver()">Build cheapest rating XI</button>
+    <div id="sbcTestOut" style="margin-top:10px"></div>
+  </div>
+</div>
+</div>
+
 <!-- ===================== DATABASE ===================== -->
 <div class="view" id="v-db">
 <div class="wrap">
@@ -6538,6 +6608,8 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
   <button data-v="v-cards"><span class="ic">&#9776;</span>Board</button>
   <button data-v="v-solve"><span class="ic">&#9678;</span>Solve</button>
   <button data-v="v-help"><span class="ic">&#9881;</span>Weights</button>
+  <button data-v="v-conditions"><span class="ic">&#9745;</span>Conditions</button>
+  <button data-v="v-tests"><span class="ic">&#9883;</span>Test Ideas</button>
   <button data-v="v-db"><span class="ic">&#9707;</span>DB</button>
 </div>
 
@@ -6921,6 +6993,10 @@ const GOLD_DB=[
 let cards=[],managers=[],helpCards=[],chosenForm=null,uid=1,lastSolve=null,playerDB=[];
 let editingHelpIdx=null; // null = adding new; number = editing existing helpCard index
 let board=null,activeSlot=null,editingId=null,editingMgrIdx=null,_formChanged=false;
+let TEST_CONDITIONS=[],CONDITIONS_ENABLED=false,_condUid=1; // TESTING DEMO v0.5 hard-condition state
+let SBC_TEST_EXCLUSIONS=new Set(),SBC_TEST_EXCLUSION_LABELS=new Map(),_lastSbcTestResult=null;
+let RTG_TEST_EXCLUSIONS=new Set(),RTG_TEST_EXCLUSION_LABELS=new Map(),RTG_TEST_MANAGER_EXCLUSIONS=new Set(),RTG_TEST_MANAGER_EXCLUSION_LABELS=new Map(),_lastRtgTestResult=null;
+let TEST_SEARCH_SCALE={rtg:1,sbc:1};
 let _benchCap=3000000,_mgrCap=3000000; // bench / manager-awareness mini-solve caps (should never actually bind); this initial value is only a placeholder — _clearSolve() re-derives the real value from Advanced solver settings (getBenchNodeCap/getMgrNodeCap) before every actual solve. Can't call those getters here directly: they use the $ helper, which is declared with const further down the script and is still in its temporal dead zone at this point — calling it here throws and kills the rest of the script. // 23-slot board model (Phase 2)
 let _swapMode=false,_swapPick=[]; // slot-swap state
 let _compareMode=false,_compareList=[]; // formation compare mode
@@ -7148,7 +7224,67 @@ function saveShapeLocal(){try{localStorage.setItem(_SHAPE_SAVE_KEY,JSON.stringif
   }catch(e){}
 })();
 let MANAGER_DB=/*__MGR_DB__*/[{"name":"Lippi 98","nation":"Italy","league":"Icons"},{"name":"Michels 98","nation":"Netherlands","league":"Icons"},{"name":"Löw 97","nation":"Germany","league":"Icons"},{"name":"Martínez 96","nation":"Spain","league":"Icons"},{"name":"Santos 95","nation":"Portugal","league":"Icons"},{"name":"Jacquet 95","nation":"France","league":"Icons"},{"name":"Mourinho 95","nation":"Portugal","league":"Italy Serie A"},{"name":"Ferguson 95","nation":"Scotland","league":"England Premier League"},{"name":"Luis Enrique 95","nation":"Spain","league":"France Ligue 1"},{"name":"Arteta 94","nation":"Spain","league":"England Premier League"},{"name":"Wenger 94","nation":"France","league":"England Premier League"},{"name":"Mourinho 94","nation":"Portugal","league":"England Premier League"},{"name":"Zidane 94","nation":"France","league":"Spain LaLiga"},{"name":"Klopp 94","nation":"Germany","league":"England Premier League"},{"name":"Guardiola 94","nation":"Spain","league":"Spain LaLiga"},{"name":"Heynckes 93","nation":"Germany","league":"Germany Bundesliga"},{"name":"Ancelotti 93","nation":"Italy","league":"Italy Serie A"},{"name":"Flick 93","nation":"Germany","league":"Spain LaLiga"},{"name":"Conte 93","nation":"Italy","league":"Italy Serie A"},{"name":"Kompany 93","nation":"Belgium","league":"Germany Bundesliga"},{"name":"Luis Enrique 93","nation":"Spain","league":"France Ligue 1"},{"name":"Flick 92","nation":"Germany","league":"Spain LaLiga"},{"name":"Arteta 92","nation":"Spain","league":"England Premier League"},{"name":"Klopp 92","nation":"Germany","league":"Germany Bundesliga"},{"name":"Emery 92","nation":"Spain","league":"England Premier League"},{"name":"Chivu 92","nation":"Romania","league":"Italy Serie A"},{"name":"Bosz 91","nation":"Netherlands","league":"Netherlands Eredivisie"},{"name":"Pochettino 91","nation":"Argentina","league":"England Premier League"},{"name":"Allegri 91","nation":"Italy","league":"Italy Serie A"},{"name":"Simeone 91","nation":"Argentina","league":"Spain LaLiga"},{"name":"Mancini 91","nation":"Italy","league":"England Premier League"},{"name":"Kompany 91","nation":"Belgium","league":"Germany Bundesliga"},{"name":"Guardiola 90 (No Boosts)","nation":"Spain","league":"England Premier League"},{"name":"Guardiola 90 (RW)","nation":"Spain","league":"Spain LaLiga"},{"name":"Klopp 90","nation":"Germany","league":"Germany Bundesliga"},{"name":"Mourinho 90","nation":"Portugal","league":"England Premier League"},{"name":"Benítez 90","nation":"Spain","league":"Spain LaLiga"},{"name":"Sarri 90","nation":"Italy","league":"Italy Serie A"},{"name":"Fàbregas 90","nation":"Spain","league":"Italy Serie A"},{"name":"Farioli 90 (GK)","nation":"Italy","league":"Portugal Primeira"},{"name":"Flick 90","nation":"Germany","league":"Spain LaLiga"},{"name":"Jardim 90","nation":"Portugal","league":"France Ligue 1"},{"name":"Arteta 90","nation":"Spain","league":"England Premier League"},{"name":"Kompany 90","nation":"Belgium","league":"Germany Bundesliga"},{"name":"Farioli 90 (LW)","nation":"Italy","league":"Portugal Primeira"},{"name":"Marcelino 90","nation":"Spain","league":"Italy Serie A"},{"name":"Luis Enrique 90","nation":"Spain","league":"France Ligue 1"},{"name":"Moyes 89","nation":"Scotland","league":"England Premier League"},{"name":"Gasperini 88","nation":"Italy","league":"Italy Serie A"},{"name":"Xabi Alonso 88","nation":"Spain","league":"Spain LaLiga"},{"name":"Emery 87","nation":"Spain","league":"England Premier League"},{"name":"Slot 87","nation":"Netherlands","league":"England Premier League"},{"name":"Hürzeler 87","nation":"Germany","league":"England Premier League"},{"name":"Bordalás 86","nation":"Spain","league":"Spain LaLiga"},{"name":"Hoeneß 86","nation":"Germany","league":"Germany Bundesliga"},{"name":"Frank 85","nation":"Denmark","league":"England Premier League"},{"name":"Chivu 84","nation":"Romania","league":"Italy Serie A"},{"name":"Mourinho 83","nation":"Portugal","league":"Portugal Primeira"},{"name":"Génésio 83","nation":"France","league":"France Ligue 1"},{"name":"Italiano 83","nation":"Italy","league":"Italy Serie A"},{"name":"Almeyda 82","nation":"Argentina","league":"Spain LaLiga"},{"name":"Pioli 82","nation":"Italy","league":"Italy Serie A"},{"name":"De Zerbi 89","nation":"Italy","league":"England Premier League"},{"name":"De Zerbi 81","nation":"Italy","league":"France Ligue 1"},{"name":"Pellegrini 81","nation":"Chile","league":"Spain LaLiga"},{"name":"Fàbregas 80","nation":"Spain","league":"Italy Serie A"},{"name":"Bosz 80","nation":"Netherlands","league":"Netherlands Eredivisie"},{"name":"Mascherano 78","nation":"Argentina","league":"USA MLS"},{"name":"Tedesco 77","nation":"Italy","league":"Turkey Super Lig"},{"name":"Jaissle 76","nation":"Germany","league":"Saudi Pro League"},{"name":"Parker 75","nation":"England","league":"England Premier League"},{"name":"Sarabia 75","nation":"Spain","league":"Spain LaLiga"},{"name":"Le Bris 75","nation":"France","league":"England Premier League"},{"name":"Hjulmand 79","nation":"Denmark","league":"Germany Bundesliga"},{"name":"Spalletti 86","nation":"Italy","league":"Italy Serie A"},{"name":"Postecoglou 82","nation":"Australia","league":"England Premier League"},{"name":"Southgate 95","nation":"England","league":"Icons"},{"name":"Deschamps 96","nation":"France","league":"France Ligue 1"},{"name":"Scaloni 95","nation":"Argentina","league":"Argentina Primera Division"},{"name":"De La Fuente 95","nation":"Spain","league":"Spain LaLiga"},{"name":"Nagelsmann 94","nation":"Germany","league":"Germany Bundesliga"},{"name":"Moyes 86","nation":"Scotland","league":"England Premier League"},{"name":"Inzaghi 87","nation":"Italy","league":"Saudi Pro League"},{"name":"Del Bosque 98","nation":"Spain","league":"Icons"},{"name":"Arteta 87","nation":"Spain","league":"England Premier League"},{"name":"Gasperini 84","nation":"Italy","league":"Italy Serie A"},{"name":"Kovac 82","nation":"Croatia","league":"Germany Bundesliga"},{"name":"Conceicao 82","nation":"Portugal","league":"Saudi Pro League"},{"name":"Benitez 81","nation":"Spain","league":"Greece Super League"},{"name":"Lampard 81","nation":"England","league":"England EFL Championship"},{"name":"Rosenior 78","nation":"England","league":"France Ligue 1"},{"name":"Polzin 75","nation":"Germany","league":"Germany Bundesliga"},{"name":"Gilli 75","nation":"France","league":"France Ligue 1"},{"name":"Conte 87","nation":"Italy","league":"Italy Serie A"},{"name":"Grosso 75","nation":"Italy","league":"Italy Serie A"}];
-const DEFAULT_MGR_DB=MANAGER_DB.map(m=>({name:m.name,nation:m.nation,league:m.league}));
+// TESTING DEMO v0.5.1 — real manager stat boosts transcribed from the supplied manager-card screenshots.
+// IMPORTANT: only the flag, club badge, or position printed at the BOTTOM of the manager card is a
+// stat boost. The nation and league shown at the left/top are ordinary manager chemistry metadata only.
+// Two genuinely bottom-printed selectors are OR-ed and never stack above +1.
+const TEST_MANAGER_BOOSTS={
+  "Del Bosque 98":[{axis:"nation",key:"Spain"}],
+  "Lippi 98":[{axis:"nation",key:"Italy"}],
+  "Michels 98":[{axis:"position",key:"ST"}],
+  "Löw 97":[{axis:"nation",key:"Germany"}],
+  "Martínez 96":[{axis:"nation",key:"Belgium"},{axis:"position",key:"CDM"}],
+  "Deschamps 96":[{axis:"position",key:"CB"}],
+  "Scaloni 95":[{axis:"position",key:"ST"}],
+  "De La Fuente 95":[{axis:"position",key:"CM"}],
+  "Jacquet 95":[{axis:"nation",key:"France"}],
+  "Southgate 95":[{axis:"nation",key:"England"}],
+  "Santos 95":[{axis:"nation",key:"Portugal"},{axis:"position",key:"CAM"}],
+  "Ferguson 95":[{axis:"club",key:"Man Utd"}],
+  "Luis Enrique 95":[{axis:"position",key:"CAM"}],
+  "Mourinho 95":[{axis:"club",key:"Inter Milan"}],
+  "Klopp 94":[{axis:"club",key:"Liverpool"}],
+  "Guardiola 94":[{axis:"club",key:"Barcelona"}],
+  "Mourinho 94":[{axis:"club",key:"Chelsea"}],
+  "Arteta 94":[{axis:"position",key:"CB"}],
+  "Wenger 94":[{axis:"club",key:"Arsenal"}],
+  "Zidane 94":[{axis:"club",key:"Real Madrid"}],
+  "Nagelsmann 94":[{axis:"position",key:"CDM"}],
+  "Heynckes 93":[{axis:"club",key:"Bayern Munich"}],
+  "Flick 93":[{axis:"position",key:"CDM"}],
+  "Ancelotti 93":[{axis:"club",key:"AC Milan"}],
+  "Conte 93":[{axis:"position",key:"RB"}],
+  "Kompany 93":[{axis:"position",key:"ST"}],
+  "Luis Enrique 93":[{axis:"position",key:"CM"}],
+  "Flick 92":[{axis:"position",key:"CAM"}],
+  "Chivu 92":[{axis:"position",key:"CM"}],
+  "Emery 92":[{axis:"position",key:"GK"}],
+  "Klopp 92":[{axis:"club",key:"Borussia Dortmund"}],
+  "Arteta 92":[{axis:"position",key:"RW"}],
+  "Mancini 91":[{axis:"club",key:"Manchester City"}],
+  "Allegri 91":[{axis:"club",key:"Juventus"}],
+  "Simeone 91":[{axis:"club",key:"Atletico Madrid"}],
+  "Pochettino 91":[{axis:"club",key:"Spurs"}],
+  "Bosz 91":[{axis:"position",key:"RW"}],
+  "Kompany 91":[{axis:"position",key:"CDM"}],
+  "Guardiola 90 (RW)":[{axis:"position",key:"RW"}],
+  "Klopp 90":[{axis:"position",key:"LM"}],
+  "Mourinho 90":[{axis:"position",key:"GK"}],
+  "Farioli 90 (LW)":[{axis:"position",key:"LW"}],
+  "Marcelino 90":[{axis:"position",key:"RB"}],
+  "Jardim 90":[{axis:"club",key:"AS Monaco"}],
+  "Benítez 90":[{axis:"club",key:"Valencia CF"}],
+  "Sarri 90":[{axis:"club",key:"Napoli"}],
+  "Fàbregas 90":[{axis:"position",key:"LM"}],
+  "Farioli 90 (GK)":[{axis:"position",key:"GK"}]
+};
+function _cloneManagerBoosts(a){return Array.isArray(a)?a.map(x=>({axis:x.axis,key:x.key})):[];}
+function _normaliseTestManager(m){
+  const mapped=TEST_MANAGER_BOOSTS[m&&m.name]||[];
+  return {name:m.name,nation:m.nation,league:m.league,boosts:_cloneManagerBoosts(Array.isArray(m.boosts)?m.boosts:mapped)};
+}
+MANAGER_DB=MANAGER_DB.map(_normaliseTestManager);
+const DEFAULT_MGR_DB=MANAGER_DB.map(_normaliseTestManager);
 // v17.8.33: DEFAULT_DB entries may optionally carry a `pidx` field (any string/number) to
 // disambiguate two different real people who share both a name AND a primary position -- e.g.
 // "pidx":"1" / "pidx":"2". This only matters for the formation-calibration gold pool (see
@@ -7167,10 +7303,530 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabbar button').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');document.getElementById(b.dataset.v).classList.add('on');
+  if(b.dataset.v==='v-tests'&&typeof renderTestStatus==='function')renderTestStatus();
 });
 function _goView(v){const b=document.querySelector('.tabbar button[data-v="'+v+'"]');if(b)b.click();}
 function _clearSolve(){lastSolve=null;window._solved=null;window._solveCtx=null;window._bench=null;_v18MgrCk=null;window._v18MgrCkVar=null; // v18.0.0-BETA: a new solve means new ties — stale per-tie manager frontiers must not survive
   _benchCap=getBenchNodeCap();_mgrCap=getMgrNodeCap();const a=$('#solveOut');if(a)a.innerHTML='';const b=$('#mgrOut');if(b)b.innerHTML='';}
+
+/* ============================ TESTING DEMO: HARD CONDITIONS ============================ */
+function _getActiveConditions(){return CONDITIONS_ENABLED&&TEST_CONDITIONS.length?TEST_CONDITIONS.map(c=>Object.assign({},c)):[];}
+function _conditionAxisValues(axis){
+  if(axis==='nation')return NATIONS.slice();
+  if(axis==='league')return LEAGUE_NAMES.concat('Icons').filter((x,i,a)=>x&&a.indexOf(x)===i);
+  const set=new Set();
+  Object.values(CLUBS_BY_LEAGUE||{}).forEach(a=>(a||[]).forEach(x=>{if(x)set.add(x);}));
+  (playerDB||[]).forEach(p=>{if(p.club)set.add(p.club);});
+  return Array.from(set).sort((a,b)=>a.localeCompare(b));
+}
+function _conditionClubLeagues(){
+  const seen=new Set(),out=[];
+  for(const lg of LEAGUE_NAMES){if(lg&&lg!=='Icons'&&!seen.has(lg)){seen.add(lg);out.push(lg);}}
+  for(const p of (playerDB||[])){const lg=leagueOf(p);if(p.club&&lg&&lg!=='Icons'&&!seen.has(lg)){seen.add(lg);out.push(lg);}}
+  return out;
+}
+function conditionKindChanged(){
+  const k=$('#condKind').value,axis=k==='cards_from'||k==='total_different'||k==='max_same';
+  $('#condAxisWrap').style.display=axis?'block':'none';
+  $('#condKeyWrap').style.display=k==='cards_from'?'block':'none';
+  $('#condTypeWrap').style.display=k==='specific_card_type'?'block':'none';
+  $('#condOpWrap').style.display=k==='max_same'?'none':'block';
+  conditionAxisChanged();
+}
+function conditionClubLeagueChanged(){
+  const sel=$('#condKey'),lgSel=$('#condClubLeague');if(!sel||!lgSel)return;
+  const lg=lgSel.value,set=new Set((CLUBS_BY_LEAGUE&&CLUBS_BY_LEAGUE[lg])||[]);
+  for(const p of (playerDB||[]))if(p.club&&leagueOf(p)===lg)set.add(p.club);
+  const clubs=Array.from(set).filter(Boolean);
+  sel.innerHTML=clubs.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  $('#condKeyLabel').textContent='Which club';
+}
+function conditionAxisChanged(){
+  const sel=$('#condKey');if(!sel)return;const axis=$('#condAxis').value,k=$('#condKind').value;
+  const clubWrap=$('#condClubLeagueWrap'),lgSel=$('#condClubLeague');
+  const leagueFirst=k==='cards_from'&&axis==='club';
+  if(clubWrap)clubWrap.style.display=leagueFirst?'block':'none';
+  if(leagueFirst){
+    const leagues=_conditionClubLeagues(),prev=lgSel.value;
+    lgSel.innerHTML=leagues.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+    if(leagues.includes(prev))lgSel.value=prev;
+    conditionClubLeagueChanged();
+    return;
+  }
+  sel.innerHTML=_conditionAxisValues(axis).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  $('#condKeyLabel').textContent='Which '+axis;
+}
+function _conditionLabel(c){
+  const op=c.op==='lte'?'Max':c.op==='gte'?'Min':'Exact';
+  if(c.kind==='team_rating')return 'Team Rating · '+op+' '+c.value;
+  if(c.kind==='team_chem')return 'Team Chemistry · '+op+' '+c.value;
+  if(c.kind==='player_rating')return 'Every player rating · '+op+' '+c.value;
+  if(c.kind==='cards_from')return 'Cards from '+c.axis+' “'+c.key+'” · '+op+' '+c.value;
+  if(c.kind==='total_different')return 'Different '+c.axis+'s · '+op+' '+c.value;
+  if(c.kind==='max_same')return 'Cards from one '+c.axis+' · Max '+c.value;
+  if(c.kind==='total_icons')return 'Icons · '+op+' '+c.value;
+  if(c.kind==='total_heroes')return 'Heroes · '+op+' '+c.value;
+  if(c.kind==='special_cards')return 'Special cards · '+op+' '+c.value+' · ignored by RTG/SBC';
+  if(c.kind==='specific_card_type')return 'Card type “'+c.key+'” · '+op+' '+c.value+' · ignored by RTG/SBC';
+  return c.kind+' · '+op+' '+c.value;
+}
+function addCondition(){
+  const k=$('#condKind').value,v=Math.max(0,parseInt($('#condValue').value,10)||0),c={id:_condUid++,kind:k,value:v,op:$('#condOp').value};
+  if(k==='cards_from'||k==='total_different'||k==='max_same')c.axis=$('#condAxis').value;
+  if(k==='cards_from'){c.key=$('#condKey').value;if(!c.key){$('#conditionAddErr').textContent='Pick a league, nation, or club.';return;}}
+  if(k==='specific_card_type'){c.key=$('#condTypeText').value.trim();if(!c.key){$('#conditionAddErr').textContent='Enter the card type text.';return;}}
+  if(k==='max_same')c.op='lte';
+  TEST_CONDITIONS.push(c);$('#conditionAddErr').textContent='';renderConditionList();_clearSolve();saveLocal();
+}
+function removeCondition(id){TEST_CONDITIONS=TEST_CONDITIONS.filter(c=>c.id!==id);renderConditionList();_clearSolve();saveLocal();}
+function clearConditions(){TEST_CONDITIONS=[];renderConditionList();_clearSolve();saveLocal();}
+function _testSeededOrder(a,seed,salt){return a.slice().sort((x,y)=>_testHash(seed+'|'+salt+'|'+x._tid)-_testHash(seed+'|'+salt+'|'+y._tid));}
+function _randomConditionFixture(seed){
+  const all=_makeTestCards(seed,'sbc').filter(c=>c.rating>0),form=FORMS.find(f=>f.name===chosenForm),pick=new Array(11),used=new Set();
+  if(form){
+    const lists=form.slots.map((sl,i)=>({i,sl,list:_testSeededOrder(all.filter(c=>(c.pos||[]).includes(sl)),seed,sl+'|'+i)})).sort((a,b)=>a.list.length-b.list.length);
+    for(const x of lists){const c=x.list.find(v=>!used.has(v._person));if(!c)return null;pick[x.i]=c;used.add(c._person);}
+    return pick;
+  }
+  for(const c of _testSeededOrder(all,seed,'any')){if(used.has(c._person))continue;pick[used.size]=c;used.add(c._person);if(used.size===11)break;}
+  return used.size===11?pick:null;
+}
+function generateRandomConditions(){
+  const seed=(Date.now()^Math.floor(Math.random()*0x7fffffff))>>>0,xi=_randomConditionFixture(seed),err=$('#conditionAddErr');
+  if(!xi){if(err)err.textContent='Could not build a sample XI from the current database.';return;}
+  const sc=scoreXI(xi),f=_conditionFacts(xi,sc),ratings=xi.map(c=>c.rating),minR=Math.min(...ratings),maxR=Math.max(...ratings),r=n=>_testRand(seed^Math.imul(n,0x9e3779b1),0x7fffffff),candidates=[];
+  const add=(kind,op,value,extra)=>candidates.push(Object.assign({kind,op,value:Math.max(0,Math.round(value))},extra||{}));
+  add('team_rating',r(1)%8===0?'eq':r(2)%2?'gte':'lte',r(1)%8===0?sc.rating:(r(2)%2?Math.max(0,sc.rating-(r(3)%3)):Math.min(105,sc.rating+(r(4)%3))));
+  add('team_chem',r(5)%10===0?'eq':r(6)%2?'gte':'lte',r(5)%10===0?sc.chem:(r(6)%2?Math.max(0,sc.chem-(r(7)%4)):Math.min(33,sc.chem+(r(8)%4))));
+  add('player_rating','gte',Math.max(0,minR-(r(9)%3)));
+  add('player_rating','lte',Math.min(105,maxR+(r(10)%3)));
+  for(const axis of ['nation','league','club']){
+    const m=f[axis],keys=Object.keys(m);if(!keys.length)continue;const key=keys[r(11+keys.length)%keys.length],actual=m[key];
+    add('cards_from',r(12+actual)%2?'gte':'lte',r(12+actual)%2?Math.max(1,actual-(r(13)%2)):Math.min(11,actual+(r(14)%2)),{axis,key});
+    const cap=f['max'+axis.charAt(0).toUpperCase()+axis.slice(1)];add('max_same','lte',Math.min(11,cap+(r(15+cap)%2)),{axis});
+    const diff=f['diff'+axis.charAt(0).toUpperCase()+axis.slice(1)];add('total_different',r(16+diff)%2?'gte':'lte',r(16+diff)%2?Math.max(1,diff-(r(17)%2)):Math.min(11,diff+(r(18)%2)),{axis});
+  }
+  for(const [kind,actual] of [['total_icons',f.icons],['total_heroes',f.heroes],['special_cards',f.special]]){
+    const op=actual>0&&r(19+actual)%3===0?'gte':(r(20+actual)%4===0?'eq':'lte');
+    add(kind,op,op==='gte'?Math.max(0,actual-(r(21)%2)):op==='eq'?actual:Math.min(11,actual+1+(r(22)%2)));
+  }
+  const chosen=[],seen=new Set(),ordered=_testSeededOrder(candidates.map((c,i)=>Object.assign({_tid:i},c)),seed,'conditions');
+  for(const c of ordered){const sig=[c.kind,c.axis||'',c.key||'',c.op].join('|');if(seen.has(sig))continue;seen.add(sig);delete c._tid;c.id=_condUid++;chosen.push(c);if(chosen.length===4+(r(23)%3))break;}
+  TEST_CONDITIONS=chosen;CONDITIONS_ENABLED=true;if($('#conditionsEnabled'))$('#conditionsEnabled').checked=true;if(err)err.textContent='Generated from a sample database XI, so the stack is plausible for testing.';_syncConditionCardFields();renderConditionList();_clearSolve();saveLocal();
+}
+function renderConditionList(){
+  const el=$('#conditionList');if(!el)return;
+  el.innerHTML=TEST_CONDITIONS.length?TEST_CONDITIONS.map(c=>'<div class="cond-item"><div class="txt">'+esc(_conditionLabel(c))+'</div><button class="btn gho sm" onclick="removeCondition('+c.id+')">×</button></div>').join(''):'<div class="emptyx">No conditions added.</div>';
+  renderTestStatus();
+}
+function toggleConditionsMode(){
+  CONDITIONS_ENABLED=!!$('#conditionsEnabled').checked;_syncConditionCardFields();renderConditionList();_clearSolve();saveLocal();
+}
+function _syncConditionCardFields(){
+  const wrap=$('#conditionCardFields');if(wrap)wrap.style.display=CONDITIONS_ENABLED?'block':'none';
+  const sp=$('#f-special');if(!sp)return;let t='normal';try{t=curType('#typeSeg');}catch(e){}
+  if(t==='icon'||t==='hero'){sp.checked=true;sp.disabled=true;sp.dataset.autoSpecial='1';}
+  else{sp.disabled=false;if(sp.dataset.autoSpecial==='1')sp.checked=false;delete sp.dataset.autoSpecial;}
+}
+function renderTestStatus(){
+  const f=$('#testFormation'),c=$('#testConditionState');if(f)f.textContent=chosenForm||'None selected (required for SBC)';
+  if(c)c.textContent=CONDITIONS_ENABLED?(TEST_CONDITIONS.length+' active'):'Off';
+}
+
+/* ============================ TESTING DEMO: CONDITION-LED RTG/SBC SOLVERS ============================ */
+function _testHash(str){let h=2166136261>>>0;str=String(str);for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
+function _testRand(h,n){h^=h<<13;h^=h>>>17;h^=h<<5;return ((h>>>0)%n);}
+function _testTopDelta(h,lowIcon){
+  const normal=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1,-2,-2,-3,-4,1,1,1,2,3];
+  const low=[0,0,0,0,0,0,0,-1,-1,-1,-1,-2,-3,-4,1,1,1,1,1,1,2,2,3];
+  const a=lowIcon?low:normal;return a[_testRand(h,a.length)];
+}
+function _syntheticStats(c,seed){
+  const key=[seed,c.name||c.label,c.rating,c.type,c.nation,c.league,c.club,(c.pos||[]).join('/')].join('|');
+  const h=_testHash(key),r=Number(c.rating)||0,p=(c.primary||(c.pos||[])[0]||'').toUpperCase(),name=String(c.name||c.label||'').trim().toLowerCase();
+  if(c.type==='icon'&&r===73&&name==='roberto carlos')return {atk:74,bal:72,def:84};
+  if(c.type==='icon'&&r===74&&name==='cafu')return {atk:60,bal:73,def:85};
+  const top=Math.max(1,Math.min(105,r+_testTopDelta(h,c.type==='icon'&&r<=74))),drop=(salt,min,max)=>min+_testRand(h^salt,max-min+1);
+  let atk=top,bal=top,def=top;
+  if(p==='GK'){def=top;bal=top-drop(0x11,9,20);atk=top-drop(0x12,38,62);}
+  else if(p==='CB'){def=top;bal=top-drop(0x21,2,8);atk=top-drop(0x22,13,30);}
+  else if(p==='CDM'){def=top;bal=top-drop(0x31,0,5);atk=top-drop(0x32,4,13);}
+  else if(['LB','RB','LWB','RWB'].includes(p)){
+    if(_testRand(h^0x41,5)<3){def=top;bal=top-drop(0x42,0,4);}else{bal=top;def=top-drop(0x43,0,4);}atk=top-drop(0x44,3,11);
+  }
+  else if(p==='CM'){bal=top;atk=top-drop(0x51,0,5);def=top-drop(0x52,1,9);}
+  else if(p==='CAM'){
+    if(_testRand(h^0x61,3)){atk=top;bal=top-drop(0x62,0,3);}else{bal=top;atk=top-drop(0x63,0,3);}def=top-drop(0x64,12,35);
+  }
+  else if(['LM','RM','LW','RW'].includes(p)){atk=top;bal=top-drop(0x71,0,4);def=top-drop(0x72,12,42);}
+  else {atk=top;bal=top-drop(0x81,1,7);def=top-drop(0x82,22,58);}
+  const clamp=x=>Math.max(1,Math.min(105,Math.round(x)));
+  return {atk:clamp(atk),bal:clamp(bal),def:clamp(def)};
+}
+function _testOverperfScore(c,slot,stats){
+  const r=Number(c.rating)||0,d=[stats.atk-r,stats.bal-r,stats.def-r],mx=Math.max(...d),pos=d.reduce((a,x)=>a+Math.max(0,x),0),above=d.filter(x=>x>0).length,sum=d.reduce((a,x)=>a+x,0);
+  let roleDelta;
+  if(slot==='GK')roleDelta=d[2]*15+d[1]*3+d[0];
+  else if(['CB','CDM'].includes(slot))roleDelta=d[2]*12+d[1]*5+d[0]*3;
+  else if(['LB','RB','LWB','RWB'].includes(slot))roleDelta=d[2]*8+d[1]*7+d[0]*5;
+  else if(['CM','CAM'].includes(slot))roleDelta=d[1]*10+d[0]*8+d[2]*3;
+  else roleDelta=d[0]*12+d[1]*7+d[2];
+  return mx*1000000000+pos*10000000+above*100000+sum*1000+roleDelta*10+Math.max(stats.atk,stats.bal,stats.def)+r/1000;
+}
+function _testRtgCardScore(c){
+  const slots=(c.pos&&c.pos.length?c.pos:[c.primary||'ST']);let best=-Infinity;
+  for(const sl of slots)best=Math.max(best,_testOverperfScore(c,sl,c.fake));
+  return best;
+}
+function _testRoleScore(c,slot,plus){
+  const f=c.fake||{atk:c.rating,bal:c.rating,def:c.rating},x=plus?{atk:f.atk+plus,bal:f.bal+plus,def:f.def+plus}:f;
+  return _testOverperfScore(c,slot,x);
+}
+function _testPersonKey(c){return (c.name||c.label||'').toLowerCase()+'|'+(c.pidx==null?'':c.pidx);}
+function _testManagerKey(m){return String(m&&m.name||'').trim();}
+function _testIgnoredCondition(c){return c&&(['special_cards','specific_card_type'].includes(c.kind));}
+function _getTestActiveConditions(){return _getActiveConditions().filter(c=>!_testIgnoredCondition(c));}
+function _testIgnoredConditionCount(){return _getActiveConditions().filter(_testIgnoredCondition).length;}
+function _testCardMatchesCondition(c,cond){
+  if(cond.kind==='cards_from')return cond.axis==='nation'?c.nation===cond.key:cond.axis==='league'?leagueOf(c)===cond.key:c.club===cond.key;
+  if(cond.kind==='total_icons')return c.type==='icon';
+  if(cond.kind==='total_heroes')return c.type==='hero';
+  return false;
+}
+function _testPlayerRatingAllowed(c,conds){
+  for(const x of conds)if(x.kind==='player_rating'&&!_conditionCmp(c.rating,x.op||'eq',Number(x.value)||0))return false;
+  return true;
+}
+function _testForcedCardAllowed(c,conds){
+  for(const x of conds){
+    if(Number(x.value)!==11||!(x.op==='gte'||x.op==='eq'))continue;
+    if(['cards_from','total_icons','total_heroes'].includes(x.kind)&&!_testCardMatchesCondition(c,x))return false;
+  }
+  return true;
+}
+function _testRatingProfile(conds){
+  let min=null,max=null,exact=null;
+  for(const c of conds)if(c.kind==='team_rating'){
+    const v=Number(c.value)||0;
+    if(c.op==='eq')exact=v;
+    else if(c.op==='gte')min=min===null?v:Math.max(min,v);
+    else if(c.op==='lte')max=max===null?v:Math.min(max,v);
+  }
+  return {min,max,exact,target:exact!==null?exact:min!==null?min:max};
+}
+function _testBaseCandidateCmp(mode,slot,conds){
+  if(mode==='rtg')return (a,b)=>_testRoleScore(b,slot,1)-_testRoleScore(a,slot,1)||b.rating-a.rating||String(a.name).localeCompare(String(b.name));
+  const rp=_testRatingProfile(conds),t=rp.target;
+  if(t!==null&&t!==undefined){
+    return (a,b)=>{
+      const aOk=rp.min!==null||rp.exact!==null?a.rating>=t:a.rating<=t,bOk=rp.min!==null||rp.exact!==null?b.rating>=t:b.rating<=t;
+      return Number(bOk)-Number(aOk)||Math.abs(a.rating-t)-Math.abs(b.rating-t)||a.rating-b.rating||String(a.name).localeCompare(String(b.name));
+    };
+  }
+  return (a,b)=>b.rating-a.rating||String(a.name).localeCompare(String(b.name));
+}
+function _testCandidateList(all,slot,mode,conds,excluded,maxKeep,phase){
+  const blocked=excluded||new Set(),cap=Math.max(36,Number(maxKeep)||100),eligible=all.filter(c=>(c.pos||[]).includes(slot)&&!blocked.has(c._person)&&_testPlayerRatingAllowed(c,conds)&&_testForcedCardAllowed(c,conds));
+  const baseCmp=_testBaseCandidateCmp(mode,slot,conds),keep=[],seen=new Set(),add=c=>{if(c&&!seen.has(c._tid)&&keep.length<cap){seen.add(c._tid);keep.push(c);}};
+  eligible.sort(baseCmp);
+  eligible.slice(0,Math.min(cap,phase==='optimise'&&mode==='sbc'?Math.max(32,Math.floor(cap*.55)):48)).forEach(add);
+  for(const cond of conds){
+    if(['cards_from','total_icons','total_heroes'].includes(cond.kind)){
+      const matching=eligible.filter(c=>_testCardMatchesCondition(c,cond));
+      matching.slice(0,Math.max(30,Math.min(cap,Number(cond.value||0)*12))).forEach(add);
+    }
+    if(cond.kind==='total_different'||cond.kind==='max_same'){
+      const got=new Set();for(const c of eligible){const v=cond.axis==='nation'?c.nation:cond.axis==='league'?leagueOf(c):c.club;if(!v||got.has(v))continue;got.add(v);add(c);if(got.size>=Math.max(36,Number(cond.value||0)*7))break;}
+    }
+  }
+  const rp=_testRatingProfile(conds);
+  if(rp.min!==null||rp.exact!==null)eligible.slice().sort((a,b)=>b.rating-a.rating||baseCmp(a,b)).slice(0,48).forEach(add);
+  if(rp.max!==null||rp.exact!==null||phase==='optimise'&&mode==='sbc')eligible.slice().sort((a,b)=>a.rating-b.rating||baseCmp(a,b)).slice(0,Math.min(cap,70)).forEach(add);
+  for(const c of eligible){add(c);if(keep.length>=cap)break;}
+  return keep;
+}
+function _testPartialConditionValue(pick,cond){
+  if(cond.kind==='cards_from'||cond.kind==='total_icons'||cond.kind==='total_heroes')return pick.filter(c=>_testCardMatchesCondition(c,cond)).length;
+  if(cond.kind==='total_different'){const a=pick.map(c=>cond.axis==='nation'?c.nation:cond.axis==='league'?leagueOf(c):c.club).filter(Boolean);return new Set(a).size;}
+  if(cond.kind==='max_same'){const m={};pick.forEach(c=>{const v=cond.axis==='nation'?c.nation:cond.axis==='league'?leagueOf(c):c.club;if(v)m[v]=(m[v]||0)+1;});return Math.max(0,...Object.values(m));}
+  return 0;
+}
+function _testPartialConditionsPossible(pick,conds,remaining){
+  for(const c of conds){
+    if(c.kind==='player_rating'||c.kind==='team_rating'||c.kind==='team_chem')continue;
+    const a=_testPartialConditionValue(pick,c),t=Number(c.value)||0;
+    if(c.kind==='max_same'){if(a>t)return false;continue;}
+    if(c.op==='lte'&&a>t)return false;
+    if(c.op==='gte'&&a+remaining<t)return false;
+    if(c.op==='eq'&&(a>t||a+remaining<t))return false;
+  }
+  return true;
+}
+function _testAvailableCards(info,used){return info.list.filter(c=>!used.has(c._person));}
+function _testForwardPossible(pick,remainingInfos,used,conds){
+  const remaining=remainingInfos.length;
+  if(!_testPartialConditionsPossible(pick,conds,remaining))return false;
+  for(const c of conds){
+    const t=Number(c.value)||0,a=_testPartialConditionValue(pick,c);
+    if(['cards_from','total_icons','total_heroes'].includes(c.kind)&&(c.op==='gte'||c.op==='eq')){
+      let possible=0;for(const info of remainingInfos)if(info.list.some(x=>!used.has(x._person)&&_testCardMatchesCondition(x,c)))possible++;
+      if(a+possible<t)return false;
+    }
+    if(c.kind==='total_different'&&(c.op==='gte'||c.op==='eq')){
+      const vals=new Set(pick.map(x=>c.axis==='nation'?x.nation:c.axis==='league'?leagueOf(x):x.club).filter(Boolean));
+      for(const info of remainingInfos)for(const x of info.list){if(used.has(x._person))continue;const v=c.axis==='nation'?x.nation:c.axis==='league'?leagueOf(x):x.club;if(v)vals.add(v);}
+      if(vals.size<t)return false;
+    }
+  }
+  const ratingConds=conds.filter(c=>c.kind==='team_rating');
+  if(ratingConds.length){
+    const hi=pick.map(c=>c.rating),lo=pick.map(c=>c.rating);
+    for(const info of remainingInfos){const a=_testAvailableCards(info,used);if(!a.length)return false;hi.push(Math.max(...a.map(c=>c.rating)));lo.push(Math.min(...a.map(c=>c.rating)));}
+    const ub=futRating(hi),lb=futRating(lo);
+    for(const c of ratingConds){const t=Number(c.value)||0;if(c.op==='gte'&&ub<t)return false;if(c.op==='lte'&&lb>t)return false;if(c.op==='eq'&&(ub<t||lb>t))return false;}
+  }
+  return true;
+}
+function _testConditionRank(pick,conds){
+  if(!pick.length)return 0;let v=0;
+  for(const c of conds){const t=Number(c.value)||0;
+    if(c.kind==='player_rating')continue;
+    if(c.kind==='team_rating'){
+      const avg=pick.reduce((a,x)=>a+x.rating,0)/pick.length;
+      if(c.op==='gte')v+=(avg>=t?1000000:avg*1000);
+      else if(c.op==='lte')v+=(avg<=t?1000000:-Math.max(0,avg-t)*1000);
+      else v+=1000000-Math.abs(avg-t)*2000;
+      continue;
+    }
+    if(c.kind==='team_chem'){
+      const chem=trueChem(pick),scaled=t*pick.length/11;
+      if(c.op==='gte')v+=(chem>=scaled?1000000:chem*1000);
+      else if(c.op==='lte')v+=(chem<=scaled?1000000:-Math.max(0,chem-scaled)*1000);
+      else v+=1000000-Math.abs(chem-scaled)*2000;
+      continue;
+    }
+    const a=_testPartialConditionValue(pick,c);
+    if(c.op==='gte')v+=Math.min(a,t)*100000;
+    else if(c.op==='lte')v+=(a<=t?100000:-1000000*(a-t));
+    else v+=100000-Math.abs(a-t)*100000;
+  }
+  return v;
+}
+function _testNeedScore(c,pick,conds){
+  let v=0;
+  for(const x of conds){const t=Number(x.value)||0,a=_testPartialConditionValue(pick,x);
+    if(['cards_from','total_icons','total_heroes'].includes(x.kind)&&(x.op==='gte'||x.op==='eq')&&a<t&&_testCardMatchesCondition(c,x))v+=(t-a)*100000000;
+    if(x.kind==='total_different'&&(x.op==='gte'||x.op==='eq')&&a<t){const key=x.axis==='nation'?c.nation:x.axis==='league'?leagueOf(c):c.club,old=new Set(pick.map(p=>x.axis==='nation'?p.nation:x.axis==='league'?leagueOf(p):p.club).filter(Boolean));if(key&&!old.has(key))v+=50000000;}
+  }
+  return v;
+}
+function _makeTestCards(seed,mode){return playerDB.map((p,i)=>{const c={_tid:i,name:p.name,label:p.name,rating:Number(p.rating)||0,type:p.type||'normal',nation:p.nation||'',league:p.league||'',club:p.club||null,pos:(p.pos||[]).map(normPos),primary:p.primary?normPos(p.primary):normPos((p.pos||[])[0]||''),pidx:p.pidx};if(mode==='rtg')c.fake=_syntheticStats(c,seed);c._person=_testPersonKey(c);return c;});}
+function _testChemCounts(xi){
+  const natCnt={},clubCnt={},lgCnt={};let icons=0;
+  for(const c of xi){
+    if(c.type==='icon'){icons++;natCnt[c.nation]=(natCnt[c.nation]||0)+2;}
+    else if(c.type==='hero'){natCnt[c.nation]=(natCnt[c.nation]||0)+1;const lg=leagueOf(c);lgCnt[lg]=(lgCnt[lg]||0)+2;}
+    else{natCnt[c.nation]=(natCnt[c.nation]||0)+1;if(c.club)clubCnt[c.club]=(clubCnt[c.club]||0)+1;const lg=leagueOf(c);lgCnt[lg]=(lgCnt[lg]||0)+1;}
+  }
+  if(icons>0)for(const lg of Object.keys(lgCnt))lgCnt[lg]+=icons;
+  return {natCnt,clubCnt,lgCnt};
+}
+function _testChemPerCardWithManager(xi,mgr){
+  const {natCnt,clubCnt,lgCnt}=_testChemCounts(xi);
+  if(mgr&&mgr.nation)natCnt[mgr.nation]=(natCnt[mgr.nation]||0)+1;
+  if(mgr&&mgr.league)lgCnt[mgr.league]=(lgCnt[mgr.league]||0)+1;
+  const nP=n=>n>=8?3:n>=5?2:n>=2?1:0,cP=n=>n>=7?3:n>=4?2:n>=2?1:0,lP=n=>n>=8?3:n>=5?2:n>=3?1:0;
+  return xi.map(c=>c.type==='icon'||c.type==='hero'?3:Math.min(3,nP(natCnt[c.nation]||0)+cP(clubCnt[c.club]||0)+lP(lgCnt[leagueOf(c)]||0)));
+}
+function _testSelectorMatches(sel,c,slot){return sel.axis==='position'?slot===sel.key:sel.axis==='nation'?c.nation===sel.key:sel.axis==='league'?leagueOf(c)===sel.key:c.club===sel.key;}
+function _testManagerBoosts(m){return Array.isArray(m&&m.boosts)?m.boosts:[];}
+function _testTeamChemConditionMet(chem,conds){for(const c of conds)if(c.kind==='team_chem'&&!_conditionCmp(chem,c.op||'eq',Number(c.value)||0))return false;return true;}
+function _bestTestManager(xi,form,seed,conds,managerExcluded){
+  const blocked=managerExcluded||new Set(),pool=MANAGER_DB.filter(m=>!blocked.has(_testManagerKey(m))),rawChem=trueChemPerCard(xi);let best=null;
+  for(const mgr of pool){
+    const chem=_testChemPerCardWithManager(xi,mgr),chemTotal=chem.reduce((a,b)=>a+b,0);if(!_testTeamChemConditionMet(chemTotal,conds))continue;
+    const boosts=_testManagerBoosts(mgr),cards=[],objParts=[];
+    for(let i=0;i<xi.length;i++){
+      const c=xi[i],penalty=chem[i]<=1?-1:0,boost=boosts.some(sel=>_testSelectorMatches(sel,c,form.slots[i]))?1:0;
+      const stats={atk:c.fake.atk+penalty+boost,bal:c.fake.bal+penalty+boost,def:c.fake.def+penalty+boost};
+      objParts.push(_testOverperfScore(c,form.slots[i],stats));
+      cards.push({chem:chem[i],penalty,boost,stats,bestDelta:Math.max(stats.atk-c.rating,stats.bal-c.rating,stats.def-c.rating),positiveDelta:[stats.atk-c.rating,stats.bal-c.rating,stats.def-c.rating].reduce((a,x)=>a+Math.max(0,x),0)});
+    }
+    const obj=objParts.reduce((a,b)=>a+b,0),boosted=cards.filter(x=>x.boost).length;
+    if(!best||obj>best.obj||obj===best.obj&&chemTotal>best.chemTotal||obj===best.obj&&chemTotal===best.chemTotal&&boosted>best.boosted){
+      best={name:mgr.name,nation:mgr.nation,league:mgr.league,boosts:_cloneManagerBoosts(boosts),obj,chemTotal,cards,chemRaised:chem.filter((v,i)=>v>rawChem[i]).length,boosted,seed};
+    }
+  }
+  return best;
+}
+function _testNonChemConditionsMet(sc,xi,conds){return _conditionsMet(sc,xi,conds.filter(c=>c.kind!=='team_chem'));}
+function _testFinalizeXI(pick,form,conds,seed,mode,managerExcluded){
+  const baseSc=scoreXI(pick);
+  if(mode==='rtg'){
+    if(!_testNonChemConditionsMet(baseSc,pick,conds))return null;
+    const mgr=_bestTestManager(pick,form,seed,conds,managerExcluded);if(!mgr)return null;
+    const sc=Object.assign({},baseSc,{chem:mgr.chemTotal,total:baseSc.total-baseSc.chem+mgr.chemTotal,full:mgr.chemTotal===33});
+    if(!_conditionsMet(sc,pick,conds))return null;
+    return {pick:pick.slice(),obj:mgr.obj,sc,mgr};
+  }
+  if(!_conditionsMet(baseSc,pick,conds))return null;
+  return {pick:pick.slice(),obj:-pick.reduce((a,c)=>a+c.rating,0),sc:baseSc};
+}
+function _testPrepareInfos(all,form,mode,conds,excluded,cap,phase){
+  return form.slots.map((sl,i)=>({i,sl,list:_testCandidateList(all,sl,mode,conds,excluded,cap,phase)})).sort((a,b)=>a.list.length-b.list.length||a.i-b.i);
+}
+function _testFeasibleDFS(form,conds,seed,all,mode,excluded,managerExcluded,cfg,stats){
+  const infos=_testPrepareInfos(all,form,mode,conds,excluded,cfg.cap,'feasible');if(infos.some(x=>!x.list.length))return null;
+  const pick=new Array(11),used=new Set();let answer=null;
+  function dfs(depth){
+    if(answer||stats.nodes>=cfg.nodes){if(stats.nodes>=cfg.nodes)stats.capped=true;return;}
+    stats.nodes++;
+    if(depth===infos.length){answer=_testFinalizeXI(pick,form,conds,seed,mode,managerExcluded);return;}
+    const info=infos[depth],remaining=infos.slice(depth+1),candidates=_testAvailableCards(info,used);
+    candidates.sort((a,b)=>{
+      const na=_testNeedScore(a,pick.filter(Boolean),conds),nb=_testNeedScore(b,pick.filter(Boolean),conds);if(nb!==na)return nb-na;
+      const ra=_testConditionRank(pick.filter(Boolean).concat(a),conds),rb=_testConditionRank(pick.filter(Boolean).concat(b),conds);if(rb!==ra)return rb-ra;
+      return _testBaseCandidateCmp(mode,info.sl,conds)(a,b);
+    });
+    for(const c of candidates){
+      if(stats.nodes>=cfg.nodes){stats.capped=true;break;}
+      pick[info.i]=c;used.add(c._person);const chosen=pick.filter(Boolean);
+      if(_testForwardPossible(chosen,remaining,used,conds))dfs(depth+1);
+      used.delete(c._person);pick[info.i]=undefined;if(answer)break;
+    }
+  }
+  dfs(0);return answer?{state:answer,form,seed,conds}:null;
+}
+function _testOptimiseDFS(form,conds,seed,all,mode,excluded,managerExcluded,fallback,cfg,stats){
+  const infos=_testPrepareInfos(all,form,mode,conds,excluded,cfg.cap,'optimise');if(infos.some(x=>!x.list.length))return fallback;
+  const pick=new Array(11),used=new Set();let best=fallback.state;
+  const remainingRtgMax=new Array(infos.length+1).fill(0),remainingSbcMin=new Array(infos.length+1).fill(0);
+  for(let i=infos.length-1;i>=0;i--){
+    remainingRtgMax[i]=remainingRtgMax[i+1]+Math.max(...infos[i].list.map(c=>_testRoleScore(c,infos[i].sl,1)));
+    remainingSbcMin[i]=remainingSbcMin[i+1]+Math.min(...infos[i].list.map(c=>c.rating));
+  }
+  function dfs(depth,rawPotential,sumRating){
+    if(stats.nodes>=cfg.nodes){stats.capped=true;return;}
+    stats.nodes++;
+    if(mode==='rtg'&&rawPotential+remainingRtgMax[depth]<=best.obj)return;
+    if(mode==='sbc'&&-(sumRating+remainingSbcMin[depth])<=best.obj)return;
+    if(depth===infos.length){const fin=_testFinalizeXI(pick,form,conds,seed,mode,managerExcluded);if(!fin)return;if(fin.obj>best.obj||fin.obj===best.obj&&fin.sc.total>best.sc.total)best=fin;return;}
+    const info=infos[depth],remaining=infos.slice(depth+1),baseCmp=_testBaseCandidateCmp(mode,info.sl,conds),candidates=_testAvailableCards(info,used);
+    candidates.sort((a,b)=>{
+      const na=_testNeedScore(a,pick.filter(Boolean),conds),nb=_testNeedScore(b,pick.filter(Boolean),conds);if(nb!==na)return nb-na;
+      if(mode==='sbc')return a.rating-b.rating||baseCmp(a,b);
+      return _testRoleScore(b,info.sl,1)-_testRoleScore(a,info.sl,1)||baseCmp(a,b);
+    });
+    for(const c of candidates){
+      if(stats.nodes>=cfg.nodes){stats.capped=true;break;}
+      pick[info.i]=c;used.add(c._person);const chosen=pick.filter(Boolean);
+      if(_testForwardPossible(chosen,remaining,used,conds))dfs(depth+1,rawPotential+(mode==='rtg'?_testRoleScore(c,info.sl,1):0),sumRating+c.rating);
+      used.delete(c._person);pick[info.i]=undefined;
+    }
+  }
+  dfs(0,0,0);
+  return {state:best,form,seed,conds,optimised:best!==fallback.state};
+}
+function _testSearchConfig(mode,scale,expanded){
+  scale=Math.max(1,Number(scale)||1);
+  if(mode==='sbc')return {feasible:{nodes:(expanded?220000:50000)*scale,cap:expanded?240:140},optimise:{nodes:60000*scale,cap:Math.min(320,135+Math.floor(Math.log2(scale+1))*40)}};
+  return {feasible:{nodes:(expanded?24000:5000)*scale,cap:expanded?190:90},optimise:{nodes:4200*scale,cap:Math.min(210,85+Math.floor(Math.log2(scale+1))*28)}};
+}
+function _runRtgTestSearch(conds,seed,all,scale){
+  let best=null,formsChecked=0;const stats={nodes:0,capped:false},cfg=_testSearchConfig('rtg',scale,false),blocked=RTG_TEST_EXCLUSIONS,mgrBlocked=RTG_TEST_MANAGER_EXCLUSIONS;
+  if(!MANAGER_DB.some(m=>!mgrBlocked.has(_testManagerKey(m))))return {error:'Every manager in the database is excluded. Clear at least one manager exclusion.',seed,conds,search:{nodes:0,capped:false,scale,formsChecked:0}};
+  const feasibleForms=[];
+  for(const form of FORMS){
+    formsChecked++;const localF={nodes:0,capped:false},feasible=_testFeasibleDFS(form,conds,seed,all,'rtg',blocked,mgrBlocked,cfg.feasible,localF);stats.nodes+=localF.nodes;stats.capped=stats.capped||localF.capped;if(!feasible)continue;feasibleForms.push(feasible);
+    if(!best||feasible.state.obj>best.state.obj||feasible.state.obj===best.state.obj&&feasible.state.sc.total>best.state.sc.total)best=feasible;
+  }
+  // Every feasible formation keeps its locked fallback, but bounded optimisation starts with the
+  // strongest fallbacks instead of spending the same cap on all 27 shapes. Keep searching widens
+  // this shortlist as well as the per-formation DFS cap, eventually reaching every feasible shape.
+  feasibleForms.sort((a,b)=>b.state.obj-a.state.obj||b.state.sc.total-a.state.sc.total);
+  const formLimit=Math.min(feasibleForms.length,Math.max(6,Math.ceil(6*Math.sqrt(scale))));
+  for(const feasible of feasibleForms.slice(0,formLimit)){
+    const localO={nodes:0,capped:false},res=_testOptimiseDFS(feasible.form,conds,seed,all,'rtg',blocked,mgrBlocked,feasible,cfg.optimise,localO);stats.nodes+=localO.nodes;stats.capped=stats.capped||localO.capped;
+    if(!best||res.state.obj>best.state.obj||res.state.obj===best.state.obj&&res.state.sc.total>best.state.sc.total)best=res;
+  }
+  if(!best){
+    const xcfg=_testSearchConfig('rtg',scale,true);
+    for(const form of FORMS){const local={nodes:0,capped:false},feasible=_testFeasibleDFS(form,conds,seed,all,'rtg',blocked,mgrBlocked,xcfg.feasible,local);stats.nodes+=local.nodes;stats.capped=stats.capped||local.capped;if(!feasible)continue;const o={nodes:0,capped:false},res=_testOptimiseDFS(form,conds,seed,all,'rtg',blocked,mgrBlocked,feasible,xcfg.optimise,o);stats.nodes+=o.nodes;stats.capped=stats.capped||o.capped;if(!best||res.state.obj>best.state.obj)best=res;}
+  }
+  if(!best)return {error:'No condition-valid in-position XI was found at this search depth. The supported conditions may conflict, or this case may need Keep searching.',seed,conds,search:{nodes:stats.nodes,capped:stats.capped,scale,formsChecked}};
+  best.search={nodes:stats.nodes,capped:stats.capped,scale,formsChecked};return best;
+}
+function _runSbcTestSearch(conds,seed,all,scale){
+  const form=FORMS.find(f=>f.name===chosenForm);if(!form)return {error:'Select a formation first for the SBC solver.',seed,conds,search:{nodes:0,capped:false,scale,formsChecked:0}};
+  const cfg=_testSearchConfig('sbc',scale,false),fs={nodes:0,capped:false};let feasible=_testFeasibleDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,cfg.feasible,fs);
+  if(!feasible){const xcfg=_testSearchConfig('sbc',scale,true),xs={nodes:0,capped:false};feasible=_testFeasibleDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,xcfg.feasible,xs);fs.nodes+=xs.nodes;fs.capped=fs.capped||xs.capped;}
+  if(!feasible)return {error:'No condition-valid XI was found at this search depth. Check contradictory conditions or exclusions, then use Keep searching for a broader DFS.',form,seed,conds,search:{nodes:fs.nodes,capped:fs.capped,scale,formsChecked:1}};
+  const os={nodes:0,capped:false},res=_testOptimiseDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,feasible,cfg.optimise,os);res.search={nodes:fs.nodes+os.nodes,capped:fs.capped||os.capped,scale,formsChecked:1};return res;
+}
+function _runTestSearch(mode,scale){
+  const conds=_getTestActiveConditions(),seed=Math.max(1,parseInt($('#testStatSeed').value,10)||1),all=_makeTestCards(seed,mode);
+  return mode==='rtg'?_runRtgTestSearch(conds,seed,all,scale):_runSbcTestSearch(conds,seed,all,scale);
+}
+function _testBoostLabel(sel){return sel.axis==='position'?sel.key+' position':sel.axis==='club'?sel.key+' club':sel.axis==='league'?sel.key+' league':sel.key+' nation';}
+function _testExclusionSummary(mode){
+  if(mode==='sbc')return SBC_TEST_EXCLUSIONS.size?SBC_TEST_EXCLUSIONS.size+' player '+(SBC_TEST_EXCLUSIONS.size===1?'identity':'identities')+' excluded':'';
+  const p=RTG_TEST_EXCLUSIONS.size,m=RTG_TEST_MANAGER_EXCLUSIONS.size,a=[];if(p)a.push(p+' player '+(p===1?'identity':'identities'));if(m)a.push(m+' manager'+(m===1?'':'s'));return a.length?a.join(' and ')+' excluded':'';
+}
+function _testSearchButtons(mode,res){
+  const scale=res&&res.search?res.search.scale:TEST_SEARCH_SCALE[mode],nodes=res&&res.search?res.search.nodes:0,capped=res&&res.search?res.search.capped:false;
+  return '<div class="tiny" style="margin-top:8px">'+nodes.toLocaleString()+' DFS nodes checked at depth ×'+scale+(capped?' · search cap reached':'')+'. This search is intentionally bounded; a deeper run keeps the valid fallback.</div><div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="keepSearchingTest(\''+mode+'\',3)">Keep searching ×3</button><button class="btn gho sm" onclick="keepSearchingTest(\''+mode+'\',10)">Search much longer ×10</button></div>';
+}
+function _renderTestResult(res,mode){
+  const id=mode==='rtg'?'#rtgTestOut':'#sbcTestOut',el=$(id);if(!el)return;
+  if(res.error){
+    const ex=_testExclusionSummary(mode),ignored=_testIgnoredConditionCount();
+    let html='<div class="note" style="border-color:var(--bad)">'+esc(res.error)+(ex?'<div class="tiny" style="margin-top:7px">'+esc(ex)+'.</div>':'')+(ignored?'<div class="tiny" style="margin-top:7px">'+ignored+' unsupported condition'+(ignored===1?' was':'s were')+' ignored.</div>':'')+'</div>';
+    html+=_testSearchButtons(mode,res);
+    if(ex)html+='<button class="btn gho sm" style="margin-top:8px" onclick="clearTestExclusions(\''+mode+'\')">Clear '+(mode==='rtg'?'all RTG':'SBC')+' exclusions</button>';
+    el.innerHTML=html;return;
+  }
+  const st=res.state,sc=st.sc,totalRating=st.pick.reduce((a,c)=>a+c.rating,0),title=mode==='rtg'?'Best RTG / WL XI found':'Lowest-rating valid XI found',ignored=_testIgnoredConditionCount();
+  if(mode==='sbc')_lastSbcTestResult=res;else _lastRtgTestResult=res;
+  let html='<div class="summary"><div style="font-weight:800;color:var(--cyan)">'+title+'</div><div class="tiny">Formation '+esc(res.form.name)+' · Team rating '+sc.rating+' · Chem '+sc.chem+' · Score '+sc.total+(mode==='sbc'?' · Card-rating sum '+totalRating:' · Seed '+res.seed)+'</div>';
+  html+='<div class="note" style="margin-top:9px;border-color:var(--good)">A valid XI was locked before optimisation. '+(res.optimised?'The bounded DFS then improved it without risking the fallback.':'The feasibility XI remains the best result reached so far.')+'</div>';
+  if(ignored)html+='<div class="tiny" style="margin:7px 0;color:var(--warn)">'+ignored+' Special/type condition'+(ignored===1?' was':'s were')+' ignored because the player DB does not store those fields.</div>';
+  const ex=_testExclusionSummary(mode);if(ex)html+='<div class="tiny" style="margin:7px 0">'+esc(ex)+'. Exclusions remain active until cleared.</div>';
+  if(mode==='rtg'){
+    const mgr=st.mgr,positive=mgr.cards.reduce((a,x)=>a+x.positiveDelta,0),over=mgr.cards.filter(x=>x.bestDelta>0).length,bestDelta=Math.max(...mgr.cards.map(x=>x.bestDelta)),boosts=mgr.boosts.length?mgr.boosts.map(_testBoostLabel).join(' + '):'no stat boost';
+    html+='<div class="note" style="margin-top:9px"><label style="display:flex;align-items:center;gap:7px;margin:0 0 6px;text-transform:none;letter-spacing:0;color:var(--mut)"><input id="rtgExcludeManager" type="checkbox" style="width:auto"> Redo without this manager</label><b style="color:var(--ink)">'+esc(mgr.name)+'</b><br>Chemistry count: +1 '+esc(mgr.nation)+' nation and +1 '+esc(mgr.league)+' league; only threshold crossings change chemistry.<br>Stat boost: +1 all stats for '+esc(boosts)+'; matching two printed boosts still gives only +1.<br>'+mgr.chemRaised+' player'+(mgr.chemRaised===1?'':'s')+' gained chemistry · '+mgr.boosted+' player'+(mgr.boosted===1?'':'s')+' received the stat boost · 0/1 chem = -1 all stats · 2/3 chem = full stats</div>';
+    html+='<div class="tiny" style="margin:7px 0">'+over+'/11 cards finish with a stat above rating · Best gap '+(bestDelta>=0?'+':'')+bestDelta+' · Total positive stat gap +'+positive+'</div>';
+  }
+  html+='<div class="xi">';
+  st.pick.forEach((c,i)=>{
+    const slot=res.form.slots[i],cls=mode==='rtg'?'rtgExcludePick':'sbcExcludePick',chooser='<label style="display:flex;align-items:center;gap:7px;margin:0 0 6px;text-transform:none;letter-spacing:0;color:var(--mut)"><input class="'+cls+'" type="checkbox" value="'+i+'" style="width:auto"> Redo without this player</label>';let stats='';
+    if(mode==='rtg'){const d=st.mgr.cards[i],fmt=(k,l)=>l+'<b>'+c.fake[k]+'→'+d.stats[k]+'</b>';stats='<div class="test-stat-grid"><div class="test-stat">'+fmt('atk','ATK')+'</div><div class="test-stat">'+fmt('bal','BAL')+'</div><div class="test-stat">'+fmt('def','DEF')+'</div></div><div class="tiny">Chem '+d.chem+(d.penalty?' · -1 low-chem penalty':'')+(d.boost?' · +1 manager stat boost':'')+' · Best stat gap '+(d.bestDelta>=0?'+':'')+d.bestDelta+'</div>';}
+    html+='<div class="test-card">'+chooser+'<div><b style="color:var(--ink)">'+esc(slot)+' · '+esc(c.label)+'</b> <span class="pill '+esc(c.type)+'">'+esc(c.type)+'</span> <b style="float:right">'+c.rating+'</b></div><div class="tiny">'+esc(c.nation)+' · '+esc(leagueOf(c))+(c.club?' · '+esc(c.club):'')+'</div>'+stats+'</div>';
+  });
+  html+='</div>';
+  html+='<div class="note" style="margin-top:10px">Select players you cannot use'+(mode==='rtg'?' and optionally the chosen manager':'')+', then retry. Previous exclusions remain active and are added to the new selections.</div><button class="btn sec sm" onclick="redoTestWithoutSelected(\''+mode+'\')">Redo without selected</button>'+(ex?'<button class="btn gho sm" style="margin-top:8px" onclick="clearTestExclusions(\''+mode+'\')">Clear '+(mode==='rtg'?'all RTG':'SBC')+' exclusions</button>':'')+'<div id="'+mode+'ExcludeErr" class="tiny"></div>';
+  html+=_testSearchButtons(mode,res);html+='</div>';el.innerHTML=html;
+}
+function runRtgTestSolver(){TEST_SEARCH_SCALE.rtg=1;const el=$('#rtgTestOut');el.innerHTML='<div class="note">Building a condition-valid formation first, then running bounded DFS with the real manager boosts…</div>';setTimeout(()=>_renderTestResult(_runTestSearch('rtg',TEST_SEARCH_SCALE.rtg),'rtg'),20);}
+function runSbcTestSolver(){TEST_SEARCH_SCALE.sbc=1;const el=$('#sbcTestOut');el.innerHTML='<div class="note">Building a condition-valid XI first, then running bounded DFS to lower its ratings…</div>';setTimeout(()=>_renderTestResult(_runTestSearch('sbc',TEST_SEARCH_SCALE.sbc),'sbc'),20);}
+function keepSearchingTest(mode,factor){
+  TEST_SEARCH_SCALE[mode]=Math.min(1000,Math.max(1,TEST_SEARCH_SCALE[mode])*(Number(factor)||3));const el=$(mode==='rtg'?'#rtgTestOut':'#sbcTestOut');if(el)el.innerHTML='<div class="note">Keeping the valid fallback and searching deeper at ×'+TEST_SEARCH_SCALE[mode]+'…</div>';setTimeout(()=>_renderTestResult(_runTestSearch(mode,TEST_SEARCH_SCALE[mode]),mode),20);
+}
+function redoTestWithoutSelected(mode){
+  const last=mode==='rtg'?_lastRtgTestResult:_lastSbcTestResult,err=$(mode==='rtg'?'#rtgExcludeErr':'#sbcExcludeErr'),boxes=Array.from(document.querySelectorAll('.'+mode+'ExcludePick:checked'));let added=0;
+  if(last)for(const box of boxes){const c=last.state.pick[Number(box.value)];if(!c)continue;if(mode==='rtg'){RTG_TEST_EXCLUSIONS.add(c._person);RTG_TEST_EXCLUSION_LABELS.set(c._person,c.label);}else{SBC_TEST_EXCLUSIONS.add(c._person);SBC_TEST_EXCLUSION_LABELS.set(c._person,c.label);}added++;}
+  if(mode==='rtg'&&$('#rtgExcludeManager')&&$('#rtgExcludeManager').checked&&last&&last.state.mgr){const k=_testManagerKey(last.state.mgr);RTG_TEST_MANAGER_EXCLUSIONS.add(k);RTG_TEST_MANAGER_EXCLUSION_LABELS.set(k,last.state.mgr.name);added++;}
+  if(!added){if(err)err.textContent='Select at least one player'+(mode==='rtg'?' or the manager':'')+' first.';return;}
+  TEST_SEARCH_SCALE[mode]=1;if(mode==='rtg')runRtgTestSolver();else runSbcTestSolver();
+}
+function clearTestExclusions(mode){
+  if(mode==='rtg'){RTG_TEST_EXCLUSIONS.clear();RTG_TEST_EXCLUSION_LABELS.clear();RTG_TEST_MANAGER_EXCLUSIONS.clear();RTG_TEST_MANAGER_EXCLUSION_LABELS.clear();runRtgTestSolver();}
+  else{SBC_TEST_EXCLUSIONS.clear();SBC_TEST_EXCLUSION_LABELS.clear();runSbcTestSolver();}
+}
+// Backward-compatible names retained for any stale UI or saved-page calls.
+function redoSbcWithoutSelected(){redoTestWithoutSelected('sbc');}
+function clearSbcTestExclusions(){clearTestExclusions('sbc');}
+function regenerateTestStats(){const el=$('#testStatSeed');el.value=(parseInt(el.value,10)||1)+1;$('#rtgTestOut').innerHTML='';_lastRtgTestResult=null;TEST_SEARCH_SCALE.rtg=1;}
+
 /* ==== Solve recreation log ====
    Records, per solve session, everything needed to re-run the EXACT conditions that produced the
    result in the log: (a) a snapshot of every solver-relevant setting at the moment the fresh solve
@@ -7185,7 +7841,7 @@ function _clearSolve(){lastSolve=null;window._solved=null;window._solveCtx=null;
    Stamped into lastSolve (settings/steps) at applyTie/emergency time, so it persists through
    save/export/restore with everything else and refreshLog can print it. */
 let _recActions=[],_recBase=null,_recCurSettings=null;
-function _recSnapshot(){return {rc:getRatingCeil(),capM:Math.round(getNodeCap()/1000000),benchCapM:Math.round(getBenchNodeCap()/1000000),mgrCapM:Math.round(getMgrNodeCap()/1000000),target:_targetScore()||0,bench:_benchMode(),benchEV:_benchObjEV(),mgrDepth:_mgrFrac(),skipTies:_skipTies(),divPct:_divPct(),shuffles:_shuffleCount(),parBeta:_parallelBetaOn(),parWorkers:_parWorkerCount()};}
+function _recSnapshot(){return {rc:getRatingCeil(),capM:Math.round(getNodeCap()/1000000),benchCapM:Math.round(getBenchNodeCap()/1000000),mgrCapM:Math.round(getMgrNodeCap()/1000000),target:_targetScore()||0,bench:_benchMode(),benchEV:_benchObjEV(),mgrDepth:_mgrFrac(),skipTies:_skipTies(),divPct:_divPct(),shuffles:_shuffleCount(),parBeta:_parallelBetaOn(),parWorkers:_parWorkerCount(),conditions:_getActiveConditions().map(_conditionLabel)};}
 function _recFmtSettings(s){return 'RC '+s.rc+' \u00b7 node cap '+s.capM+'M \u00b7 bench cap '+s.benchCapM+'M \u00b7 mgr cap '+s.mgrCapM+'M \u00b7 target '+(s.target?s.target:'off')+' \u00b7 bench speed '+s.bench+' \u00b7 bench obj '+(s.benchEV?'EV':'+2')+' \u00b7 mgr depth '+(typeof s.mgrDepth==='number'?s.mgrDepth.toFixed(2):s.mgrDepth)+' \u00b7 skip ties '+(s.skipTies?'on':'off')+' \u00b7 diversity '+(s.shuffles?(s.divPct+'%/'+s.shuffles+'sh'):'off')+' \u00b7 parallel '+(s.parBeta?('on/'+s.parWorkers+'w'):'off');}
 function _recNoteSettingsDrift(){
   const cur=_recSnapshot();
@@ -7441,7 +8097,8 @@ function fillFormFromPlayer(p){
   if(p.type==='normal'){const lg=_refreshNormalClubs('#f'),opts=lg?clubsForLeague(lg):[];if(opts.includes(p.club))$('#f-club').value=p.club;}
   const want=new Set((p.pos||[]).map(normPos));
   $('#posChips').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',want.has(c.dataset.p)));
-  $('#addErr').style.color='var(--warn)';$('#addErr').textContent='\u26a0 Autofilled from DB \u2014 DOUBLE-CHECK THE POSITIONS (least reliable field), then Add.';
+  if($('#f-cardtype'))$('#f-cardtype').value=p.cardType||'';if($('#f-special')){delete $('#f-special').dataset.autoSpecial;$('#f-special').checked=(p.type==='icon'||p.type==='hero'||p.isSpecial===true);}_syncConditionCardFields();
+  $('#addErr').style.color='var(--warn)';$('#addErr').textContent='⚠ Autofilled from DB — DOUBLE-CHECK THE POSITIONS (least reliable field), then Add.';
   // Selecting this option blurs #f-label, which dismisses the mobile keyboard — that close
   // animation resizes the viewport ~250-350ms *after* this handler runs. Scrolling immediately
   // targets the cramped keyboard-open viewport, then the keyboard closes and the layout shifts
@@ -7480,7 +8137,7 @@ function wireHelpNameCombo(){
 wireHelpNameCombo();
 function setDBStatus(msg,col){$('#dbStatus').textContent=msg;$('#dbStatus').style.color=col||'var(--mut)';}
 function clearDB(){if(!confirm('Clear the ENTIRE player database? Solving and name autofill will rely on manual entry until you reset to default.'))return;playerDB=[];rebuildRarity();setDBStatus('Database cleared \u2014 manual entry only. (Reset to default to bring it back.)');_dbSave();_renderCalResult();_pivMarkDbChanged();}
-function loadDefaultDB(){playerDB=DEFAULT_DB.map(p=>({name:p.name,rating:p.rating,type:p.type,nation:p.nation,league:p.league,club:p.club,pos:(p.pos||[]).map(normPos),primary:p.primary?normPos(p.primary):((p.pos&&p.pos[0])?normPos(p.pos[0]):null),copies:p.copies,pidx:p.pidx}));rebuildRarity(); // v17.8.30: copies now carried through from DEFAULT_DB itself (previously dropped here, so a copies value baked into a DEFAULT_DB row was silently reset to 1 on every fresh load and every Reset-to-default)
+function loadDefaultDB(){playerDB=DEFAULT_DB.map(p=>({name:p.name,rating:p.rating,type:p.type,nation:p.nation,league:p.league,club:p.club,pos:(p.pos||[]).map(normPos),primary:p.primary?normPos(p.primary):((p.pos&&p.pos[0])?normPos(p.pos[0]):null),copies:p.copies,pidx:p.pidx}));rebuildRarity();if(typeof conditionAxisChanged==='function')conditionAxisChanged(); // v17.8.30: copies now carried through from DEFAULT_DB itself (previously dropped here, so a copies value baked into a DEFAULT_DB row was silently reset to 1 on every fresh load and every Reset-to-default)
   setDBStatus('Default database loaded \u2014 '+playerDB.length+' cards. Type a name to search. Import to add your own, Export to save this set.','var(--good)');}
 function resetDB(){if(!confirm('Reset the player database to default? This replaces your current database.'))return;loadDefaultDB();_dbSave();_renderCalResult();_pivMarkDbChanged();}
 function exportDB(){_namedDownload(new Blob([JSON.stringify(playerDB)],{type:'application/json'}),'pacwyn-db','json');}
@@ -7491,7 +8148,7 @@ function _dbSave(){try{const d=JSON.stringify({db:playerDB,mgr:MANAGER_DB});loca
 function _dbRestore(){try{const raw=sessionStorage.getItem(_DB_KEY)||localStorage.getItem(_DB_KEY);if(!raw)return false;const o=JSON.parse(raw);
   let sawDB=false;
   if(o&&Array.isArray(o.db)){playerDB=o.db.map(x=>({name:x.name,rating:x.rating,type:x.type,nation:x.nation,league:x.league,club:x.club,pos:(x.pos||[]).map(normPos),primary:x.primary?normPos(x.primary):((x.pos&&x.pos[0])?normPos(x.pos[0]):null),copies:x.copies,pidx:x.pidx}));rebuildRarity();sawDB=true;}
-  if(o&&Array.isArray(o.mgr))MANAGER_DB=o.mgr.map(m=>({name:m.name,nation:m.nation,league:m.league}));
+  if(o&&Array.isArray(o.mgr))MANAGER_DB=o.mgr.map(_normaliseTestManager);
   return sawDB;
 }catch(e){return false;}}
 (function(){
@@ -7618,6 +8275,7 @@ function wireType(segSel,prefix){
   seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
     seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     applyVisibility(b.dataset.t);
+    if(segSel==='#typeSeg'&&typeof _syncConditionCardFields==='function')_syncConditionCardFields();
   });
   // Live-update the club list as the league combo changes, for typed input and tapped suggestions alike.
   const lgInput=$(prefix+'-league'),lgList=$(prefix+'-league-list');
@@ -8117,7 +8775,7 @@ function updateSolveForm(){
 // Defer initial formation render until DOM is fully parsed — Safari can execute
 // inline scripts before the elements below them exist in the document.
 if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>{sortForm('rank');_toggleAutoRC();updateRatingCeilLabel();updateSortModeUI();});
+  document.addEventListener('DOMContentLoaded',()=>{sortForm('rank');_toggleAutoRC();updateRatingCeilLabel();updateSortModeUI();conditionKindChanged();renderConditionList();if($('#conditionsEnabled'))$('#conditionsEnabled').checked=CONDITIONS_ENABLED;_syncConditionCardFields();renderTestStatus();});
 }else{
   sortForm('rank');
 }
@@ -8152,7 +8810,7 @@ function confirmFormation(){
 }
 /* ---- slot editor ---- */
 function resetForm(){
-  $('#f-label').value='';$('#f-rating').value='';
+  $('#f-label').value='';$('#f-rating').value='';if($('#f-cardtype'))$('#f-cardtype').value='';if($('#f-special')){$('#f-special').checked=false;$('#f-special').disabled=false;delete $('#f-special').dataset.autoSpecial;}
   $('#posChips').querySelectorAll('.chip.on').forEach(c=>c.classList.remove('on'));
   $('#typeSeg').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===0));
   // v16.1.0: this used to force the league field hidden every time a slot was (re)opened,
@@ -8163,7 +8821,7 @@ function resetForm(){
   $('#f-league-wrap').style.display='block';$('#f-club-wrap').style.display='block';
   $('#f-league').value='';
   _refreshNormalClubs('#f');
-  $('#addErr').textContent='';$('#addPlayerBtn').textContent='Add player to slot';
+  $('#addErr').textContent='';$('#addPlayerBtn').textContent='Add player to slot';_syncConditionCardFields();
 }
 function openSlot(id){activeSlot=id;editingId=null;_formChanged=false;resetForm();renderSlotEditor();const e=$('#slotEditor');if(e.scrollIntoView)e.scrollIntoView({block:'start'});}
 function closeSlot(){const prev=activeSlot;activeSlot=null;editingId=null;renderCards();if(prev){const el=document.getElementById('sr-'+prev);if(el)el.scrollIntoView({block:'center'});}}
@@ -8188,7 +8846,7 @@ function renderSlotEditor(){
   const editingHere=editingId&&cs.some(c=>c.id===editingId);
   ph+=cs.length?('<div class="tiny" style="margin:4px 0">'+(isCap?'Tap \u2605 to set captain, the card to edit, \u00d7 to remove:':'Tap a card to edit, \u00d7 to remove:')+'</div>'+cs.map(c=>'<div class="crow"'+(c.id===editingId?' style="border:1px solid var(--cyan);background:rgba(31,227,204,.10)"':'')+'>'
     +'<div class="typ '+c.type+'">'+typLabel(c.type)+'</div>'
-    +'<div class="nm" style="cursor:pointer" onclick="editCard('+c.id+')"><b>'+esc(c.label)+'</b>'+(c.id===editingId?' <span style="color:var(--cyan);font-size:10px;font-weight:700">\u270e EDITING</span>':'')+'<div class="meta">'+cardMeta(c)+' \u00b7 '+c.pos.join('/')+'</div></div>'
+    +'<div class="nm" style="cursor:pointer" onclick="editCard('+c.id+')"><b>'+esc(c.label)+'</b>'+(c.id===editingId?' <span style="color:var(--cyan);font-size:10px;font-weight:700">✎ EDITING</span>':'')+'<div class="meta">'+cardMeta(c)+' · '+c.pos.join('/')+(CONDITIONS_ENABLED?(' · '+((c.type==='icon'||c.type==='hero'||c.isSpecial)?'special':'not special')+(c.cardType?' · '+esc(c.cardType):'')):'')+'</div></div>'
     +(isCap?'<button class="btn sec sm" style="margin:0 4px;padding:4px 10px;width:auto;flex:none;font-size:14px" onclick="makeCaptain('+c.id+')">\u2605</button>':'')
     +'<div class="rt">'+c.rating+'</div>'
     +'<button class="x" onclick="delCard('+c.id+')">\u00d7</button></div>').join('')):'';
@@ -8201,7 +8859,7 @@ function renderSlotEditor(){
 }
 function editCard(id){
   const c=cards.find(x=>x.id===id);if(!c)return;editingId=id;
-  fillFormFromPlayer({type:c.type,name:c.label,rating:c.rating,nation:c.nation,league:c.league,club:c.club,pos:c.pos});
+  fillFormFromPlayer({type:c.type,name:c.label,rating:c.rating,nation:c.nation,league:c.league,club:c.club,pos:c.pos,isSpecial:c.isSpecial,cardType:c.cardType});
   $('#addErr').textContent='';renderSlotEditor();const e=$('#slotEditor');if(e.scrollIntoView)e.scrollIntoView({block:'start'});
 }
 function cancelEdit(){editingId=null;resetForm();renderSlotEditor();}
@@ -8218,7 +8876,7 @@ function readForm(){
     league=comboVal('f-league',LEAGUE_NAMES);if(!LEAGUE_NAMES.includes(league))return{err:'Pick a league from the list before choosing a club.'};
     club=$('#f-club').value;if(!club)return{err:'Pick a club after selecting the league.'};
   }
-  return{card:{type:t,rating,nation,league,club,pos:pos.map(normPos),label:$('#f-label').value.trim()}};
+  return{card:{type:t,rating,nation,league,club,pos:pos.map(normPos),label:$('#f-label').value.trim(),isSpecial:(t==='icon'||t==='hero'||!!($('#f-special')&&$('#f-special').checked)),cardType:($('#f-cardtype')?$('#f-cardtype').value.trim():'')}};
 }
 function addPlayerToSlot(){
   const s=slotById(activeSlot);if(!s)return;
@@ -8260,7 +8918,7 @@ function placeCaptain(id,pos){
   const slot=board.find(s=>s.kind==='pos'&&s.pos===pos&&slotState(s)==='pending');
   if(!slot){alert('No open '+pos+' slot in this formation.');return;}
   cards=cards.filter(x=>x.slot!=='CAP');
-  cards.push({id:uid++,slot:slot.id,hold:null,captain:true,label:c.label,type:c.type,rating:c.rating,nation:c.nation,league:c.league,club:c.club,pos:c.pos.slice()});
+  cards.push({id:uid++,slot:slot.id,hold:null,captain:true,label:c.label,type:c.type,rating:c.rating,nation:c.nation,league:c.league,club:c.club,pos:c.pos.slice(),isSpecial:c.isSpecial,cardType:c.cardType||''});
   syncSlot(slot.id);_capPick=null;activeSlot=null;editingId=null;_clearSolve();renderCards();
   document.querySelector('.tabbar button[data-v="v-cards"]').click();
 }
@@ -8434,70 +9092,34 @@ function scoreXI(xi){
     clubSet:new Set(xi.filter(c=>c.type==='normal').map(c=>c.club))};
 }
 
-/* ===================== CONDITIONS-POC (proof of concept, not for release) =====================
-   Hard-constraint gate: a complete XI that fails ANY active condition is DISCARDED regardless of
-   score. Implemented as a single feasibility test at the solver's leaf (see solveBest's k===order.length
-   commit) and mirrored in the independent bruteForce oracle. When any condition is active the solve is
-   forced onto the synchronous main-thread path (runSolve) so this module-level state is in scope — the
-   Blob-worker path is intentionally NOT wired for the POC (see the note next to _oneWorker in runSolve).
-
-   Because infeasible leaves never become the incumbent, the score-driven branch-and-bound bound only
-   ever tightens on FEASIBLE XIs, so the returned squad is the highest-scoring XI that satisfies every
-   condition. (Pruning a region whose score upper-bound is below the best feasible score is still sound:
-   that region cannot contain a higher-scoring XI, feasible or not.)
-
-   ---- DESIGN NOTE — what a real RTG/WeekendLeague solver and an SBC solver would additionally need ----
-   RTG / WEEKEND-LEAGUE ("give me the best on-pitch team that meets these conditions"): the DB would need
-   per-card ATK / BAL / DEF stats (currently only a single overall `rating` is stored). The objective
-   would change from "maximise draft score" to "meet all conditions, then maximise the cards by stat" — a
-   lexicographic / Pareto preference where, at a given rating, a card with better attacking+balanced+
-   defensive spread wins. e.g. an 85-rated 86 ATK / 83 BAL / 28 DEF is preferred over 85 ATK / 84 BAL /
-   73 DEF, which is preferred over 84 ATK / 84 BAL / 83 DEF. That is a different accept/compare rule at
-   the leaf (and a different bound), layered on top of the same conditions gate below.
-   SBC ("cheapest team that meets these conditions"): flip the objective to MINIMISE. We would want a
-   per-card value/price (or, absent prices, use lowest rating as a proxy) and search for the lowest-rated
-   / lowest-total-value XI that still satisfies every condition — i.e. build the cheapest compliant squad
-   rather than the strongest. Same feasibility gate, minimising objective, prune on a cost lower-bound.
-   -------------------------------------------------------------------------------------------------- */
-let POC_CONDITIONS=[]; // [{metric, arg, op, val, enabled}]
-function _pocCondActive(){for(const c of POC_CONDITIONS)if(c&&c.enabled)return true;return false;}
-// "special": icons & heroes are ALWAYS special; a normal is special only if manually flagged (c._special).
-function _pocSpecialOf(c){if(c.type==='icon'||c.type==='hero')return true;return !!c._special;}
-// specific card type: manual per-card tag (c._ctype); defaults to the stored type name when untagged.
-function _pocTypeOf(c){return (c._ctype!=null&&String(c._ctype).trim()!=='')?String(c._ctype).trim():(c.type||'normal');}
-function _pocMaxBucket(xi,keyFn){const m={};let mx=0;for(const c of xi){const k=keyFn(c);if(k==null||k==='')continue;m[k]=(m[k]||0)+1;if(m[k]>mx)mx=m[k];}return mx;}
-function _pocMetricVal(xi,sc,cond){
-  const arg=(cond.arg!=null?String(cond.arg).trim():'');
-  const eqi=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
-  switch(cond.metric){
-    case 'rating': return sc.rating;
-    case 'chem': return sc.chem;
-    case 'countLeague': return xi.filter(c=>eqi(leagueOf(c),arg)).length;
-    case 'countNation': return xi.filter(c=>eqi(c.nation,arg)).length;
-    case 'countClub': return xi.filter(c=>eqi(c.club,arg)).length;
-    case 'distinctLeague': return sc.leagues;
-    case 'distinctNation': return sc.nations;
-    case 'distinctClub': return sc.clubs;
-    case 'maxLeague': return _pocMaxBucket(xi,c=>leagueOf(c));
-    case 'maxNation': return _pocMaxBucket(xi,c=>c.nation);
-    case 'maxClub': return _pocMaxBucket(xi,c=>c.club);
-    case 'icons': return xi.filter(c=>c.type==='icon').length;
-    case 'heroes': return xi.filter(c=>c.type==='hero').length;
-    case 'specials': return xi.filter(_pocSpecialOf).length;
-    case 'ctype': return xi.filter(c=>eqi(_pocTypeOf(c),arg)).length;
-    default: return 0;
-  }
+/* TESTING DEMO v0.5: pure hard-condition evaluator. Kept worker-serializable. */
+function _conditionCmp(actual,op,target){return op==='lte'?actual<=target:op==='gte'?actual>=target:actual===target;}
+function _conditionFacts(xi,sc){
+  const count=(fn)=>{const m={};for(const c of xi){const v=fn(c);if(v!==null&&v!==undefined&&v!=='')m[v]=(m[v]||0)+1;}return m;};
+  const nation=count(c=>c.nation),league=count(c=>leagueOf(c)),club=count(c=>c.club),cardType=count(c=>String(c.cardType||'').trim().toLowerCase());
+  const max=m=>Math.max(0,...Object.values(m));
+  const ratings=xi.map(c=>Number(c.rating)||0);
+  return {rating:sc.rating,chem:sc.chem,nation,league,club,cardType,diffNation:Object.keys(nation).length,diffLeague:Object.keys(league).length,diffClub:Object.keys(club).length,maxNation:max(nation),maxLeague:max(league),maxClub:max(club),minPlayerRating:Math.min(...ratings),maxPlayerRating:Math.max(...ratings),icons:xi.filter(c=>c.type==='icon').length,heroes:xi.filter(c=>c.type==='hero').length,special:xi.filter(c=>c.type==='icon'||c.type==='hero'||c.isSpecial===true).length};
 }
-function _pocCmp(v,op,t){t=Number(t);switch(op){case'<':return v<t;case'<=':return v<=t;case'=':return v===t;case'>=':return v>=t;case'>':return v>t;default:return true;}}
-// TRUE iff xi satisfies every ENABLED condition. sc is optional (scoreXI is recomputed if omitted).
-function _pocMeetsAll(xi,sc){
-  if(!POC_CONDITIONS.length)return true;
-  sc=sc||scoreXI(xi);
-  for(const cond of POC_CONDITIONS){if(!cond||!cond.enabled)continue;if(!_pocCmp(_pocMetricVal(xi,sc,cond),cond.op,cond.val))return false;}
-  return true;
+function _conditionsMet(sc,xi,conditions){
+  if(!conditions||!conditions.length)return true;const f=_conditionFacts(xi,sc);
+  for(const c of conditions){let a=0;
+    if(c.kind==='team_rating')a=f.rating;else if(c.kind==='team_chem')a=f.chem;
+    else if(c.kind==='player_rating'){
+      const t=Number(c.value)||0,ok=c.op==='gte'?f.minPlayerRating>=t:c.op==='lte'?f.maxPlayerRating<=t:(f.minPlayerRating===t&&f.maxPlayerRating===t);if(!ok)return false;continue;
+    }
+    else if(c.kind==='cards_from')a=(f[c.axis]&&f[c.axis][c.key])||0;
+    else if(c.kind==='total_different')a=f['diff'+c.axis.charAt(0).toUpperCase()+c.axis.slice(1)];
+    else if(c.kind==='max_same')a=f['max'+c.axis.charAt(0).toUpperCase()+c.axis.slice(1)];
+    else if(c.kind==='total_icons')a=f.icons;else if(c.kind==='total_heroes')a=f.heroes;else if(c.kind==='special_cards')a=f.special;
+    else if(c.kind==='specific_card_type')a=f.cardType[String(c.key||'').trim().toLowerCase()]||0;
+    if(!_conditionCmp(Number(a)||0,c.op||'eq',Number(c.value)||0))return false;
+  }return true;
 }
+
 /* ============================ SOLVER (DFS + bound) ============================ */
-function solveBest(form,cards,nodeCap,ratingCeil,seedBest,seedXIs,skipTies,diversitySeed,rootAllow,onSnapshot,sharedFloor,rootSlotIdx,resumeFrom){
+function solveBest(form,cards,nodeCap,ratingCeil,seedBest,seedXIs,skipTies,diversitySeed,rootAllow,onSnapshot,sharedFloor,rootSlotIdx,resumeFrom,conditions){
+  const HAS_CONDITIONS=!!(conditions&&conditions.length);
   // v17.8.61 (section Z item 7, corrected realization of idea (a) -- see FOR FUTURE MAINTAINERS):
   // sharedFloor is an OPTIONAL Int32Array view onto a SharedArrayBuffer, present ONLY when the
   // parallel worker path detected crossOriginIsolated + SharedArrayBuffer support (see
@@ -8595,7 +9217,7 @@ function solveBest(form,cards,nodeCap,ratingCeil,seedBest,seedXIs,skipTies,diver
   if(rootAllow){const _ri=(typeof rootSlotIdx==='number')?rootSlotIdx:order[0];
     __resumeRootSig=_ri+'|'+Array.from(rootAllow).sort().join(',');
     cand[_ri]=cand[_ri].filter(c=>rootAllow.has(c.id));
-    if(cand[_ri].length===0)return {best:(typeof seedBest==="number"&&seedBest>=0)?seedBest:-1,bestXIs:(seedXIs&&seedXIs.length)?seedXIs.slice():[],nodes:0,capped:false,slots,maxRating:-1,rcUsed:RC,participatedIds:(seedXIs&&seedXIs.length)?Array.from(new Set(seedXIs.flatMap(x=>x.xi.map(c=>c.id)))):[],triedIds:(seedXIs&&seedXIs.length)?Array.from(new Set(seedXIs.flatMap(x=>x.xi.map(c=>c.id)))):[]};}
+    if(cand[_ri].length===0)return {best:HAS_CONDITIONS?-1:((typeof seedBest==="number"&&seedBest>=0)?seedBest:-1),bestXIs:HAS_CONDITIONS?[]:((seedXIs&&seedXIs.length)?seedXIs.slice():[]),nodes:0,capped:false,slots,maxRating:-1,rcUsed:RC,participatedIds:[],triedIds:[]};}
   // v6 UB precompute — per remaining slot, the OLD bound assumed a flat "+2" for anything
   // that wasn't the one reserved "first icon"/"first hero" slot. That's safe (never an
   // underestimate) but loose whenever a slot's candidate pool is icon-only or hero-only —
@@ -8658,8 +9280,8 @@ function solveBest(form,cards,nodeCap,ratingCeil,seedBest,seedXIs,skipTies,diver
     if(st.has('hero')){const g=1;if(g>hv){hv2=hv;hi2=hi;hv=g;hi=k;}else if(g>hv2){hv2=g;hi2=k;}}
     ubTopHeroV[k]=hv;ubTopHeroI[k]=hi;ubTopHeroV2[k]=hv2;ubTopHeroI2[k]=hi2;
   }
-  let best=(typeof seedBest==="number"&&seedBest>=0)?seedBest:-1;
-  let bestXIs=(best>=0&&seedXIs&&seedXIs.length)?seedXIs.map(x=>({xi:x.xi,sc:x.sc,foundAt:0,seed:true})):[];
+  let best=HAS_CONDITIONS?-1:((typeof seedBest==="number"&&seedBest>=0)?seedBest:-1);
+  let bestXIs=(!HAS_CONDITIONS&&best>=0&&seedXIs&&seedXIs.length)?seedXIs.map(x=>({xi:x.xi,sc:x.sc,foundAt:0,seed:true})):[];
   // Highest TRUE squad rating (floor(ratingExact), the same integer that enters sc.total) seen across
   // every complete XI scored. RC only ever enters the search as the rating ceiling in the pruning UB
   // (ub = RC+33+chem/diversity); the score itself never clamps rating. So comparing this max to RC
@@ -9069,7 +9691,7 @@ function solveBest(form,cards,nodeCap,ratingCeil,seedBest,seedXIs,skipTies,diver
       try{onSnapshot({best,bestXIs:bestXIs.slice(0,16).map(x=>({xi:x.xi,sc:x.sc})),nodes,maxRating,resumed:!!resumeFrom,participatedIds:Array.from(partSeen),triedIds:Array.from(triedSeen),checkpoint:__lastMilCk,checkpointNodes:__lastMilCk?Math.max(0,(Number(__lastMilCk.nodes)||0)+1):0});}catch(__se){}}
     if(k===order.length){
       const xi=pick.slice(),sc=scoreXI(xi);
-      if(POC_CONDITIONS.length&&!_pocMeetsAll(xi,sc))return 1; // CONDITIONS-POC: discard any complete XI that fails a hard condition, regardless of score (never becomes incumbent, never tightens the bound)
+      if(HAS_CONDITIONS&&!_conditionsMet(sc,xi,conditions))return 1;
       if(sc.rating>maxRating)maxRating=sc.rating;   // cheap: sc.rating already computed for the score
       if(sc.total>best){best=sc.total;const key=xi.map(c=>c.id).sort().join(',');bestXIs=[{xi,sc,foundAt:nodes,key}];for(const c of xi)partSeen.add(c.id);
         if(sharedFloor){ // v17.8.61: publish this worker's new incumbent so siblings can prune against it too -- atomic max (retry-on-race), never a plain store, so a slower worker's own genuine improvement can't clobber a faster sibling's higher one
@@ -9324,7 +9946,7 @@ function _buildSolverWorkerBlob(){
   // here -- same rule called out at the "serializes solveBest by name only" comment above: any
   // helper trueChem/scoreXI/solveBest calls has to be in this array or it won't exist in the
   // worker's scope.
-  const src=[futRatingRaw,leagueOf,trueChemPerCard,trueChem,scoreXI,solveBest].map(f=>f.toString()).join('\n')
+  const src=[futRatingRaw,leagueOf,trueChemPerCard,trueChem,scoreXI,_conditionCmp,_conditionFacts,_conditionsMet,solveBest].map(f=>f.toString()).join('\n')
     +'\nonmessage=function(e){const d=e.data;'
     +'const allow=d.rootAllowIds?new Set(d.rootAllowIds):undefined;'
     // v17.8.41 (section Z items 2+3): the worker forwards each periodic solver snapshot as a
@@ -9340,7 +9962,7 @@ function _buildSolverWorkerBlob(){
     // work while a worker is mid-DFS. d.sharedFloor is undefined whenever the main thread's
     // crossOriginIsolated/SharedArrayBuffer feature-detect failed, in which case solveBest's own
     // sharedFloor param is simply absent and this is byte-identical to before.
-    +'let r,refused=null;const snap=function(s){s.progress=true;s.v18Refused=refused;postMessage(s);};try{r=solveBest(d.form,d.cards,d.nodeCap,d.ratingCeil,d.seedBest,d.seedXIs,d.skipTies,undefined,allow,snap,d.sharedFloor,d.rootSlotIdx,d.resumeFrom);}catch(e){const m=String(e&&e.message||e);if(!/^v18-resume/.test(m))throw e;refused=m;r=solveBest(d.form,d.cards,d.nodeCap,d.ratingCeil,d.seedBest,d.seedXIs,d.skipTies,undefined,allow,snap,d.sharedFloor,d.rootSlotIdx,undefined);}'
+    +'let r,refused=null;const snap=function(s){s.progress=true;s.v18Refused=refused;postMessage(s);};try{r=solveBest(d.form,d.cards,d.nodeCap,d.ratingCeil,d.seedBest,d.seedXIs,d.skipTies,undefined,allow,snap,d.sharedFloor,d.rootSlotIdx,d.resumeFrom,d.conditions);}catch(e){const m=String(e&&e.message||e);if(!/^v18-resume/.test(m))throw e;refused=m;r=solveBest(d.form,d.cards,d.nodeCap,d.ratingCeil,d.seedBest,d.seedXIs,d.skipTies,undefined,allow,snap,d.sharedFloor,d.rootSlotIdx,undefined,d.conditions);}'
     +'postMessage({best:r.best,bestXIs:(r.bestXIs||[]).map(x=>({xi:x.xi,sc:x.sc})),nodes:r.nodes,capped:!!r.capped,maxRating:r.maxRating,participatedIds:r.participatedIds||[],triedIds:r.triedIds||[],error:r.error||null,checkpoint:r.checkpoint||null,checkpointNodes:r.checkpointNodes||null,resumed:!!r.resumed,v18Refused:refused});};' // v18.3-BETA: every partition ships its frontier; a stale/tampered frontier restarts only that exact partition, fail-closed.
   return URL.createObjectURL(new Blob([src],{type:'application/javascript'}));
 }
@@ -9359,21 +9981,22 @@ function _runSolveParallel(cap,ratingCeil,reuseSeed,forceW){
   _forceSquad=true;_squadOverride=null;
   const sortedCards=cards.slice().sort((a,b)=>helpValue(b)-helpValue(a));
   _forceSquad=_savedForceSquad;_squadOverride=_savedSquadOverride;
-  const _tgt=_targetScore();_solveTarget=_tgt>0?_tgt:null;
+  const _conditions=_getActiveConditions(),_hasConditions=_conditions.length>0;
+  const _tgt=_hasConditions?0:_targetScore();_solveTarget=_tgt>0?_tgt:null;
   let _seed;
-  if(_tgt>0){_seed={seedBest:_tgt-2,seedXIs:null};}
-  else if(reuseSeed&&window._solveCtx&&window._solveCtx.r&&window._solveCtx.r.best>=0){
+  if(!_hasConditions&&_tgt>0){_seed={seedBest:_tgt-2,seedXIs:null};}
+  else if(!_hasConditions&&reuseSeed&&window._solveCtx&&window._solveCtx.r&&window._solveCtx.r.best>=0){
     _seed={seedBest:window._solveCtx.r.best,seedXIs:window._solveCtx.r.bestXIs};
   }
   // v17.8.41: the single-worker path mirrors the SERIAL probe gate (probe only when cap>2M) so its
   // capped incumbents match _runSolveInner exactly; the multi-worker path keeps its always-probe
   // behavior untouched (workers need the shared upfront seed — see the v14.0 block comment above).
-  else if(forceW===1){_seed=(cap>2000000)?_probeFloor(form,sortedCards,ratingCeil):null;}
-  else {_seed=_probeFloor(form,sortedCards,ratingCeil);}
+  else if(!_hasConditions&&forceW===1){_seed=(cap>2000000)?_probeFloor(form,sortedCards,ratingCeil):null;}
+  else if(!_hasConditions){_seed=_probeFloor(form,sortedCards,ratingCeil);}
   // v18.3-BETA: the unpartitioned one-worker path still consumes the single-tree checkpoint here.
   // Multi-worker checkpoints are retrieved only after the exact partition layout has been rebuilt
   // below, because their integrity key includes worker count, partition axis, and every worker's ids.
-  const _v18R=(forceW===1)?_v18TakeResume():null;
+  const _v18R=(!_hasConditions&&forceW===1)?_v18TakeResume():null;
   if(_v18R)_seed=null; // exact state subsumes seeding — mirrors _runSolveInner
   const candLists=form.slots.map(s=>sortedCards.filter(c=>c.pos.includes(s)));
   const order=form.slots.map((s,i)=>i).sort((a,b)=>candLists[a].length-candLists[b].length);
@@ -9390,7 +10013,7 @@ function _runSolveParallel(cap,ratingCeil,reuseSeed,forceW){
   // to whichever slot has the MOST candidates if none reach the requested count, so a heavily
   // constrained squad (several slots all down to a handful of cards) still gets as much real
   // parallelism as its shape allows instead of forcing more workers than any single slot supports.
-  const wanted=(forceW===1)?1:_parWorkerCount();
+  const wanted=(_hasConditions||forceW===1)?1:_parWorkerCount();
   let axisPos=0,axisBest=0;
   for(let i=0;i<order.length;i++){
     const n=candLists[order[i]].length;
@@ -9431,7 +10054,7 @@ function _runSolveParallel(cap,ratingCeil,reuseSeed,forceW){
   // forced above what the chosen axis can actually support -- if that's 1, W collapses to 1 (same
   // no-partition path as forceW===1) and that single worker gets the FULL cap, matching the true
   // serial-tree semantics, instead of a phantom empty worker silently halving the real budget.
-  const W=(forceW===1)?1:Math.max(1,Math.min(_parWorkerCount(),rootCands.length));
+  const W=(_hasConditions||forceW===1)?1:Math.max(1,Math.min(_parWorkerCount(),rootCands.length));
   const parts=(W===1)?[null]:Array.from({length:W},()=>[]); // W===1: null = no root partition (full serial tree)
   if(W>1)rootCands.forEach((c,i)=>parts[i%W].push(c.id));
   const perCap=Math.max(1,Math.ceil(cap/W));
@@ -9442,7 +10065,7 @@ function _runSolveParallel(cap,ratingCeil,reuseSeed,forceW){
   // a CUMULATIVE target: completed/checkpointed nodes form the base, and only the remaining budget is
   // split across unfinished partitions. This also handles heavily skewed worker speeds without ever
   // assigning a resumed worker a cap below its own checkpoint.
-  const _v18P=(W>1)?_v18TakeParallelResume(W,rootSlotIdx,parts):null;
+  const _v18P=(!_hasConditions&&W>1)?_v18TakeParallelResume(W,rootSlotIdx,parts):null;
   const _v18States=_v18P&&Array.isArray(_v18P.states)?_v18P.states:[];
   const anyCarriedForward=_v18States.some(st=>!!(st&&st.done));
   const workerCaps=new Array(W).fill(perCap);
@@ -9474,7 +10097,7 @@ function _runSolveParallel(cap,ratingCeil,reuseSeed,forceW){
     try{
       if(typeof SharedArrayBuffer!=='undefined'&&typeof Atomics!=='undefined'&&typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated){
         _sharedFloorBuf=new Int32Array(new SharedArrayBuffer(4));
-        Atomics.store(_sharedFloorBuf,0,(_seed&&typeof _seed.seedBest==='number')?_seed.seedBest:-1);
+        Atomics.store(_sharedFloorBuf,0,(!_hasConditions&&_seed&&typeof _seed.seedBest==='number')?_seed.seedBest:-1);
       }
     }catch(e){_sharedFloorBuf=null;}
   }
@@ -9516,7 +10139,7 @@ function _runSolveParallel(cap,ratingCeil,reuseSeed,forceW){
     };
     w.postMessage({form:{name:form.name,slots:form.slots.slice()},cards:sortedCards,nodeCap:workerCaps[wi],
       ratingCeil:ratingCeil,seedBest:_seed?_seed.seedBest:undefined,seedXIs:_seed&&_seed.seedXIs?_seed.seedXIs:undefined,
-      skipTies:_skipTies(),rootAllowIds:ids,rootSlotIdx:rootSlotIdx,sharedFloor:_sharedFloorBuf||undefined,resumeFrom:(_st&&_st.checkpoint)?_st.checkpoint:(_v18R||undefined)});
+      skipTies:_skipTies(),rootAllowIds:ids,rootSlotIdx:rootSlotIdx,sharedFloor:_sharedFloorBuf||undefined,resumeFrom:(_st&&_st.checkpoint)?_st.checkpoint:(_v18R||undefined),conditions:_conditions});
     return w;
   });
   if(run.doneCt===run.total&&!run.failed){teardown();_finishParallel(run.results,form,sortedCards,cap,ratingCeil,t0,out,W,perCap,rootSlotIdx,parts,workerCaps,anyCarriedForward,run.meta.v18Hash,run.meta.consumedParallel,run.meta.consumedCk);return;}
@@ -10687,68 +11310,6 @@ function _v18TakeParallelResume(W,rootSlotIdx,parts){
   if(p.sig!==_v18ParallelSig(W,rootSlotIdx,parts))return _v18DiscardStored('worker layout changed');
   _v18NoteDiskResume();return p;
 }
-/* ---- CONDITIONS-POC UI controller (proof of concept) ---- */
-const POC_METRICS=[
- ['rating','Team rating'],['chem','Team chemistry'],
- ['countLeague','Cards from league\u2026'],['countNation','Cards from nation\u2026'],['countClub','Cards from club\u2026'],
- ['distinctLeague','Total different leagues'],['distinctNation','Total different nations'],['distinctClub','Total different clubs'],
- ['maxLeague','Max cards from same league'],['maxNation','Max cards from same nation'],['maxClub','Max cards from same club'],
- ['icons','Icons'],['heroes','Heroes'],['specials','Special cards'],['ctype','Specific card type\u2026']
-];
-const POC_ARG_METRICS={countLeague:'league',countNation:'nation',countClub:'club',ctype:'type'}; // metric -> the KIND of value its dropdown lists
-// Distinct values of a given kind present in the current pool (falls back to the whole DB when the pool is empty).
-function _pocDistinct(kind){
-  const src=(cards&&cards.length)?cards:playerDB;
-  const set=new Set();
-  for(const c of src){
-    let v;
-    if(kind==='league')v=leagueOf(c);
-    else if(kind==='nation')v=c.nation;
-    else if(kind==='club')v=c.club;
-    else if(kind==='ctype')v=_pocTypeOf(c);
-    if(v!=null&&String(v).trim()!=='')set.add(String(v));
-  }
-  return Array.from(set).sort((a,b)=>a.localeCompare(b));
-}
-const POC_OPS=[['<','< lower'],['<=','\u2264 lower/equal'],['=','= equal'],['>=','\u2265 higher/equal'],['>','> higher']];
-function _pocAddCond(){POC_CONDITIONS.push({metric:'rating',arg:'',op:'>=',val:83,enabled:true});_pocRenderConds();}
-function _pocDelCond(i){POC_CONDITIONS.splice(i,1);_pocRenderConds();}
-function _pocClearConds(){POC_CONDITIONS=[];_pocRenderConds();}
-function _pocSetCond(i,k,v){const c=POC_CONDITIONS[i];if(!c)return;if(k==='metric'){if(POC_ARG_METRICS[c.metric]!==POC_ARG_METRICS[v])c.arg='';c.metric=v;_pocRenderConds();return;}c[k]=v;_pocUpdCondSummary();}
-function _pocRenderConds(){
-  const box=$('#pocCondList');if(!box)return;
-  if(!POC_CONDITIONS.length){box.innerHTML='<div class="tiny" style="color:var(--mut)">No conditions yet \u2014 every XI is allowed. Add one to require it.</div>';_pocUpdCondSummary();return;}
-  box.innerHTML=POC_CONDITIONS.map((c,i)=>{
-    const metricSel='<select onchange="_pocSetCond('+i+',\'metric\',this.value)" style="font-size:12px;width:auto">'+POC_METRICS.map(m=>'<option value="'+m[0]+'"'+(c.metric===m[0]?' selected':'')+'>'+m[1]+'</option>').join('')+'</select>';
-    const argKind=POC_ARG_METRICS[c.metric];
-    let argInp='';
-    if(argKind){
-      const opts=_pocDistinct(argKind).slice();
-      if(c.arg&&opts.indexOf(c.arg)===-1)opts.unshift(c.arg); // keep the current choice even if the pool changed under it
-      const ph='<option value="">(choose '+argKind+'\u2026)</option>';
-      argInp='<select onchange="_pocSetCond('+i+',\'arg\',this.value)" style="font-size:12px;width:auto;max-width:170px">'+ph+opts.map(o=>'<option value="'+esc(o)+'"'+(c.arg===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
-    }
-    const opSel='<select onchange="_pocSetCond('+i+',\'op\',this.value)" style="font-size:12px;width:auto">'+POC_OPS.map(o=>'<option value="'+o[0]+'"'+(c.op===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
-    const valInp='<input type="number" value="'+esc(String(c.val))+'" oninput="_pocSetCond('+i+',\'val\',this.value)" style="font-size:12px;width:64px">';
-    const en='<label class="tiny" style="display:inline-flex;align-items:center;gap:3px;margin:0;text-transform:none;letter-spacing:0"><input type="checkbox" '+(c.enabled?'checked':'')+' onchange="_pocSetCond('+i+',\'enabled\',this.checked)">on</label>';
-    return '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px">'+metricSel+argInp+opSel+valInp+en+'<button class="x" onclick="_pocDelCond('+i+')" style="margin-left:auto">&#215;</button></div>';
-  }).join('');
-  _pocUpdCondSummary();
-}
-function _pocUpdCondSummary(){const s=$('#pocCondSummary');if(!s)return;const n=POC_CONDITIONS.filter(c=>c.enabled).length;s.textContent=n?(n+' active hard condition'+(n===1?'':'s')+' \u2014 XIs failing any are discarded.'):'No active conditions.';s.style.color=n?'var(--warn)':'var(--mut)';}
-function _pocRenderTags(){
-  const box=$('#pocTagList');if(!box)return;
-  if(!cards.length){box.innerHTML='<div class="tiny" style="color:var(--mut);padding:6px">No cards in the pool yet. Draft/add cards, then Refresh.</div>';return;}
-  box.innerHTML=cards.map((c,i)=>{
-    const auto=(c.type==='icon'||c.type==='hero');
-    const sp='<label class="tiny" style="display:inline-flex;align-items:center;gap:3px;margin:0;text-transform:none;letter-spacing:0"><input type="checkbox" '+(_pocSpecialOf(c)?'checked':'')+' '+(auto?'disabled':'')+' onchange="cards['+i+']._special=this.checked;_pocRenderTags()">special</label>';
-    const ty='<input type="text" value="'+esc(_pocTypeOf(c))+'" oninput="cards['+i+']._ctype=this.value" placeholder="type" style="font-size:11px;width:90px">';
-    const nm=(c.label&&String(c.label).trim())||c.name||('#'+c.id);
-    return '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 6px;border-bottom:1px solid var(--line)"><span class="tiny" style="min-width:130px;margin:0"><b>'+esc(nm)+'</b> '+c.rating+' <span style="opacity:.6">'+(c.type||'normal')+'</span></span>'+sp+ty+'</div>';
-  }).join('');
-  _pocRenderConds(); // refresh condition dropdowns so newly-tagged card types appear in the "specific card type" list
-}
-
 function runSolve(nodeCap,reuseSeed){runSolve.__reuse=!!reuseSeed;
   window.__v18Escalate=!!nodeCap; // v18.0.0-BETA: an explicit nodeCap only ever arrives from an escalation button (the same signal the recreation log already keys on); the bare Solve button clears the stored frontier below
   // v18.8-BETA (Fix B): capture the on-screen result HERE, before _clearSolve wipes _solveCtx. A resumed
@@ -10791,7 +11352,7 @@ function runSolve(nodeCap,reuseSeed){runSolve.__reuse=!!reuseSeed;
     // snapped to maxPossibleRating(); logging first recorded the pre-snap manual-slider leftover
     // instead of the RC the solve actually ran at.
     _applyAutoRC();
-    if(_parallelBetaOn()&&!_forceSerial&&!_pocCondActive()&&typeof Worker!=='undefined'){_launchParallelSolve(cap);return;} // v16.19.0: no longer gated to 30M+ — toggle-only, any node count. CONDITIONS-POC: parallel path disabled while hard conditions are active (the gate lives on the main thread; not wired into the worker Blob for the POC)
+    if(_parallelBetaOn()&&!_forceSerial&&typeof Worker!=='undefined'){_launchParallelSolve(cap);return;} // v16.19.0: no longer gated to 30M+ — toggle-only, any node count
     if(nodeCap)_recLog('main solve: '+_recCapTxt(cap));else _recReset();
     _clearSolve();refreshLog();
     _showSolverOverlay();
@@ -10809,7 +11370,7 @@ function runSolve(nodeCap,reuseSeed){runSolve.__reuse=!!reuseSeed;
     // bench/manager-enabled solve into a frozen synchronous run with no live counting, which read
     // as a regression. Bench/manager settings now affect ONLY the Stop button's visibility inside
     // _runSolveParallel, nothing about how the solve runs.)
-    const _oneWorker=(!_forceSerial&&!_pocCondActive()&&typeof Worker!=='undefined'&&!_diversityPlan()); // CONDITIONS-POC: also fall to the true main-thread DFS when conditions are active
+    const _oneWorker=(!_forceSerial&&typeof Worker!=='undefined'&&!_diversityPlan());
     setTimeout(()=>{_oneWorker?_runSolveParallel(cap,getRatingCeil(),runSolve.__reuse,1):_runSolveInner(cap,getRatingCeil(),runSolve.__reuse);},30);
   };
   // v16.19.0: shared parallel-launch commit sequence (mirrors _proceed's exactly — auto-RC snap
@@ -10852,27 +11413,28 @@ function _runSolveInner(cap,ratingCeil,reuseSeed){
   _forceSquad=true;_squadOverride=null; // always clash-aware (B)
   const sortedCards=cards.slice().sort((a,b)=>helpValue(b)-helpValue(a));
   _forceSquad=_savedForceSquad;_squadOverride=_savedSquadOverride;
-  const _tgt=_targetScore();_solveTarget=_tgt>0?_tgt:null;
+  const _conditions=_getActiveConditions(),_hasConditions=_conditions.length>0;
+  const _tgt=_hasConditions?0:_targetScore();_solveTarget=_tgt>0?_tgt:null;
   let _seed;
-  if(_tgt>0){_seed={seedBest:_tgt-2,seedXIs:null};}                    // target set: seed the base floor (final-2 for manager), skip the probe
-  else if(reuseSeed&&window._solveCtx&&window._solveCtx.r&&window._solveCtx.r.best>=0){
+  if(!_hasConditions&&_tgt>0){_seed={seedBest:_tgt-2,seedXIs:null};}                    // target set: seed the base floor (final-2 for manager), skip the probe
+  else if(!_hasConditions&&reuseSeed&&window._solveCtx&&window._solveCtx.r&&window._solveCtx.r.best>=0){
     // escalation (x3 / search-to-the-end): the probes already ran once and the finished capped run
     // achieved a REAL best — reuse it as the seed instead of re-probing. Seeding with an achieved
     // score can never prune the optimum (same admissibility argument as the probe seed itself).
     _seed={seedBest:window._solveCtx.r.best,seedXIs:window._solveCtx.r.bestXIs};
   }
-  else{_seed=(cap>2000000)?_probeFloor(form,sortedCards,ratingCeil):null;}
-  const _divPlan=_diversityPlan();
+  else if(!_hasConditions){_seed=(cap>2000000)?_probeFloor(form,sortedCards,ratingCeil):null;}
+  const _divPlan=_hasConditions?null:_diversityPlan();
   // v18.0.0-BETA: exact-frontier resume. When a matching checkpoint exists (escalation, same inputs,
   // no diversity plan), continue from it — the checkpoint carries its own incumbents, so the seed
   // args are left undefined (seeding is subsumed by exact state). Any integrity throw falls back to
   // the fresh path below, logged, never silently absorbed into a wrong continuation.
-  let _v18R=_v18TakeResume(),r=null;
+  let _v18R=_hasConditions?null:_v18TakeResume(),r=null;
   if(_v18R){
     try{r=solveBest(form,sortedCards,cap,ratingCeil,undefined,undefined,_skipTies(),undefined,undefined,undefined,undefined,undefined,_v18R);}
     catch(e){if(/^v18-resume/.test(String(e&&e.message||e))){_recLog('v18 resume refused ('+String(e.message).replace(/^v18-resume:?\s*/,'')+') \u2014 restarted fresh');r=null;}else throw e;}
   }
-  if(!r)r=solveWithDiversity(form,sortedCards,cap,ratingCeil,_seed?_seed.seedBest:undefined,_seed?_seed.seedXIs:undefined,_skipTies(),_divPlan);
+  if(!r)r=_hasConditions?solveBest(form,sortedCards,cap,ratingCeil,undefined,undefined,_skipTies(),undefined,undefined,undefined,undefined,undefined,undefined,_conditions):solveWithDiversity(form,sortedCards,cap,ratingCeil,_seed?_seed.seedBest:undefined,_seed?_seed.seedXIs:undefined,_skipTies(),_divPlan);
   const ms=Math.round(performance.now()-t0);
   if(_skipTies()&&r&&r.bestXIs&&r.bestXIs.length>1)r.bestXIs=[r.bestXIs[0]]; // ties intentionally skipped -> show the one optimal lineup
   r.ubRating=maxPossibleRating(sortedCards,form); // search-independent upper bound on any legal squad's rating — drives the RC warning (see _rcCeilWarnHTML)
@@ -11281,7 +11843,7 @@ function _handleSolveResult(r,cap,form,ms,out){
   // bundle. Stopped workers contribute only their last published completed-million checkpoint;
   // finished partitions contribute their canonical final result. Anything non-resumable clears the
   // store so a stale frontier can never leak into a later solve.
-  if(r.capped&&(r.checkpoint||r.parallelResume))_v18SetStored({hash:(r.v18Hash!=null?r.v18Hash:_v18HashNow()),checkpoint:r.checkpoint||null,parallel:r.parallelResume||null});
+  if(!_getActiveConditions().length&&r.capped&&(r.checkpoint||r.parallelResume))_v18SetStored({hash:(r.v18Hash!=null?r.v18Hash:_v18HashNow()),checkpoint:r.checkpoint||null,parallel:r.parallelResume||null});
   else _v18SetStored(null,{quiet:true});
   if(_solveTarget&&!r.error&&!r.bestXIs.length){
     if(r.capped){
@@ -11296,12 +11858,9 @@ function _handleSolveResult(r,cap,form,ms,out){
     }
     return;
   }
-  if(_pocCondActive()&&!r.error&&(!r.bestXIs||!r.bestXIs.length)){ // CONDITIONS-POC: no XI passed the hard conditions — say so plainly instead of dropping into emergency fill
-    const _n=POC_CONDITIONS.filter(c=>c.enabled).length;
-    out.innerHTML='<div class="note" style="border-color:var(--warn)">&#9940; No XI on this draft meets all '+_n+' active hard condition'+(_n===1?'':'s')+'.'+(r.capped?' The search was capped — a compliant XI could still exist deeper; raise the node cap and solve again.':' Loosen a condition or change your pool.')+'</div>';
-    _clearSolve();refreshLog();return;
-  }
-  if(r.error||!r.bestXIs.length){_renderEmergencyFill(form,cap);return;}
+  if(r.error||!r.bestXIs.length){
+    if(_getActiveConditions().length){const more=r.capped?'<div class="row" style="gap:6px;margin-top:8px"><button class="btn sm" onclick="runSolve('+_x3Cap(cap,r)+')">Keep searching</button><button class="btn sec sm" onclick="runSolve(1e12,true)">Search to the end</button></div>':'';out.innerHTML='<div class="note" style="border-color:'+(r.capped?'var(--warn)':'var(--bad)')+'">'+(r.capped?'No XI meeting every active condition was found before the node cap.':'No legal XI meets every active condition.')+more+'</div>';return;}
+    _renderEmergencyFill(form,cap);return;}
   // v18.8-BETA (Fix B): RESULT monotonicity down the escalation ladder (display layer only — the
   // solver state, counters, and stored frontier above are untouched, so byte-identity is unaffected).
   // A capped/stopped rung that hasn't yet re-earned the previous rung's discarded sub-million tails
@@ -13318,7 +13877,7 @@ function wireMgrCombo(){
   }
   inp.addEventListener('input',render);inp.addEventListener('focus',render);
   list.addEventListener('click',e=>{const o=e.target.closest('.copt');if(!o)return;
-    const m=MANAGER_DB.find(x=>x.name===o.dataset.n);if(m){managers.push({name:m.name,nation:m.nation,league:m.league});renderMgr();refreshLog();}
+    const m=MANAGER_DB.find(x=>x.name===o.dataset.n);if(m){managers.push(_normaliseTestManager(m));renderMgr();refreshLog();}
     inp.value='';list.classList.remove('open');});
 }
 wireMgrCombo();
@@ -13326,11 +13885,11 @@ const MGR_LG={"icon":"Icons","icons":"Icons","premier league":"England Premier L
 function canonMgrLeague(l){if(!l)return l;const ex=LEAGUE_NAMES.find(x=>x.toLowerCase()===l.toLowerCase());if(ex)return ex;return MGR_LG[l.toLowerCase()]||canonLeague(l);}
 function exportManagers(){_namedDownload(new Blob([JSON.stringify(MANAGER_DB,null,1)],{type:'application/json'}),'pacwyn-managers','json');}
 function setMgrDbStatus(msg,col){const el=$('#mgrDbStatus');if(el){el.textContent=msg;el.style.color=col||'var(--mut)';}}
-function resetManagers(){if(!confirm('Reset the manager database to default? This replaces your current database.'))return;MANAGER_DB=DEFAULT_MGR_DB.map(m=>({name:m.name,nation:m.nation,league:m.league}));setMgrDbStatus('Default managers restored \u2014 '+MANAGER_DB.length+' in the database. Re-solve to apply.','var(--good)');_dbSave();}
+function resetManagers(){if(!confirm('Reset the manager database to default? This replaces your current database.'))return;MANAGER_DB=DEFAULT_MGR_DB.map(_normaliseTestManager);setMgrDbStatus('Default managers restored \u2014 '+MANAGER_DB.length+' in the database. Re-solve to apply.','var(--good)');_dbSave();}
 function clearManagers(){if(!confirm('Clear the ENTIRE manager database? Bench insurance and manager counts will have nothing to check against until you reset to default.'))return;MANAGER_DB=[];setMgrDbStatus('Manager database cleared \u2014 manual entry only. (Reset to default to bring it back.)');_dbSave();}
 $('#mgrFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{try{const arr=JSON.parse(rd.result);if(!Array.isArray(arr))throw new Error('expected a JSON array of managers');
-    MANAGER_DB=arr.filter(m=>m&&m.name&&m.nation).map(m=>({name:m.name,nation:canonNation(m.nation),league:canonMgrLeague(m.league)}));
+    MANAGER_DB=arr.filter(m=>m&&m.name&&m.nation).map(m=>_normaliseTestManager({name:m.name,nation:canonNation(m.nation),league:canonMgrLeague(m.league),boosts:m.boosts}));
     setMgrDbStatus(MANAGER_DB.length+' managers in the database (imported).','var(--good)');
     alert('Loaded '+MANAGER_DB.length+' managers \u2014 the tiebreaker and search now use this list. Re-solve to apply.');
   }catch(err){alert('Could not read manager file: '+err.message);}};
@@ -16504,8 +17063,8 @@ function buildState(){
     board:board?board.map(s=>({id:s.id,kind:s.kind,pos:s.pos,label:s.label,busted:s.busted})):null,
     // v18.5: preserve runtime card ids so a locally persisted resume frontier's path ids still name
     // the exact same cards after reload. Older/imported saves without ids are assigned fresh unique ids.
-    cards:cards.map(c=>({id:c.id,label:c.label,type:c.type,rating:c.rating,nation:c.nation,league:c.league,club:c.club,pos:c.pos,hold:c.hold,slot:c.slot})),
-    managers:managers.slice(),
+    cards:cards.map(c=>({id:c.id,label:c.label,type:c.type,rating:c.rating,nation:c.nation,league:c.league,club:c.club,pos:c.pos,hold:c.hold,slot:c.slot,isSpecial:!!c.isSpecial,cardType:c.cardType||''})),
+    managers:managers.slice(),conditions:TEST_CONDITIONS.map(c=>Object.assign({},c)),conditionsEnabled:CONDITIONS_ENABLED,
     lastSolve};
 }
 function refreshLog(){const el=$('#log');if(!el)return;let txt=JSON.stringify(buildState(),null,1);
@@ -16580,7 +17139,7 @@ function _cardsFromSaved(list){
     used.add(id);if(id>=uid)uid=id+1;
     return {id,label:c.label||'#',type:c.type||'normal',rating:c.rating||0,nation:c.nation||'',
       league:c.league||'England Premier League',club:c.club||null,pos:(c.pos||[]).map(normPos),
-      hold:c.hold||null,slot:c.slot||null};
+      hold:c.hold||null,slot:c.slot||null,isSpecial:(c.type==='icon'||c.type==='hero'||!!c.isSpecial),cardType:c.cardType||''};
   });
 }
 function restoreLocal(){
@@ -16597,14 +17156,14 @@ function restoreLocal(){
     cards=cards.filter(c=>c.slot!=='CAP'); // drop any in-progress captain pick saved mid-flow
     managers=Array.isArray(s.managers)?s.managers:[];
     board=Array.isArray(s.board)?s.board.map(x=>({id:x.id,kind:x.kind,pos:x.pos,label:x.label,busted:!!x.busted})):null;
-    chosenForm=s.formation||null;lastSolve=s.lastSolve||null;syncAllSlots();
+    chosenForm=s.formation||null;lastSolve=s.lastSolve||null;TEST_CONDITIONS=Array.isArray(s.conditions)?s.conditions.map(c=>Object.assign({},c)):[];CONDITIONS_ENABLED=!!s.conditionsEnabled;_condUid=1+TEST_CONDITIONS.reduce((m,c)=>Math.max(m,Number(c.id)||0),0);syncAllSlots();
     // Seed the recreation log from the restored solve so its history can't be clobbered by any
     // step logged before the next from-scratch Solve (which resets it anyway). _recCurSettings is
     // seeded from the restored snapshot on purpose: a setting that differs NOW from the restored
     // session correctly shows up as a 'settings changed' step before whatever runs under it.
     if(lastSolve&&lastSolve.settings){_recBase=lastSolve.settings;_recActions=(lastSolve.steps||[]).slice();_recCurSettings=lastSolve.settings;}
 
-    renderCards();renderMgr();updateSolveForm();
+    renderCards();renderMgr();updateSolveForm();if($('#conditionsEnabled'))$('#conditionsEnabled').checked=CONDITIONS_ENABLED;renderConditionList();_syncConditionCardFields();conditionKindChanged();
     if(managers.length)$('#mgrPanel').style.display='block';
     restored=true;
   }catch(e){}
@@ -16667,14 +17226,14 @@ document.getElementById('importFile').addEventListener('change',e=>{
     cards=cards.filter(c=>c.slot!=='CAP'); // drop any in-progress captain pick saved mid-flow
     managers=Array.isArray(s.managers)?s.managers:[];
     board=Array.isArray(s.board)?s.board.map(x=>({id:x.id,kind:x.kind,pos:x.pos,label:x.label,busted:!!x.busted})):null;
-    chosenForm=s.formation||null;lastSolve=s.lastSolve||null;syncAllSlots();
+    chosenForm=s.formation||null;lastSolve=s.lastSolve||null;TEST_CONDITIONS=Array.isArray(s.conditions)?s.conditions.map(c=>Object.assign({},c)):[];CONDITIONS_ENABLED=!!s.conditionsEnabled;_condUid=1+TEST_CONDITIONS.reduce((m,c)=>Math.max(m,Number(c.id)||0),0);syncAllSlots();
     // Seed the recreation log from the restored solve so its history can't be clobbered by any
     // step logged before the next from-scratch Solve (which resets it anyway). _recCurSettings is
     // seeded from the restored snapshot on purpose: a setting that differs NOW from the restored
     // session correctly shows up as a 'settings changed' step before whatever runs under it.
     if(lastSolve&&lastSolve.settings){_recBase=lastSolve.settings;_recActions=(lastSolve.steps||[]).slice();_recCurSettings=lastSolve.settings;}
 
-    renderCards();renderMgr();updateSolveForm();sortForm($('#fgrid').dataset.m||'rank');refreshLog();
+    renderCards();renderMgr();updateSolveForm();if($('#conditionsEnabled'))$('#conditionsEnabled').checked=CONDITIONS_ENABLED;renderConditionList();_syncConditionCardFields();conditionKindChanged();sortForm($('#fgrid').dataset.m||'rank');refreshLog();
     if(managers.length)$('#mgrPanel').style.display='block';
     _clearSolve();if(typeof closeSlot==='function')closeSlot();_goView('v-cards');
     alert('Imported '+cards.length+' cards'+(chosenForm?' \u00b7 '+chosenForm:'')+'.');
@@ -16899,8 +17458,7 @@ function bruteForce(form, cards, scoreXI, opts){
       leaves++;
       const xi = chosen.map(ci => cards[ci]);
       const sc = scoreXI(xi);
-      if (POC_CONDITIONS.length && !_pocMeetsAll(xi, sc)) { /* CONDITIONS-POC: oracle discards infeasible XIs too */ }
-      else if (sc.total > best) { best = sc.total; bestXI = xi.slice(); }
+      if (sc.total > best) { best = sc.total; bestXI = xi.slice(); }
     }
 
     // increment odometer
