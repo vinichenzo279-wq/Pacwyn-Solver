@@ -183,7 +183,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver TESTING DEMO v0.58</title>
+<title>Pacwyn Solver TESTING DEMO v0.59</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -6136,7 +6136,8 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
 <!-- TESTING FORK v0.56 — Confirmed Onur 86 as Oguz 86 (Kocaelispor Knockout Royalty), and manager boost targets are now searchable; club boosts use a league-first searchable filter instead of one global club list. -->
 <!-- TESTING FORK v0.57 — RTG search ordering and sound bounds now include manager-boost potential; Draft Cups locks pre-manager picks before checking exactly five offers, RTG/Draft Cups/SBC have separate tabs and downloadable logs, and the main solve log records active conditions. -->
 <!-- TESTING FORK v0.58 — Renamed the app for its wider solver scope, made card type authoritative for base/special status, removed temporary stat-source/seed/score labels from non-draft solvers, clarified exclusion redo wording, defaulted SBC to 4-4-2, compacted failed Draft Cups output, and removed duplicate manager-depth text with Skip ties on. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v0.58</span></h1>
+<!-- TESTING FORK v0.59 — Solver logs now export as BOM-marked UTF-8; RTG deduplicates identical role signatures, orders and prunes formations with a sound whole-formation bound, shares the global incumbent across formation DFS runs, and removes simply dominated same-chemistry manager variants while keeping capped/unresolved formations honest across escalation. -->
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v0.59</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="testing-banner">TESTING DEMO · NOT A RELEASE BUILD</div>
   <div style="position:absolute;right:2px;top:40px;text-align:right;font-size:10px;line-height:1.5;color:var(--mut)">Created by <b style="color:var(--ink)">Chenzo</b><br><span style="opacity:.8">Special thanks to BWFCPackfan</span></div>
@@ -8211,7 +8212,28 @@ function _testSelectorMatches(sel,c,slot){return sel.axis==='position'?slot===se
 function _testManagerBoosts(m){return _cloneManagerBoosts(m&&m.boosts);}
 function _testManagerBoostValue(m,c,slot){let best=0;for(const sel of _testManagerBoosts(m))if(_testSelectorMatches(sel,c,slot))best=Math.max(best,Number(sel.amount)||1);return best;}
 function _testManagerCandidates(managerExcluded,managerPool){const blocked=managerExcluded||new Set();return (managerPool||MANAGER_DB).filter(m=>!blocked.has(_testManagerKey(m)));}
+function _testManagerRuleMap(m){const out=new Map();for(const x of _testManagerBoosts(m)){const k=x.axis+'|'+x.key,v=Math.max(1,Number(x.amount)||1);if(v>(out.get(k)||0))out.set(k,v);}return out;}
+function _testManagerSimplyDominates(a,b){
+  // Sufficient (not aggressive) dominance test: equal chemistry metadata, and every boost rule on
+  // b exists on a at an equal-or-higher amount. Extra non-negative rules can never make a worse.
+  if(String(a&&a.nation||'')!==String(b&&b.nation||'')||String(a&&a.league||'')!==String(b&&b.league||''))return false;
+  const am=_testManagerRuleMap(a),bm=_testManagerRuleMap(b);for(const [k,v] of bm)if((am.get(k)||0)<v)return false;return true;
+}
+function _testRtgManagerPool(managerExcluded,managerPool){
+  const src=_testManagerCandidates(managerExcluded,managerPool),kept=[];
+  for(const m of src){if(kept.some(k=>_testManagerSimplyDominates(k,m)))continue;for(let i=kept.length-1;i>=0;i--)if(_testManagerSimplyDominates(m,kept[i]))kept.splice(i,1);kept.push(m);}return kept;
+}
 function _testMaxManagerBoostValue(c,slot,managerExcluded,managerPool){let best=0;for(const mgr of _testManagerCandidates(managerExcluded,managerPool))best=Math.max(best,_testManagerBoostValue(mgr,c,slot));return best;}
+function _testRtgFormSignature(form){return (form&&form.slots||[]).slice().sort().join('|');}
+function _testRtgSlotUpperScores(all,excluded,managerPool){
+  // Full-pool, distinctness-relaxed per-slot maxima. Summing these is admissible because a real XI
+  // can use no card more than once, while this bound deliberately allows the same card in every slot.
+  const allowed=new Set();for(const f of FORMS)for(const sl of (f.slots||[]))allowed.add(sl);
+  const out=new Map(),cache=new Map(),blocked=excluded||new Set();
+  for(const c of all){if(blocked.has(c._person))continue;for(const sl of (c.pos||[])){if(!allowed.has(sl))continue;const k=String(c._tid)+'|'+sl;let v=cache.get(k);if(v===undefined){v=_testRoleScore(c,sl,_testMaxManagerBoostValue(c,sl,null,managerPool));cache.set(k,v);}if(v>(out.get(sl)??-Infinity))out.set(sl,v);}}
+  return out;
+}
+function _testRtgFormationUpperBound(form,slotUpper){let total=0;for(const sl of (form.slots||[])){const v=slotUpper.get(sl);if(v===undefined)return -Infinity;total+=v;}return total;}
 function _testTeamChemConditionMet(chem,conds){for(const c of conds)if(c.kind==='team_chem'&&!_conditionCmp(chem,c.op||'eq',Number(c.value)||0))return false;return true;}
 function _testEvaluateXIWithManager(xi,form,seed,mgr){
   const rawChem=trueChemPerCard(xi),chem=mgr?_testChemPerCardWithManager(xi,mgr):rawChem.slice(),chemTotal=chem.reduce((a,b)=>a+b,0),boosts=mgr?_testManagerBoosts(mgr):[],cards=[],objParts=[];
@@ -8234,12 +8256,12 @@ function _bestTestManagerFromPool(xi,form,seed,conds,managerExcluded,managerPool
 }
 function _bestTestManager(xi,form,seed,conds,managerExcluded){return _bestTestManagerFromPool(xi,form,seed,conds,managerExcluded,MANAGER_DB);}
 function _testNonChemConditionsMet(sc,xi,conds){return _conditionsMet(sc,xi,conds.filter(c=>c.kind!=='team_chem'));}
-function _testFinalizeXI(pick,form,conds,seed,mode,managerExcluded){
+function _testFinalizeXI(pick,form,conds,seed,mode,managerExcluded,managerPool){
   const chosen=[],slots=[];for(let i=0;i<pick.length;i++)if(pick[i]){chosen.push(pick[i]);slots.push(form.slots[i]);}
   const evalForm=slots.length===form.slots.length?form:Object.assign({},form,{slots}),baseSc=scoreXI(chosen);
   if(mode==='rtg'){
     if(!_testNonChemConditionsMet(baseSc,chosen,conds))return null;
-    const mgr=_bestTestManager(chosen,evalForm,seed,conds,managerExcluded);if(!mgr)return null;
+    const mgr=_bestTestManagerFromPool(chosen,evalForm,seed,conds,managerExcluded,managerPool||MANAGER_DB);if(!mgr)return null;
     const sc=Object.assign({},baseSc,{chem:mgr.chemTotal,total:baseSc.total-baseSc.chem+mgr.chemTotal,full:mgr.chemTotal===3*chosen.length});
     if(!_conditionsMet(sc,chosen,conds))return null;
     return {pick:chosen,obj:mgr.obj,sc,mgr,slots};
@@ -8270,13 +8292,13 @@ function _testBudgetReached(stats,cfg){
   return false;
 }
 function _testProgressTick(stats,phase,state,mode,form){}
-function _testFeasibleDFS(form,conds,seed,all,mode,excluded,managerExcluded,cfg,stats){
+function _testFeasibleDFS(form,conds,seed,all,mode,excluded,managerExcluded,cfg,stats,managerPool){
   const target=mode==='sbc'?_testSbcPlayerTarget(conds):form.slots.length,infos=_testPrepareInfos(all,form,mode,conds,excluded,cfg.cap,'feasible');_testRecordPoolStats(stats,infos);if(target===form.slots.length&&infos.some(x=>!x.list.length)||infos.filter(x=>x.list.length).length<target)return null;
   const pick=new Array(form.slots.length),used=new Set(),forwardConds=mode==='sbc'&&target<form.slots.length?conds.filter(c=>c.kind!=='team_rating'):conds;let answer=null;
   function dfs(remaining,depth,selected){
     if(answer||_testBudgetReached(stats,cfg)||selected+remaining.length<target)return;
     stats.nodes++;if((stats.nodes&2047)===0)_testProgressTick(stats,target===11?'Finding a valid XI':'Finding a valid '+target+'-player squad',answer,mode,form);
-    if(selected===target){answer=_testFinalizeXI(pick,form,conds,seed,mode,managerExcluded);if(answer)_testProgressTick(stats,'Valid squad locked',answer,mode,form);return;}
+    if(selected===target){answer=_testFinalizeXI(pick,form,conds,seed,mode,managerExcluded,managerPool);if(answer)_testProgressTick(stats,'Valid squad locked',answer,mode,form);return;}
     if(!remaining.length)return;
     // Exact full-assignment matching is sound only when every remaining slot must be filled.
     if(mode==='sbc'&&depth===0&&target===remaining.length){stats.matchingBounds=(stats.matchingBounds||0)+1;if(_testSbcMatchingLowerBound(remaining,used,pick.filter(Boolean),conds)===Infinity)return;}
@@ -8298,17 +8320,17 @@ function _testFeasibleDFS(form,conds,seed,all,mode,excluded,managerExcluded,cfg,
   }
   dfs(infos.slice(),0,0);return answer?{state:answer,form,seed,conds}:null;
 }
-function _testOptimiseDFS(form,conds,seed,all,mode,excluded,managerExcluded,fallback,cfg,stats){
+function _testOptimiseDFS(form,conds,seed,all,mode,excluded,managerExcluded,fallback,cfg,stats,managerPool){
   const target=mode==='sbc'?_testSbcPlayerTarget(conds):form.slots.length,infos=_testPrepareInfos(all,form,mode,conds,excluded,cfg.cap,'optimise');_testRecordPoolStats(stats,infos);if(target===form.slots.length&&infos.some(x=>!x.list.length)||infos.filter(x=>x.list.length).length<target)return fallback;
   const pick=new Array(form.slots.length),used=new Set(),forwardConds=mode==='sbc'&&target<form.slots.length?conds.filter(c=>c.kind!=='team_rating'):conds;let best=fallback.state;
-  const rtgMgrPool=mode==='rtg'?_testManagerCandidates(managerExcluded,MANAGER_DB):[],rtgRoleCache=new Map();
+  const rtgMgrPool=mode==='rtg'?_testManagerCandidates(managerExcluded,managerPool||MANAGER_DB):[],rtgRoleCache=new Map(),globalIncumbent=mode==='rtg'&&Number.isFinite(Number(cfg&&cfg.incumbentObj))?Number(cfg.incumbentObj):-Infinity;
   const rtgOptimisticRole=(c,slot)=>{const k=String(c._tid)+'|'+slot;if(rtgRoleCache.has(k))return rtgRoleCache.get(k);const v=_testRoleScore(c,slot,_testMaxManagerBoostValue(c,slot,null,rtgMgrPool));rtgRoleCache.set(k,v);return v;};
   function dfs(remaining,rawPotential,sumRating,depth,selected){
     if(_testBudgetReached(stats,cfg)||selected+remaining.length<target)return;
     stats.nodes++;if((stats.nodes&2047)===0)_testProgressTick(stats,mode==='sbc'?'Lowering card ratings':'Improving stat XI',best,mode,form);
-    if(selected===target){const fin=_testFinalizeXI(pick,form,conds,seed,mode,managerExcluded);if(!fin)return;if(fin.obj>best.obj||fin.obj===best.obj&&fin.sc.total>best.sc.total)best=fin;return;}
+    if(selected===target){const fin=_testFinalizeXI(pick,form,conds,seed,mode,managerExcluded,managerPool);if(!fin)return;if(fin.obj>best.obj||fin.obj===best.obj&&fin.sc.total>best.sc.total)best=fin;return;}
     if(mode==='rtg'){
-      let ub=rawPotential;for(const info of remaining){const a=_testAvailableCards(info,used,pick.filter(Boolean),conds);if(!a.length)return;ub+=Math.max(...a.map(c=>rtgOptimisticRole(c,info.sl)));}if(ub<best.obj)return;
+      let ub=rawPotential;for(const info of remaining){const a=_testAvailableCards(info,used,pick.filter(Boolean),conds);if(!a.length)return;ub+=Math.max(...a.map(c=>rtgOptimisticRole(c,info.sl)));}if(ub<Math.max(best.obj,globalIncumbent))return;
     }else{
       const need=target-selected,mins=[];let edgeCount=0;const chosenNow=pick.filter(Boolean);for(const info of remaining){const a=_testAvailableCards(info,used,chosenNow,conds);if(!a.length)continue;edgeCount+=a.length;mins.push(Math.min(...a.map(c=>c.rating)));}
       if(mins.length<need)return;mins.sort((a,b)=>a-b);const loose=mins.slice(0,need).reduce((a,b)=>a+b,0),bestCost=-best.obj;if(sumRating+loose>bestCost)return;
@@ -8347,35 +8369,49 @@ function _testSearchConfig(mode,scale,expanded){
   return {feasible:{nodes:(expanded?24000:5000)*scale,cap:grow(expanded?190:90,.68),maxMs:timeGrow(expanded?6000:3500)},optimise:{nodes:4200*scale,cap:grow(85,.68),maxMs:timeGrow(3500)}};
 }
 function _runRtgTestSearch(conds,seed,all,scale){
-  let best=null,formsChecked=0;const stats={nodes:0,capped:false},cfg=_testSearchConfig('rtg',scale,false),blocked=RTG_TEST_EXCLUSIONS,mgrBlocked=RTG_TEST_MANAGER_EXCLUSIONS;
-  if(!MANAGER_DB.some(m=>!mgrBlocked.has(_testManagerKey(m))))return {error:'Every manager in the database is excluded. Clear at least one manager exclusion.',seed,conds,search:{nodes:0,capped:false,scale,formsChecked:0}};
-  const feasibleForms=[];
-  for(const form of FORMS){
-    formsChecked++;const localF={nodes:0,capped:false},feasible=_testFeasibleDFS(form,conds,seed,all,'rtg',blocked,mgrBlocked,cfg.feasible,localF);_testMergeSearchStats(stats,localF);if(!feasible)continue;feasibleForms.push(feasible);
-    if(!best||feasible.state.obj>best.state.obj||feasible.state.obj===best.state.obj&&feasible.state.sc.total>best.state.sc.total)best=feasible;if(best)_testProgressTick(stats,'Scanning formations',best.state,'rtg',best.form);
+  let best=null;const formsChecked=FORMS.length,stats={nodes:0,capped:false},cfg=_testSearchConfig('rtg',scale,false),blocked=RTG_TEST_EXCLUSIONS,mgrBlocked=RTG_TEST_MANAGER_EXCLUSIONS;
+  const rawManagerPool=_testManagerCandidates(mgrBlocked,MANAGER_DB),managerPool=_testRtgManagerPool(mgrBlocked,MANAGER_DB);
+  if(!rawManagerPool.length)return {error:'Every manager in the database is excluded. Clear at least one manager exclusion.',seed,conds,search:{nodes:0,capped:false,scale,formsChecked:0}};
+
+  // Formations with the same multiset of required position labels are exactly the same assignment
+  // problem for this solver. Keep one canonical representative and account for the rest as deduped.
+  const bySig=new Map();for(const form of FORMS){const sig=_testRtgFormSignature(form);if(!bySig.has(sig))bySig.set(sig,{sig,form,copies:1});else bySig.get(sig).copies++;}
+  const slotUpper=_testRtgSlotUpperScores(all,blocked,managerPool),forms=Array.from(bySig.values());for(const x of forms)x.bound=_testRtgFormationUpperBound(x.form,slotUpper);forms.sort((a,b)=>b.bound-a.bound||String(a.form.name).localeCompare(String(b.form.name)));
+  const dedupedForms=FORMS.length-forms.length,feasibleForms=[];let formBoundSkips=0,feasibilityBudgetCuts=0,feasibilityPoolCuts=0,optimisationBudgetCuts=0,shortlistOmitted=0,formsOptimised=0;
+
+  function scanFeasibility(desc,fcfg){
+    if(desc.bound===-Infinity||best&&desc.bound<best.state.obj){formBoundSkips++;return;}
+    const localF={nodes:0,capped:false},feasible=_testFeasibleDFS(desc.form,conds,seed,all,'rtg',blocked,mgrBlocked,fcfg,localF,managerPool);_testMergeSearchStats(stats,localF);
+    if(!feasible){if(localF.capped)feasibilityBudgetCuts++;else if(localF.poolComplete===false)feasibilityPoolCuts++;return;}
+    feasible._rtgBound=desc.bound;feasibleForms.push(feasible);
+    if(!best||feasible.state.obj>best.state.obj||feasible.state.obj===best.state.obj&&feasible.state.sc.total>best.state.sc.total)best=feasible;
+    if(best)_testProgressTick(stats,'Scanning formations',best.state,'rtg',best.form);
   }
-  // Every feasible formation keeps its locked fallback, but bounded optimisation starts with the
-  // strongest fallbacks instead of spending the same cap on all 27 shapes. Keep searching widens
-  // this shortlist as well as the per-formation DFS cap, eventually reaching every feasible shape.
-  feasibleForms.sort((a,b)=>b.state.obj-a.state.obj||b.state.sc.total-a.state.sc.total);
-  const formLimit=Math.min(feasibleForms.length,Math.max(6,Math.ceil(6*Math.sqrt(scale))));let formsComplete=formLimit>=feasibleForms.length;
-  for(const feasible of feasibleForms.slice(0,formLimit)){
-    const localO={nodes:0,capped:false},res=_testOptimiseDFS(feasible.form,conds,seed,all,'rtg',blocked,mgrBlocked,feasible,cfg.optimise,localO);_testMergeSearchStats(stats,localO);
+  for(const desc of forms)scanFeasibility(desc,cfg.feasible);
+
+  // Preserve the previous expanded rescue pass, but only over canonical role signatures.
+  if(!best){const xcfg=_testSearchConfig('rtg',scale,true);feasibilityBudgetCuts=0;feasibilityPoolCuts=0;for(const desc of forms)scanFeasibility(desc,xcfg.feasible);}
+  if(!best){const formsComplete=feasibilityBudgetCuts===0&&feasibilityPoolCuts===0;return {error:'No condition-valid in-position XI was found at this search depth. The supported conditions may conflict, or this case may need Keep searching.',seed,conds,search:{nodes:stats.nodes,capped:stats.capped,scale,formsChecked,uniqueForms:forms.length,dedupedForms,formBoundSkips,formsOptimised:0,feasibleForms:0,formsComplete,poolComplete:!!stats.poolComplete,candidateCap:stats.candidateCap||0,maxEligible:stats.maxEligible||0,managerPoolRaw:rawManagerPool.length,managerPoolKept:managerPool.length,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:stats.matchingBounds||0}};}
+
+  // Search the strongest whole-formation bounds first. Each DFS receives the best objective already
+  // found in earlier formations, so its existing node bound can prune against the global incumbent.
+  feasibleForms.sort((a,b)=>(b._rtgBound||-Infinity)-(a._rtgBound||-Infinity)||b.state.obj-a.state.obj||b.state.sc.total-a.state.sc.total);
+  const formLimit=Math.min(feasibleForms.length,Math.max(6,Math.ceil(6*Math.sqrt(scale))));
+  for(const feasible of feasibleForms){
+    if(best&&feasible._rtgBound<best.state.obj){formBoundSkips++;continue;}
+    if(formsOptimised>=formLimit){shortlistOmitted++;continue;}
+    const localO={nodes:0,capped:false},ocfg=Object.assign({},cfg.optimise,{incumbentObj:best.state.obj}),res=_testOptimiseDFS(feasible.form,conds,seed,all,'rtg',blocked,mgrBlocked,feasible,ocfg,localO,managerPool);formsOptimised++;_testMergeSearchStats(stats,localO);if(localO.capped)optimisationBudgetCuts++;
     if(!best||res.state.obj>best.state.obj||res.state.obj===best.state.obj&&res.state.sc.total>best.state.sc.total)best=res;if(best)_testProgressTick(stats,'Optimising formations',best.state,'rtg',best.form);
   }
-  if(!best){
-    formsComplete=true;const xcfg=_testSearchConfig('rtg',scale,true);
-    for(const form of FORMS){const local={nodes:0,capped:false},feasible=_testFeasibleDFS(form,conds,seed,all,'rtg',blocked,mgrBlocked,xcfg.feasible,local);_testMergeSearchStats(stats,local);if(!feasible)continue;const o={nodes:0,capped:false},res=_testOptimiseDFS(form,conds,seed,all,'rtg',blocked,mgrBlocked,feasible,xcfg.optimise,o);_testMergeSearchStats(stats,o);if(!best||res.state.obj>best.state.obj)best=res;}
-  }
-  if(!best)return {error:'No condition-valid in-position XI was found at this search depth. The supported conditions may conflict, or this case may need Keep searching.',seed,conds,search:{nodes:stats.nodes,capped:stats.capped,scale,formsChecked,formsOptimised:formsComplete?feasibleForms.length:formLimit,feasibleForms:feasibleForms.length,formsComplete,poolComplete:!!stats.poolComplete,candidateCap:stats.candidateCap||0,maxEligible:stats.maxEligible||0,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:stats.matchingBounds||0}};
-  best.search={nodes:stats.nodes,capped:stats.capped,scale,formsChecked,formsOptimised:formsComplete?feasibleForms.length:formLimit,feasibleForms:feasibleForms.length,formsComplete,poolComplete:!!stats.poolComplete,candidateCap:stats.candidateCap||0,maxEligible:stats.maxEligible||0,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:stats.matchingBounds||0};return best;
+  const formsComplete=feasibilityBudgetCuts===0&&feasibilityPoolCuts===0&&optimisationBudgetCuts===0&&shortlistOmitted===0;
+  best.search={nodes:stats.nodes,capped:stats.capped,scale,formsChecked,uniqueForms:forms.length,dedupedForms,formBoundSkips,formsOptimised,feasibleForms:feasibleForms.length,formsComplete,poolComplete:!!stats.poolComplete,candidateCap:stats.candidateCap||0,maxEligible:stats.maxEligible||0,managerPoolRaw:rawManagerPool.length,managerPoolKept:managerPool.length,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:stats.matchingBounds||0};return best;
 }
 function _runSbcTestSearch(conds,seed,all,scale){
   const form=FORMS.find(f=>f.name===_sbcTestFormationName());if(!form)return {error:'Select a formation for the SBC solver.',seed,conds,search:{nodes:0,capped:false,scale,formsChecked:0}};
-  const cfg=_testSearchConfig('sbc',scale,false),fs={nodes:0,capped:false};cfg.feasible.deadline=Date.now()+cfg.feasible.maxMs;let feasible=_testFeasibleDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,cfg.feasible,fs);
-  if(!feasible){const xcfg=_testSearchConfig('sbc',scale,true),xs={nodes:0,capped:false,progressOffset:fs.nodes};xcfg.feasible.deadline=Date.now()+xcfg.feasible.maxMs;feasible=_testFeasibleDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,xcfg.feasible,xs);_testMergeSearchStats(fs,xs);}
+  const cfg=_testSearchConfig('sbc',scale,false),fs={nodes:0,capped:false};cfg.feasible.deadline=Date.now()+cfg.feasible.maxMs;let feasible=_testFeasibleDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,cfg.feasible,fs,null);
+  if(!feasible){const xcfg=_testSearchConfig('sbc',scale,true),xs={nodes:0,capped:false,progressOffset:fs.nodes};xcfg.feasible.deadline=Date.now()+xcfg.feasible.maxMs;feasible=_testFeasibleDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,xcfg.feasible,xs,null);_testMergeSearchStats(fs,xs);}
   if(!feasible)return {error:'No condition-valid XI was found at this search effort. Check contradictory conditions or exclusions, then use Keep searching: it expands the time, node and candidate budgets.',form,seed,conds,search:{nodes:fs.nodes,capped:fs.capped,nodeCapped:!!fs.nodeCapped,timeCapped:!!fs.timeCapped,scale,formsChecked:1,poolComplete:!!fs.poolComplete,candidateCap:fs.candidateCap||0,maxEligible:fs.maxEligible||0,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:fs.matchingBounds||0,feasibilityNodes:fs.nodes,optimisationNodes:0}};
-  const os={nodes:0,capped:false,progressOffset:fs.nodes};cfg.optimise.deadline=Date.now()+cfg.optimise.maxMs;const res=_testOptimiseDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,feasible,cfg.optimise,os);res.search={nodes:fs.nodes+os.nodes,capped:!!os.capped,nodeCapped:!!os.nodeCapped,timeCapped:!!os.timeCapped,feasibilityCapped:!!fs.capped,scale,formsChecked:1,poolComplete:!!os.poolComplete,candidateCap:os.candidateCap||0,maxEligible:os.maxEligible||0,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:(fs.matchingBounds||0)+(os.matchingBounds||0),feasibilityNodes:fs.nodes,optimisationNodes:os.nodes};return res;
+  const os={nodes:0,capped:false,progressOffset:fs.nodes};cfg.optimise.deadline=Date.now()+cfg.optimise.maxMs;const res=_testOptimiseDFS(form,conds,seed,all,'sbc',SBC_TEST_EXCLUSIONS,null,feasible,cfg.optimise,os,null);res.search={nodes:fs.nodes+os.nodes,capped:!!os.capped,nodeCapped:!!os.nodeCapped,timeCapped:!!os.timeCapped,feasibilityCapped:!!fs.capped,scale,formsChecked:1,poolComplete:!!os.poolComplete,candidateCap:os.candidateCap||0,maxEligible:os.maxEligible||0,dominanceRaw:all._dominanceRaw||all.length,dominanceKept:all._dominanceKept||all.length,matchingBounds:(fs.matchingBounds||0)+(os.matchingBounds||0),feasibilityNodes:fs.nodes,optimisationNodes:os.nodes};return res;
 }
 function _draftCupCards(seed){
   const db=_makeTestCards(seed,'rtg'),out=[];
@@ -8443,7 +8479,7 @@ function _testWorkerFunctionSource(){
     _testHasChemCondition,_testChemOrderScore,_testWouldViolateUpper,_testCandidateList,_testPartialConditionValue,_testPartialConditionsPossible,_testAvailableCards,
     _testSymmetryAllowed,_testPredicateCapacity,_testMaxPredicateMatching,_testChooseNextInfo,_testMinCostFlowExact,_testSbcMatchingLowerBound,_testChemBounds,
     _testForwardPossible,_testConditionRank,_testNeedScore,_testChemCounts,_testChemPerCardWithManager,_testSelectorMatches,_testManagerBoosts,_testManagerBoostValue,
-    _testManagerCandidates,_testMaxManagerBoostValue,_testTeamChemConditionMet,_testEvaluateXIWithManager,_bestTestManagerFromPool,_bestTestManager,_testNonChemConditionsMet,_testFinalizeXI,_testPrepareInfos,_testRecordPoolStats,
+    _testManagerCandidates,_testManagerRuleMap,_testManagerSimplyDominates,_testRtgManagerPool,_testMaxManagerBoostValue,_testRtgFormSignature,_testRtgSlotUpperScores,_testRtgFormationUpperBound,_testTeamChemConditionMet,_testEvaluateXIWithManager,_bestTestManagerFromPool,_bestTestManager,_testNonChemConditionsMet,_testFinalizeXI,_testPrepareInfos,_testRecordPoolStats,
     _testMergeSearchStats,_testBudgetReached,_testFeasibleDFS,_testOptimiseDFS,_testSearchConfig,_runRtgTestSearch,_runSbcTestSearch,_draftCupFinalizeNoManager,_draftCupFinalize,_runDraftCupSearchPrepared,_runDraftCupManagerSearchPrepared];
   return fns.map(f=>f.toString()).join('\n');
 }
@@ -8554,8 +8590,8 @@ function _testSearchButtons(mode,res){
   const q=res&&res.search?res.search:{},scale=q.scale||TEST_SEARCH_SCALE[mode],nodes=q.nodes||0,capped=!!q.capped,poolComplete=!!q.poolComplete,cap=Number(q.candidateCap)||0,maxEligible=Number(q.maxEligible)||0;
   const cupMode=mode==='cups'||mode==='cupsmgr';let pool;if(cupMode)pool=(mode==='cupsmgr'?'fixed picked-player pool':'full Draft Slots pool')+' · '+Number(q.sourceCards||0)+' cards from '+Number(q.sourceGroups||0)+' '+(mode==='cupsmgr'?'locked picks':'draft picks');else pool=poolComplete?'full eligible candidate pool':('candidate slice up to '+cap.toLocaleString()+'/position'+(maxEligible?' · largest eligible position '+maxEligible.toLocaleString():''));
   const reduced=mode==='sbc'&&q.dominanceRaw&&q.dominanceKept&&q.dominanceKept<q.dominanceRaw?' · exact dominance pool '+Number(q.dominanceKept).toLocaleString()+'/'+Number(q.dominanceRaw).toLocaleString()+' DB copies':'';
-  const bounds=q.matchingBounds?' · '+Number(q.matchingBounds).toLocaleString()+' matching bounds':'',forms=mode==='rtg'?(q.formsComplete?' · all feasible formations optimised':(' · '+Number(q.formsOptimised||0)+'/'+Number(q.feasibleForms||0)+' feasible formations optimised')):'',phase=mode==='sbc'&&q.feasibilityNodes!==undefined?' · valid XI in '+Number(q.feasibilityNodes||0).toLocaleString()+' nodes · rating optimisation '+Number(q.optimisationNodes||0).toLocaleString()+' nodes':'';
-  const retained=q.retainedPrevious?' · previous incumbent retained':'',exhaustive=!capped&&poolComplete&&(mode!=='rtg'||!!q.formsComplete),verdict=exhaustive?'Search complete across the full pool'+(mode==='rtg'?' and every feasible formation':'')+'.':(q.stopped?'Search stopped by you; the displayed result is the latest valid incumbent.':('Search is still bounded; escalating expands '+(cupMode?'the DFS budget.':'time, nodes and candidate slices while retaining the valid fallback.'))),capText=capped?(q.timeCapped?' · search time budget reached':q.nodeCapped?' · node cap reached':' · search cap reached'):'';
+  const bounds=q.matchingBounds?' · '+Number(q.matchingBounds).toLocaleString()+' matching bounds':'',forms=mode==='rtg'?((q.formsComplete?' · all formation signatures accounted for':(' · '+Number(q.formsOptimised||0)+'/'+Number(q.feasibleForms||0)+' feasible signatures searched'))+(q.formBoundSkips?' · '+Number(q.formBoundSkips).toLocaleString()+' bound-pruned':'')+(q.dedupedForms?' · '+Number(q.dedupedForms).toLocaleString()+' duplicate formations collapsed':'')):'',phase=mode==='sbc'&&q.feasibilityNodes!==undefined?' · valid XI in '+Number(q.feasibilityNodes||0).toLocaleString()+' nodes · rating optimisation '+Number(q.optimisationNodes||0).toLocaleString()+' nodes':'';
+  const retained=q.retainedPrevious?' · previous incumbent retained':'',exhaustive=!capped&&poolComplete&&(mode!=='rtg'||!!q.formsComplete),verdict=exhaustive?'Search complete across the full pool'+(mode==='rtg'?' with every formation searched, bound-resolved or deduplicated':'')+'.':(q.stopped?'Search stopped by you; the displayed result is the latest valid incumbent.':('Search is still bounded; escalating expands '+(cupMode?'the DFS budget.':'time, nodes and candidate slices while retaining the valid fallback.'))),capText=capped?(q.timeCapped?' · search time budget reached':q.nodeCapped?' · node cap reached':' · search cap reached'):'';
   const info='<div class="tiny" style="margin-top:8px">'+nodes.toLocaleString()+' DFS nodes checked · Search effort ×'+scale+' · '+pool+reduced+bounds+forms+phase+retained+capText+'. '+verdict+'</div>';
   if(exhaustive)return info+'<div class="note" style="margin-top:8px;border-color:var(--good)"><b>Search finished.</b> There is no deeper escalation for this pool.</div>';
   return info+'<div class="row" style="margin-top:8px"><button class="btn sec sm" data-test-action="1" onclick="keepSearchingTest(\''+mode+'\',3)">Keep searching ×3</button><button class="btn gho sm" data-test-action="1" onclick="keepSearchingTest(\''+mode+'\',10)">Search much longer ×10</button></div>';
@@ -8613,7 +8649,7 @@ function _testSolverLogText(mode){
   const conds=res.conds||[];if(conds.length)conds.forEach(c=>lines.push('  - '+_conditionLabel(c)));else lines.push('  none');
   const ex=res.exclusions||{players:[],managers:[]};lines.push('','Exclusions:');if((ex.players||[]).length)lines.push('  Players: '+ex.players.join(', '));if((ex.managers||[]).length)lines.push('  Managers: '+ex.managers.join(', '));if(!(ex.players||[]).length&&!(ex.managers||[]).length)lines.push('  none');
   lines.push('','Search:','  Formation: '+res.form.name,'  DFS nodes: '+Number(q.nodes||0).toLocaleString(),'  Search effort: ×'+Number(q.scale||1),'  Capped: '+(q.capped?'yes':'no'),'  Pool complete: '+(q.poolComplete?'yes':'no'));
-  if(mode==='rtg')lines.push('  Formations checked: '+Number(q.formsChecked||0),'  Feasible formations optimised: '+Number(q.formsOptimised||0)+' / '+Number(q.feasibleForms||0),'  Every feasible formation optimised: '+(q.formsComplete?'yes':'no'));
+  if(mode==='rtg')lines.push('  Named formations accounted for: '+Number(q.formsChecked||0),'  Distinct role signatures: '+Number(q.uniqueForms||q.formsChecked||0),'  Duplicate formations collapsed: '+Number(q.dedupedForms||0),'  Feasible signatures searched: '+Number(q.formsOptimised||0)+' / '+Number(q.feasibleForms||0),'  Whole-formation bound skips: '+Number(q.formBoundSkips||0),'  Manager variants after safe dominance filter: '+Number(q.managerPoolKept||0)+' / '+Number(q.managerPoolRaw||0),'  Every formation accounted for: '+(q.formsComplete?'yes':'no'));
   if(mode==='sbc')lines.push('  Feasibility nodes: '+Number(q.feasibilityNodes||0).toLocaleString(),'  Rating-optimisation nodes: '+Number(q.optimisationNodes||0).toLocaleString(),'  Candidate cap per position: '+Number(q.candidateCap||0));
   if(mode==='cups'||mode==='cupsmgr')lines.push('  Source cards: '+Number(q.sourceCards||0),'  Source pick groups: '+Number(q.sourceGroups||0),'  Phase: '+(q.phase||st.phase||mode));
   lines.push('','Result:','  Team rating: '+st.sc.rating,'  Chemistry: '+st.sc.chem);
@@ -8633,9 +8669,9 @@ function _testSolverLogText(mode){
   if(mode==='cupsmgr'){
     lines.push('','Fixed picked-player pool ('+DRAFT_CUPS_LOCKED_POOL.length+' cards):');DRAFT_CUPS_LOCKED_POOL.forEach(c=>lines.push('  '+c.label+' '+c.rating+' · '+c.nation+' / '+leagueOf(c)+(c.club?' / '+c.club:'')+' · '+(c.pos||[]).join('/')));
   }
-  return lines.join('\n');
+  return lines.join('\r\n');
 }
-function downloadTestSolverLog(mode){const txt=_testSolverLogText(mode);if(!txt)return;_namedDownload(new Blob([txt],{type:'text/plain'}),'pacwyn-'+mode+'-solver-'+Date.now(),'txt');}
+function downloadTestSolverLog(mode){const txt=_testSolverLogText(mode);if(!txt)return;_namedDownload(new Blob(['\uFEFF',txt],{type:'text/plain;charset=utf-8'}),'pacwyn-'+mode+'-solver-'+Date.now(),'txt');}
 function _clearStoredTestExclusions(mode){
   if(mode==='rtg'){RTG_TEST_EXCLUSIONS.clear();RTG_TEST_EXCLUSION_LABELS.clear();RTG_TEST_MANAGER_EXCLUSIONS.clear();RTG_TEST_MANAGER_EXCLUSION_LABELS.clear();}
   else{SBC_TEST_EXCLUSIONS.clear();SBC_TEST_EXCLUSION_LABELS.clear();}
