@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ================================================================================================
-     PACWYN SOLVER v5.29.14 — RELEASE BUILD
+     PACWYN SOLVER v5.29.15 — RELEASE BUILD
      ================================================================================================
      This standalone release combines the Draft Solver, hard XI conditions, RTG/WL, Draft Cups,
      SBC, Live Play, formation/pivot analysis and the editable player/manager databases.
@@ -551,7 +551,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.29.14</title>
+<title>Pacwyn Solver v5.29.15</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -798,6 +798,86 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
 .h2h-opponent-config{width:100%;max-width:620px;margin:8px auto 0}
 .h2h-opponent-config>div{min-width:0}
 @media(max-width:520px){.h2h-opponent-config{flex-direction:column}}
+
+
+/* v5.29.15 — compact, user-facing layout for optional RTG patch testing. */
+.rtg-patch-group{
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:rgba(17,28,39,.42);
+  padding:10px;
+  margin-top:9px;
+}
+.rtg-patch-group-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:7px;
+}
+.rtg-patch-group-head span{color:var(--mut);font-size:11px;text-align:right}
+.rtg-patch-card{
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(17,28,39,.6);
+  padding:9px;
+  margin-top:7px;
+}
+.rtg-patch-card.is-active{border-color:var(--warn)}
+.rtg-patch-card.is-safe-off{border-color:var(--mut)}
+.rtg-patch-toggle{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin:0;
+  text-transform:none;
+  letter-spacing:0;
+  color:var(--ink);
+  font-size:12px;
+}
+.rtg-patch-toggle input{width:auto;margin-top:2px;flex:0 0 auto}
+.rtg-patch-title-row{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.rtg-patch-pill{
+  display:inline-flex;
+  align-items:center;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:1px 7px;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.rtg-patch-pill.safe{color:var(--good);border-color:rgba(74,222,128,.35)}
+.rtg-patch-pill.test{color:var(--warn);border-color:rgba(251,191,36,.35)}
+.rtg-patch-help{display:block;margin-top:3px;color:var(--mut);line-height:1.45}
+.rtg-patch-number-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(100px,150px);
+  gap:10px;
+  align-items:center;
+}
+.rtg-patch-number-row input{width:100%;text-align:center}
+.rtg-patch-dependent{
+  margin:8px 0 0 28px;
+  border-left:2px solid var(--cyan-dim);
+  padding-left:9px;
+}
+.rtg-patch-dependent.is-disabled{opacity:.42}
+.rtg-patch-tests{margin-top:9px}
+.rtg-patch-tests>summary{font-size:12px}
+@media(max-width:560px){
+  .rtg-patch-group-head{display:block}
+  .rtg-patch-group-head span{display:block;text-align:left;margin-top:3px}
+  .rtg-patch-number-row{grid-template-columns:1fr}
+  .rtg-patch-number-row input{max-width:none}
+  .rtg-patch-dependent{margin-left:0}
+}
 
 /* v5.29.14 — centre and stack the exact policy-tree explorer on narrow/split screens. */
 .h2h-policy-shell{width:100%;max-width:680px;margin:8px auto 0}
@@ -7977,6 +8057,7 @@ own displayed rating. Raw probability, Classic, Modern and exact H2H remain unch
 <!-- v5.29.4 — IMPORT DB-STAT WARNING / DECISION-FRAGILITY REPORT. Imported squads now warn when saved ATK/BAL/DEF values differ from the current database and continue using current DB values only after confirmation. Practical opportunities are split into largest punishments and easy-to-miss traps, with fragility ranked by how few available choices preserve perfect play and by non-obvious same-immediate-result mistakes. -->
 <!-- v5.29.5 — EXPANDABLE PRACTICAL LINES / CONFIGURABLE LIST DEPTH. The non-perfect-play opportunity report is now collapsed by default, lets the user choose how many suggestions to display per category (1–40), and gives every suggestion an expandable full 11-round line from the mistake through optimal punishment and continuation. Worker output retains a bounded pool of practical deviations so larger reports remain responsive. -->
 <!-- v5.29.6 — VERSION-STAMP CORRECTION. Corrected the visible header/runtime version that was accidentally left at v5.29.3 through the v5.29.4-v5.29.5 patches, restored the missing v5.29.4 changelog entry, and kept title/header/changelog aligned. No solver logic changed. -->
+<!-- v5.29.15 — OPTIONAL PATCH UI CLEANUP / SAFE SPEED-UPS DEFAULT ON. Rebuilt the audit-patch panel into two user-facing groups: compact Safe speed-ups and a collapsed Experimental result changes section. Replaced implementation-heavy descriptions with plain-language explanations, moved technical rationale into a closed note, nested draw-width and bound-patience inputs under their controlling switches, disabled those numeric controls while their parent test is off, and stopped inactive dependent values from triggering benchmark warnings. The result-identical DFS cache reuse and smaller worker payload switches now default on, remain individually reversible, and migrate on for existing v1 patch storage. Result-changing experiments still default off; outcome-prior scale remains at the established value of 1. The badge and warning now distinguish active result tests from safe speed-ups being disabled. No intended squad-ranking or evaluator change beyond adopting the two previously documented result-identical performance paths. -->
 <!-- v5.29.14 — POLICY EXPLORER MOBILE ALIGNMENT / COPIED-META DOCUMENTATION. Replaced the exact policy-tree explorer's generic flex rows with centred responsive grids. The opening-caller, round and deviation controls now stack cleanly on narrow or split-screen viewports; branch controls are width-limited and centred; the four branch action buttons collapse to a centred single-column mobile layout instead of overflowing beyond the panel. Added the maintainer workflow explaining why broad probability search is required before candidate squads exist, while finalist H2H and Build to Beat become increasingly valuable once a strong daily squad is copied across the player base. No solver, evaluator, database, policy-tree or Build-to-Beat result logic changed. -->
 <!-- v5.29.13 — DOCUMENTATION ONLY: MULTI-OBJECTIVE RTG / H2H DESIGN CONTRACT. Consolidated the 2026-07-26 LaLiga-85 evidence showing that model-probability rank, whole-finalist-field tournament strength, direct fixed-target H2H strength, alternate-setting search results and dedicated Build-to-Beat strength are distinct objectives. Recorded the staged-outlier F1 field championship despite losing the target, staged F3/F5 direct target wins, hard +1-cap F1's 3-2 target win, and Build to Beat's exhaustive 7-4 counter. Formalised that multiple finalists, multiple models/settings, exact H2H and Build to Beat are intentional complementary paths rather than attempts to identify one unconditional 'true best' XI. No solver, evaluator, database, UI or H2H logic changed. -->
 <!-- v5.29.12 — BUILD-TO-BEAT POLICY BRANCH EXPLORER / LA LIGA BENCHMARK CONSOLIDATION. The exact fixed-XI worker now remains available after its exhaustive solve so the result panel can query any branch without dumping the 1,410,862-state policy tree. Choose either caller-order line, a round, and either a different caller card+axis or a different response card; the explorer shows the exact optimal continuation, projected final score, and supports further deviations later in the already-branched line. Changing an earlier round safely discards only downstream deviations. Consolidated the 2026-07-26 human target to its actual eleven-card 4-1-2-1-2, corrected Antony to rating 85, and documented the fully valid Del Bosque 4-3-2-1 Build-to-Beat counter that wins 7-4 with zero ties in both caller orders after all 1,410,862 reachable states. No player/manager database or ordinary RTG/WL objective changed. -->
@@ -7984,7 +8065,7 @@ own displayed rating. Raw probability, Classic, Modern and exact H2H remain unch
 <!-- v5.29.11 — LA LIGA TARGET H2H / FIELD TOURNAMENT / +1-CAP FOLLOW-UP. Expanded the embedded 2026-07-26 benchmark with the exact target-specific and whole-field outcomes from the 26-finalist staged-outlier run: Del Bosque F3/F5 beat the stored Simeone target, while Simeone F1 lost that direct matchup but won the full home-and-away finalist tournament 46-4-0 for 142 points. Added the hard Team Rating +1 player-cap follow-up: Michels 4-1-2-1-2 F1 (75.263%) and its full XI beat the target 3-2 with six ties in both caller legs; F2 lost both legs and F4 managed only one draw. Documentation only; no solver, evaluator, database, tournament or H2H logic changed. -->
 <!-- v5.29.8 — LA LIGA 85 SEARCH-COVERAGE BENCHMARK. Added the 2026-07-26 legal Exact-85 / Min-81 / LaLiga-11 / Max-3-club / Min-9-nations reference XI to the embedded future-maintainer regression notes. Records the Simeone +1 Atletico three-axis core, full XI display stats, the v5.29.7 Classic evaluation (72.675% win, 9.274% draw, 18.051% loss; 6.640 expected duel points), the ordinary winner's 61.475% contrast, and classifies the failure as search/generation coverage because the evaluator strongly values the XI once supplied. No solver, database, OCR or scoring logic changed. -->
 <!-- v5.29.7 — CREDITS / MARKET-BOUNDARY DOCUMENTATION. Added PW_Alextrat to the centred Special Thanks line and moved the creator/credits block into normal header flow so it wraps without overlapping other header content on narrow screens. Expanded the future-maintainer no-price-model section with two real peer-to-peer examples: rare duplicates used as trader identity signals, and a collection accidentally omitted from packs that became effectively unpackable for weeks; notes that such availability mistakes appear much rarer now. No solver, database, OCR or scoring logic changed. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.14</span></h1>
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.15</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -8617,12 +8698,16 @@ own displayed rating. Raw probability, Classic, Modern and exact H2H remain unch
       <div class="row" style="margin-top:8px"><button class="btn sec sm" id="rtgResetSettingsBtn" type="button" onclick="resetRtgModelDefaults()">Reset all RTG / WL settings</button><button class="btn gho sm" type="button" onclick="renderRtgModelSettings()">Revert unsaved edits</button></div>
     </details>
     <details class="hlp" id="rtgPatchPanel" style="margin-top:10px" ontoggle="if(this.open)renderRtgPatchPanel()">
-      <summary>Optional model / search patches <span id="rtgPatchBadge" style="color:var(--warn);font-weight:800"></span></summary>
-      <div class="tiny" style="margin-top:7px">Findings from the v5.28.17 RTG audit, each behind its own switch and each defaulting to the existing behaviour. With every switch at its default the code paths below are identical to the previous release, so stored benchmarks cannot move. Two are marked <b style="color:var(--good)">PROVABLY IDENTICAL</b> — they only remove repeated work — and should be adopted after one smoke test. The rest are marked <b style="color:var(--warn)">CHANGES RESULTS</b>: enable one at a time, re-run the canonical fixtures through the exact H2H tournament, and turn it back off if a benchmark regresses. Patch state is stamped onto every result as <span class="mono">activePatches</span>.</div>
+      <summary>Optional RTG improvements <span id="rtgPatchBadge" style="color:var(--warn);font-weight:800"></span></summary>
+      <div class="tiny" style="margin-top:7px">Two result-identical speed-ups are enabled by default. Experimental model and search changes remain off until they are benchmarked. Turn on only one result-changing test at a time; its state is saved and stamped onto the exported result.</div>
       <div id="rtgPatchWarn" class="note" style="display:none;margin:8px 0 0;border-left-color:var(--warn);color:var(--warn)"></div>
       <div id="rtgPatchList"></div>
-      <div class="row" style="margin-top:10px"><button class="btn sec sm" type="button" onclick="resetRtgPatches()">Reset every patch to default (off)</button></div>
-      <div class="tiny" style="margin-top:8px"><b>Why the search is so ordering-sensitive:</b> <span class="mono">_testRtgUsesWinBound()</span> is false in every preset, and <span class="mono">_testOptimiseDFS</span> only has a bound branch for the win bound, SBC and SBC-repair. RTG with the bound off therefore has no pruning at all — it is a fixed-node-budget DFS whose result is decided entirely by candidate ordering. That is why scoring changes move benchmarks: at defaults, ordering <i>is</i> the algorithm. If you want model edits to become benchmark-stable, the sequence is (1) make the admissible win bound the default, (2) confirm it reproduces every canonical benchmark, (3) only then change scoring — with a bound active, scoring decides which squads win rather than which squads get reached.</div>
+      <div class="row" style="margin-top:10px"><button class="btn sec sm" type="button" onclick="resetRtgPatches()">Restore recommended defaults</button></div>
+      <details class="hlp" style="margin-top:9px">
+        <summary>Technical notes for later testing</summary>
+        <div class="tiny" style="margin-top:7px">With every result-changing test off, the model follows the established behaviour. The two safe speed-ups only reuse calculations and remove unreachable worker helpers. The experimental choices can alter which branches are reached, how axes are selected, how draws and small samples are treated, or how quickly expensive scans stop. Re-run the canonical fixtures and exact H2H tournament before adopting any of them.</div>
+        <div class="tiny" style="margin-top:7px"><b>Why search ordering matters:</b> most RTG routes currently use a fixed node budget rather than a fully active admissible bound. Candidate ordering therefore affects which legal areas are reached before the budget ends. That is why even sensible scoring or ordering changes can move benchmarks.</div>
+      </details>
     </details>
     <label style="display:flex;align-items:flex-start;gap:8px;margin:10px 0 0;text-transform:none;letter-spacing:0;color:var(--ink);font-size:12px"><input id="rtgNoManagers" type="checkbox" data-test-action="1" style="width:auto;margin-top:2px" onchange="setRtgNoManagers(this.checked)"><span><b>No managers available — solve without one</b><br><span class="tiny">RTG / WL only. Enable this when no manager is available; every XI is evaluated without chemistry or stat manager boosts.</span></span></label>
     <details class="hlp" id="rtgForcePanel" style="margin-top:10px" ontoggle="if(this.open)renderRtgForceOptions()">
@@ -9556,9 +9641,10 @@ let _RTG_MODEL_SETTINGS=_rtgDefaultModelSettings();
 /* ================================================================================================
    OPTIONAL RTG PATCHES — v5.28.18
    ================================================================================================
-   Every flag here defaults to OFF/neutral. With the stored defaults untouched, each patched call
-   site is byte-for-byte the previous code path, so existing benchmarks cannot move. Turn one on,
-   re-run the canonical fixtures, and turn it off again if a benchmark regresses.
+   The two result-identical performance switches default ON from v5.29.15. Every result-changing
+   experiment remains OFF/neutral, so established scoring and ranking behaviour stays unchanged.
+   Enable one experimental option at a time, re-run the canonical fixtures, and turn it back off if
+   a benchmark regresses.
 
    These deliberately live in their own object and their own localStorage key. They are NOT part of
    _RTG_MODEL_SETTINGS, so schema 14, _rtgSettingsMatchPreset, _rtgNamedPresetForSettings, the
@@ -9568,13 +9654,14 @@ let _RTG_MODEL_SETTINGS=_rtgDefaultModelSettings();
    the worker preamble at Blob-build time. There is no payload field to forget to wire, and a
    worker that somehow lacks _RTG_PATCHES simply runs unpatched (_rtgPatch is try/catch guarded).
 
-   PROVABLY IDENTICAL WHEN ON (safe to adopt after one smoke test):
+   RESULT-IDENTICAL SPEED-UPS (default ON from v5.29.15, rollback switches retained):
      hoistRoleProxyCache, trimWorkerPayload
    CHANGES RESULTS WHEN ON (benchmark before adopting):
      classicRespectsUi, axisWinOnly, drawBand, outcomePriorScale, spreadPenaltyOff,
      feasibilityFastOrder, boundSweepEarlyExit
    ================================================================================================ */
-const _RTG_PATCH_KEY='pacwyn_rtg_patches_v1';
+const _RTG_PATCH_KEY='pacwyn_rtg_patches_v2';
+const _RTG_PATCH_LEGACY_KEY='pacwyn_rtg_patches_v1';
 const _RTG_PATCH_DEFAULTS=Object.freeze({
   classicRespectsUi:false,
   axisWinOnly:false,
@@ -9583,34 +9670,51 @@ const _RTG_PATCH_DEFAULTS=Object.freeze({
   outcomePriorScale:1,
   spreadPenaltyOff:false,
   feasibilityFastOrder:false,
-  hoistRoleProxyCache:false,
+  hoistRoleProxyCache:true,
   boundSweepEarlyExit:false,
   boundSweepPatience:6,
-  trimWorkerPayload:false
+  trimWorkerPayload:true
 });
+/*
+  User-facing descriptions stay intentionally short. The detailed audit rationale remains summarised
+  in the v5.28.17/v5.29.15 changelog and in the technical notes above the implementation.
+  parent means the numeric control has no effect unless its parent switch is enabled.
+*/
 const _RTG_PATCH_META=[
-  {k:'classicRespectsUi',t:'flag',risk:'result',label:'Classic mode obeys the visible checkboxes',
-   why:'_runRtgTestSearch force-overrides ratingCapEnabled:true/+3, closeCallEnabled:false, conditionMatchedOpponents:false and finalistProbabilityModel:\'fast\' whenever searchModel is Classic — which is the default. The outlier cap therefore runs at +3 while its checkbox reads off, and close-call retention is off while its checkbox reads on. Turning this on stops the override so the panel above means what it says.'},
-  {k:'axisWinOnly',t:'flag',risk:'result',label:'Rank duel axes by win-only mass',
-   why:'_testRtgDuelMetrics picks each card\u2019s axis by win + 0.5\u00d7tie, but the objective _testRtgObjectiveFromDuels maximises pure P(match win). An axis carrying more tie mass can win the per-card comparison and then lower the number the search is actually optimising. Turning this on ranks axes by win-only probability so selection and objective agree.'},
-  {k:'drawBand',t:'flag',risk:'result',label:'Give the squad-aware model a reachable draw',
-   why:'_testRtgClassifyPoints splits at exactly 5.5 while _testRtgSoftDuelPoint is a continuous sigmoid, so a total landing on 5.5 has probability zero. Measured over 400 sampled matchups: 0 draws in 400 matches and 0 in 800 individual legs. Every draw the model reports is therefore prior, not evidence. This opens a band around 5.5 so near-level matchups classify as draws.'},
-  {k:'drawBandWidth',t:'num',min:0,max:2,step:0.05,risk:'result',label:'Draw band half-width (points)',
-   why:'Half-width of the draw band around 5.5 duel points. 0.25 means totals from 5.25 to 5.75 count as a draw. Only used when the draw band is on.'},
-  {k:'outcomePriorScale',t:'num',min:0,max:3,step:0.1,risk:'result',label:'Outcome prior strength (1 = current)',
-   why:'_testRtgOutcomeEstimate adds a flat prior of 1.5 (2.5 on the hard-tail pass) to each of win/draw/loss. At 8 sampled opponents that is 36% of the total mass, so a squad beating 8 of 8 reports 76/12/12. Scale 1 keeps the current behaviour exactly; 0 removes shrinkage; values above 1 shrink harder.'},
-  {k:'spreadPenaltyOff',t:'flag',risk:'result',label:'Disable the soft high-rating spread penalty',
-   why:'_testRtgMetricsFromCards subtracts spreadPenalty from balance for cards above team rating, while _testRtgRatingCapMet already rejects anything above +3 — and Classic forces that cap on. The Math.pow(max(0,maxHigh-3),2)/140 half of the formula is therefore identically zero on every XI that survives finalisation. Turning this on removes the whole soft penalty so the hard cap is the only outlier rule.'},
-  {k:'feasibilityFastOrder',t:'flag',risk:'result',label:'Cheap candidate ordering in the feasibility DFS',
-   why:'THE BOTTLENECK. _testFeasibleDFS sorts candidates at every node with an optimisation-grade comparator that calls _testRtgChemThresholdOrder (two full trueChemPerCard passes per candidate) and _testRoleProxy (manager-pool scan plus three duel-probability lookups) — then returns the first legal XI it finds. Turning this on keeps need score, the outlier-cap gate and rating order but drops the chemistry and duel-proxy terms. Feasibility gets much faster; the seed handed to _testOptimiseDFS gets worse, so results will move.'},
-  {k:'hoistRoleProxyCache',t:'flag',risk:'identical',label:'Reuse the role-proxy cache across DFS nodes',
-   why:'PROVABLY IDENTICAL. In _testFeasibleDFS the rtgProxy cache and the manager candidate pool are rebuilt at every node, but their values depend only on (card, slot) plus run constants — rtgHint from conds, cfg.guideManager and the manager pool never change inside one call. Hoisting them to run scope returns the same values with far less work. Enable, confirm one benchmark is bit-identical, then leave it on.'},
-  {k:'boundSweepEarlyExit',t:'flag',risk:'result',label:'Early-exit the upper-bound benchmark sweep',
-   why:'_testRtgDuelMetrics with upper=true sweeps t from benchmark+1 to 105 for all three axes — up to ~315 probability lookups per duel, each able to build a fresh pool over the whole card DB. Higher t is near-monotonically harder, so stopping after a run of non-improving t is almost always the same answer. It is NOT provably admissible, so an early exit can in principle prune a branch it should have kept. Only relevant when the win bound is enabled.'},
-  {k:'boundSweepPatience',t:'num',min:1,max:40,step:1,risk:'result',label:'Non-improving steps before the sweep stops',
-   why:'How many consecutive non-improving t values the bound sweep tolerates before breaking. Higher is safer and slower. Only used when the early exit is on.'},
-  {k:'trimWorkerPayload',t:'flag',risk:'identical',label:'Drop confirmed-dead helpers from the worker source',
-   why:'PROVABLY IDENTICAL if the audit is right. _testRtgDuelAxis, _testEmpiricalWinProbability, _mergeRtgSearchRuns, _testRtgSquadAwareRowBetter and _testRtgFinalistProbability are serialised into every Blob worker but have no reachable caller. This filters them out of the worker source instead of deleting the definitions, so if a ReferenceError appears in a background search you flip this off and nothing is lost.'}
+  {k:'hoistRoleProxyCache',t:'flag',risk:'identical',group:'safe',
+   label:'Reuse repeated DFS calculations',
+   help:'Avoids rebuilding the same role and manager scores at every DFS node. Intended to return the same squads, only faster.'},
+  {k:'trimWorkerPayload',t:'flag',risk:'identical',group:'safe',
+   label:'Use a smaller background worker',
+   help:'Leaves confirmed-unused helper functions out of the worker script. Intended to keep results identical and reduce startup work.'},
+
+  {k:'classicRespectsUi',t:'flag',risk:'result',group:'test',
+   label:'Make Classic follow the visible settings',
+   help:'Classic normally keeps several historical hidden defaults. This test makes the controls above apply literally to Classic runs.'},
+  {k:'axisWinOnly',t:'flag',risk:'result',group:'test',
+   label:'Choose each card’s axis by outright win chance',
+   help:'The current method gives ties half credit when choosing an axis. This test chooses the axis most likely to win outright.'},
+  {k:'drawBand',t:'flag',risk:'result',group:'test',
+   label:'Allow near-even modeled matchups to be draws',
+   help:'Creates a small draw zone around an even 5.5 out of 11 expected duel score.'},
+  {k:'drawBandWidth',t:'num',min:0,max:2,step:0.05,risk:'result',group:'test',parent:'drawBand',
+   label:'Draw-zone half-width',
+   help:'0.25 treats totals from 5.25 to 5.75 as a draw.'},
+  {k:'outcomePriorScale',t:'num',min:0,max:3,step:0.1,risk:'result',group:'test',
+   label:'Small-sample caution level',
+   help:'1 is the current behaviour. 0 trusts the sampled opponents fully; values above 1 pull estimates more strongly toward neutral.'},
+  {k:'spreadPenaltyOff',t:'flag',risk:'result',group:'test',
+   label:'Remove the extra high-rating spread penalty',
+   help:'Tests using only the hard outlier cap instead of also reducing the squad-balance score for high-rated cards.'},
+  {k:'feasibilityFastOrder',t:'flag',risk:'result',group:'test',
+   label:'Use faster ordering to find the first legal XI',
+   help:'Can make condition feasibility much faster, but may give the main optimiser a weaker starting squad.'},
+  {k:'boundSweepEarlyExit',t:'flag',risk:'result',group:'test',
+   label:'Stop the expensive win-bound scan early',
+   help:'Only matters when the expensive win-probability bound is enabled. Stops after several harder thresholds fail to improve the bound.'},
+  {k:'boundSweepPatience',t:'num',min:1,max:40,step:1,risk:'result',group:'test',parent:'boundSweepEarlyExit',
+   label:'Failed thresholds before stopping',
+   help:'Higher values are safer and slower. 6 is the current test default.'}
 ];
 const _RTG_DEAD_WORKER_FNS=['_testRtgDuelAxis','_testEmpiricalWinProbability','_mergeRtgSearchRuns','_testRtgSquadAwareRowBetter','_testRtgFinalistProbability'];
 let _RTG_PATCHES=Object.assign({},_RTG_PATCH_DEFAULTS);
@@ -9626,25 +9730,86 @@ function _normaliseRtgPatches(raw){
 }
 function _rtgPatchSnapshot(){return _normaliseRtgPatches(_RTG_PATCHES);}
 function _rtgPatchIsDefault(k){const cur=_rtgPatchSnapshot();return cur[k]===_RTG_PATCH_DEFAULTS[k];}
-function _rtgPatchesActive(){return _RTG_PATCH_META.filter(m=>!_rtgPatchIsDefault(m.k)).map(m=>m.k+'='+_rtgPatchSnapshot()[m.k]);}
+function _rtgPatchIsEffective(m){
+  if(!m)return false;
+  if(m.parent&&!_rtgPatch(m.parent))return false;
+  return !_rtgPatchIsDefault(m.k);
+}
+function _rtgPatchesActive(){
+  const cur=_rtgPatchSnapshot();
+  return _RTG_PATCH_META.filter(_rtgPatchIsEffective).map(m=>m.k+'='+cur[m.k]);
+}
+function _rtgResultPatchesActive(){
+  const cur=_rtgPatchSnapshot();
+  return _RTG_PATCH_META.filter(m=>m.risk==='result'&&_rtgPatchIsEffective(m)).map(m=>m.k+'='+cur[m.k]);
+}
+function _rtgSafePatchesDisabled(){
+  const cur=_rtgPatchSnapshot();
+  return _RTG_PATCH_META.filter(m=>m.risk==='identical'&&m.t==='flag'&&cur[m.k]!==true).map(m=>m.k);
+}
 function _saveRtgPatches(){try{localStorage.setItem(_RTG_PATCH_KEY,JSON.stringify(_rtgPatchSnapshot()));}catch(e){}}
-function _restoreRtgPatches(){try{const raw=localStorage.getItem(_RTG_PATCH_KEY);if(raw)_RTG_PATCHES=_normaliseRtgPatches(JSON.parse(raw));}catch(e){_RTG_PATCHES=Object.assign({},_RTG_PATCH_DEFAULTS);}renderRtgPatchPanel();}
+function _restoreRtgPatches(){
+  try{
+    const current=localStorage.getItem(_RTG_PATCH_KEY);
+    if(current){
+      _RTG_PATCHES=_normaliseRtgPatches(JSON.parse(current));
+    }else{
+      const legacy=localStorage.getItem(_RTG_PATCH_LEGACY_KEY);
+      if(legacy){
+        const migrated=_normaliseRtgPatches(JSON.parse(legacy));
+        // v1 stored both safe switches as false because false was the old default.
+        // v2 adopts the result-identical speed-ups by default while preserving every experimental value.
+        migrated.hoistRoleProxyCache=true;
+        migrated.trimWorkerPayload=true;
+        _RTG_PATCHES=_normaliseRtgPatches(migrated);
+        _saveRtgPatches();
+      }else{
+        _RTG_PATCHES=Object.assign({},_RTG_PATCH_DEFAULTS);
+      }
+    }
+  }catch(e){_RTG_PATCHES=Object.assign({},_RTG_PATCH_DEFAULTS);}
+  renderRtgPatchPanel();
+}
 function setRtgPatchFlag(k,on){const s=_rtgPatchSnapshot();s[k]=!!on;_RTG_PATCHES=_normaliseRtgPatches(s);_saveRtgPatches();renderRtgPatchPanel();}
 function setRtgPatchValue(k,v){const s=_rtgPatchSnapshot();s[k]=v;_RTG_PATCHES=_normaliseRtgPatches(s);_saveRtgPatches();renderRtgPatchPanel();}
 function resetRtgPatches(){_RTG_PATCHES=Object.assign({},_RTG_PATCH_DEFAULTS);_saveRtgPatches();renderRtgPatchPanel();}
 function renderRtgPatchPanel(){
-  const host=document.getElementById('rtgPatchList');if(!host)return;const cur=_rtgPatchSnapshot();
-  host.innerHTML=_RTG_PATCH_META.map(m=>{
-    const tag=m.risk==='identical'?'<span style="color:var(--good);font-weight:800">PROVABLY IDENTICAL</span>':'<span style="color:var(--warn);font-weight:800">CHANGES RESULTS</span>';
-    const dirty=!_rtgPatchIsDefault(m.k);
-    const box='border:1px solid '+(dirty?'var(--warn)':'var(--line)')+';border-radius:9px;background:rgba(17,28,39,.55);padding:9px;margin-top:8px';
-    if(m.t==='flag')return '<div style="'+box+'"><label style="display:flex;align-items:flex-start;gap:8px;margin:0;text-transform:none;letter-spacing:0;color:var(--ink);font-size:12px"><input type="checkbox" style="width:auto;margin-top:2px" '+(cur[m.k]?'checked':'')+' onchange="setRtgPatchFlag(\''+m.k+'\',this.checked)"><span><b>'+esc(m.label)+'</b> '+tag+'<br><span class="tiny">'+esc(m.why)+'</span></span></label></div>';
-    return '<div style="'+box+'"><label style="margin-top:0">'+esc(m.label)+' '+tag+'</label><input type="number" min="'+m.min+'" max="'+m.max+'" step="'+m.step+'" value="'+cur[m.k]+'" inputmode="decimal" style="max-width:200px" onchange="setRtgPatchValue(\''+m.k+'\',this.value)"><div class="tiny">'+esc(m.why)+'</div></div>';
-  }).join('');
-  const warn=document.getElementById('rtgPatchWarn'),active=_rtgPatchesActive();
-  if(warn){warn.style.display=active.length?'block':'none';warn.innerHTML='<b>'+active.length+' patch'+(active.length===1?'':'es')+' active.</b> Results from this run are NOT comparable with stored benchmarks. Active: '+esc(active.join(' \u00b7 '));}
+  const host=document.getElementById('rtgPatchList');if(!host)return;
+  const cur=_rtgPatchSnapshot(),children=new Map();
+  for(const m of _RTG_PATCH_META)if(m.parent){if(!children.has(m.parent))children.set(m.parent,[]);children.get(m.parent).push(m);}
+  const pill=m=>'<span class="rtg-patch-pill '+(m.risk==='identical'?'safe':'test')+'">'+(m.risk==='identical'?'Safe speed-up':'Test option')+'</span>';
+  const numControl=(m,nested)=>{
+    const enabled=!m.parent||!!cur[m.parent],active=_rtgPatchIsEffective(m);
+    return '<div class="'+(nested?'rtg-patch-dependent ':'rtg-patch-card ')+(active?'is-active ':'')+(!enabled?'is-disabled':'')+'">'+
+      '<div class="rtg-patch-number-row"><div><div class="rtg-patch-title-row"><b>'+esc(m.label)+'</b>'+(!nested?pill(m):'')+'</div><span class="tiny rtg-patch-help">'+esc(m.help)+'</span></div>'+
+      '<input aria-label="'+esc(m.label)+'" type="number" min="'+m.min+'" max="'+m.max+'" step="'+m.step+'" value="'+cur[m.k]+'" inputmode="decimal" '+(!enabled?'disabled':'')+' onchange="setRtgPatchValue(\''+m.k+'\',this.value)"></div></div>';
+  };
+  const flagControl=m=>{
+    const active=_rtgPatchIsEffective(m),safeOff=m.risk==='identical'&&!cur[m.k],kids=children.get(m.k)||[];
+    return '<div class="rtg-patch-card '+(active?'is-active ':'')+(safeOff?'is-safe-off':'')+'">'+
+      '<label class="rtg-patch-toggle"><input type="checkbox" '+(cur[m.k]?'checked':'')+' onchange="setRtgPatchFlag(\''+m.k+'\',this.checked)"><span><span class="rtg-patch-title-row"><b>'+esc(m.label)+'</b>'+pill(m)+'</span><span class="tiny rtg-patch-help">'+esc(m.help)+'</span></span></label>'+
+      kids.map(k=>numControl(k,true)).join('')+'</div>';
+  };
+  const safe=_RTG_PATCH_META.filter(m=>m.group==='safe'&&!m.parent);
+  const tests=_RTG_PATCH_META.filter(m=>m.group==='test'&&!m.parent);
+  const resultActive=_rtgResultPatchesActive(),safeOff=_rtgSafePatchesDisabled();
+  const testSummary=resultActive.length?resultActive.length+' active':'all off / default';
+  host.innerHTML=
+    '<div class="rtg-patch-group"><div class="rtg-patch-group-head"><div><b>Safe speed-ups</b><div class="tiny">Recommended defaults; keep the switches available for rollback.</div></div><span>'+(safe.length-safeOff.length)+' of '+safe.length+' on</span></div>'+safe.map(flagControl).join('')+'</div>'+
+    '<details class="hlp rtg-patch-tests" '+(resultActive.length?'open':'')+'><summary>Experimental result changes <span style="color:'+(resultActive.length?'var(--warn)':'var(--mut)')+';font-weight:700">— '+testSummary+'</span></summary><div class="rtg-patch-group" style="margin-top:8px"><div class="tiny">These may change rankings or search coverage. Test one at a time against the stored benchmarks.</div>'+tests.map(m=>m.t==='flag'?flagControl(m):numControl(m,false)).join('')+'</div></details>';
+  const warn=document.getElementById('rtgPatchWarn');
+  if(warn){
+    warn.style.display=resultActive.length?'block':'none';
+    warn.innerHTML=resultActive.length?'<b>'+resultActive.length+' result-changing test'+(resultActive.length===1?' is':'s are')+' active.</b> Do not compare this run directly with stored benchmarks. Active: '+esc(resultActive.join(' \u00b7 ')):'';
+  }
   const badge=document.getElementById('rtgPatchBadge');
-  if(badge)badge.textContent=active.length?' \u2014 '+active.length+' active':'';
+  if(badge){
+    const bits=[];
+    if(resultActive.length)bits.push(resultActive.length+' test'+(resultActive.length===1?'':'s')+' active');
+    if(safeOff.length)bits.push(safeOff.length+' speed-up'+(safeOff.length===1?'':'s')+' off');
+    badge.textContent=bits.length?' — '+bits.join(' · '):'';
+    badge.style.color=resultActive.length?'var(--warn)':safeOff.length?'var(--mut)':'var(--good)';
+  }
 }
 function _rtgSettingsMatchPreset(settings,preset,name){
   const a=_normaliseRtgModelSettings(settings),b=_normaliseRtgModelSettings(preset),core=a.order.join('|')===b.order.join('|')&&a.ratingDirection===b.ratingDirection&&a.coverageEnabled===b.coverageEnabled&&a.draftCupsGentle===b.draftCupsGentle&&a.repairEnabled===b.repairEnabled&&a.winBoundEnabled===b.winBoundEnabled&&a.opponentModel===b.opponentModel&&a.finalistCount===b.finalistCount;if(!core)return false;
