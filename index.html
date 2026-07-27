@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ================================================================================================
-     PACWYN SOLVER v5.29.39 — RELEASE BUILD
+     PACWYN SOLVER v5.29.41 — RELEASE BUILD
      ================================================================================================
      This standalone release combines the Draft Solver, hard XI conditions, RTG/WL, Draft Cups,
      SBC, Live Play, formation/pivot analysis and the editable player/manager databases.
@@ -594,7 +594,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.29.39</title>
+<title>Pacwyn Solver v5.29.41</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -8125,6 +8125,8 @@ Draft and RTG/WL must not be judged by the same standard.
 - The intended architecture is therefore bounded DFS -> diverse/close-call finalists -> context-aware repair -> exact H2H where possible. Optional patches are controlled modelling hypotheses used to protect working benchmarks while testing edge-case assumptions.
 - Success should be judged by benchmark recovery, exact H2H, human-quality squads and real outcomes, not by visual elegance or a claim of universal optimality.
 END RTG/WL SEARCH MODEL CONCEPT NOTE -->
+<!-- v5.29.41 — CONDITIONS OCR PARSER ROOT-CAUSE FIX. The OCR engine was already reading the supplied Conditions text accurately, but the parser reused the app-wide norm() helper, which intentionally removes every space for compact player/card searches. The parser then compared compact strings such as “teamrating” against spaced phrases such as “team rating”, causing nearly every ordinary condition to fall through to manual review while exact-card matching still happened to work. Conditions OCR now uses its own accent-insensitive, token-preserving normaliser for phrase detection, catalogue scoring, exact-value matching, positions and exact player/card-type matching. The displayed empty review state now says Reading Conditions while OCR is active instead of incorrectly saying that no condition-like lines were recognised. Added © and Q-style bullet/count cleanup. Regression tests now use the real compact application norm() alongside the new OCR normaliser and cover the exact v5.29.40 output: Team Rating, Team Chemistry, Leagues, same-Team Max, Belgium cards, World Cup Story and Showdown Trossard. No image-processing, solver, SBC, database, worker dependency or saved-condition behaviour changed. -->
+<!-- v5.29.40 — CONDITIONS OCR IMAGE/PARSER ACCURACY PASS. Improved Conditions screenshot recognition at both the image and parser layers. The importer now detects the purple Conditions panel, crops away status bars/background UI, enlarges it and performs a high-contrast black-on-white OCR pass; when that pass is weak it automatically compares a natural-colour crop and keeps the better parse. Added aggressive but condition-aware line cleanup for bullet artefacts and merged prefixes such as “O Team…”, “O LEAGUES…”, “Io Cards from…” and status-bar/CONDITIONS text attached to the first rule. Replaced loose substring catalogue matching with scored token matching and stricter thresholds, preventing generic “Leagues” from becoming club OL while still recovering long names such as England Super League W. Generic Min/Exact/Max, exact-card, nation, league, team, card-type and position support remains unchanged; unresolved lines still remain visible for review. Added parser regression tests using the exact malformed OCR strings shown in the v5.29.39 report. No solver, SBC, database, worker dependency or saved-condition behaviour changed. -->
 <!-- v5.29.39 — CONDITIONS OCR LOADER/GENERALISATION AND SBC EXACT-OUTLIER PEEL. Fixed the Conditions screenshot failure caused by calling osLoadTesseract outside the private Live Axis import scope; Conditions now owns a globally visible lazy Tesseract loader. Removed the duplicate secondary Import screenshot button, leaving one prominent screenshot action plus Export/Import JSON utilities. Reworked the parser around generic Min/Exact/Max-before-or-after grammar rather than the supplied examples only. It recognises team/player ratings, chemistry, minimum players, distinct leagues/nations/teams/card types, max-same team/league/nation, icons, heroes, specials, any stored card type, any DB nation/league/team, all positions, and uniquely identifiable exact player+card-type rows; unrecognised condition-like lines remain visible for manual review rather than disappearing. Plain “N cards from Y” OCR is accepted as an assumed Min and warned in review. Completed every missing cards_position predicate/forward-bound/candidate path. Replaced the unsuccessful binary max-card ceiling route with automatic exact high-rating outlier peeling: detect a selected card at least three ratings above the next card or four above team rating, temporarily exclude that exact card, rebuild the SBC dominance pool exactly as a manual exclusion would, and retry. Repeat until no outlier remains or the next exclusion has no solution, then retain the last valid XI. Added the required dominance-pool worker dependencies and exported the peel trace. -->
 <!-- v5.29.38 — CONDITIONS SCREENSHOT OCR, SEARCHABLE PICKERS, POSITION CONDITIONS AND SBC CEILING ROUTE. Added review-first screenshot import for PACWYN Conditions popups. The parser recognises Team Rating, Team Chemistry, different leagues/nations/teams, same-team maximums including OCR “May”, Special players, named nation/league/team requirements, stored card types, position requirements such as LW Min 1, and uniquely identifiable exact cards such as “Specific player: Trossard Showdown”. Added a native Cards in position hard-condition kind so imported position rules remain real solver Conditions rather than notes. Replaced Android native league/value selectors with in-page type-to-search lists. The legacy internal league key “suda” now displays and searches as Sudamericana without rewriting historical DB rows. SBC now performs a bounded monotone binary maximum-card ceiling search before final rating-profile optimisation, so an arbitrary first feasible helper such as Zubimendi 99 cannot prevent a valid 90-ceiling XI from being tested. The initial XI remains a safe fallback. New position logic is handled by existing serialized condition helpers and the ceiling route stays inside the already serialized _runSbcTestSearch function, so no new worker dependency entry is required. -->
 <!-- v5.29.37 — MANAGER MARKET RE-RELEASE AUDIT. Audited all 19 managers shown across the five supplied market screenshots against the embedded manager database. Every rating, nation, league and displayed boost was already present, including the separate historical Farioli 90 LW variant in addition to the re-released GK variant. The manager count remains exactly 96. Corrected only two screenshot-confirmed cosmetic spellings: Conceicao 82 → Conceição 82 and Benitez 81 → Benítez 81. No manager was added or removed and no boost, nation, league, solver logic or default changed. -->
@@ -8157,7 +8159,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.29.11 — LA LIGA TARGET H2H / FIELD TOURNAMENT / +1-CAP FOLLOW-UP. Expanded the embedded 2026-07-26 benchmark with the exact target-specific and whole-field outcomes from the 26-finalist staged-outlier run: Del Bosque F3/F5 beat the stored Simeone target, while Simeone F1 lost that direct matchup but won the full home-and-away finalist tournament 46-4-0 for 142 points. Added the hard Team Rating +1 player-cap follow-up: Michels 4-1-2-1-2 F1 (75.263%) and its full XI beat the target 3-2 with six ties in both caller legs; F2 lost both legs and F4 managed only one draw. Documentation only; no solver, evaluator, database, tournament or H2H logic changed. -->
 <!-- v5.29.8 — LA LIGA 85 SEARCH-COVERAGE BENCHMARK. Added the 2026-07-26 legal Exact-85 / Min-81 / LaLiga-11 / Max-3-club / Min-9-nations reference XI to the embedded future-maintainer regression notes. Records the Simeone +1 Atletico three-axis core, full XI display stats, the v5.29.7 Classic evaluation (72.675% win, 9.274% draw, 18.051% loss; 6.640 expected duel points), the ordinary winner's 61.475% contrast, and classifies the failure as search/generation coverage because the evaluator strongly values the XI once supplied. No solver, database, OCR or scoring logic changed. -->
 <!-- v5.29.7 — CREDITS / MARKET-BOUNDARY DOCUMENTATION. Added PW_Alextrat to the centred Special Thanks line and moved the creator/credits block into normal header flow so it wraps without overlapping other header content on narrow screens. Expanded the future-maintainer no-price-model section with two real peer-to-peer examples: rare duplicates used as trader identity signals, and a collection accidentally omitted from packs that became effectively unpackable for weeks; notes that such availability mistakes appear much rarer now. No solver, database, OCR or scoring logic changed. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.39</span></h1>
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.41</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -11337,64 +11339,108 @@ let CONDITION_OCR_ROWS=[],CONDITION_OCR_BUSY=false;
 function pickConditionsScreenshot(){const i=$('#conditionsOcrFile');if(i){i.value='';i.click();}}
 function closeConditionsOcr(){const m=$('#conditionsOcrModal');if(m)m.style.display='none';}
 function _conditionOcrOpen(){const m=$('#conditionsOcrModal');if(m)m.style.display='block';}
+function _conditionOcrCueIndex(line){
+  const s=String(line||''),patterns=[
+    /\bteam\s+rating\b/i,/\bteam\s+chemistry\b/i,/\bplayer\s+rating\b/i,/\bcard\s+rating\b/i,
+    /\bminimum\s+players\b/i,/\bplayers?\s+required\b/i,/\bspecific\s+player\b/i,
+    /\bplayers?\s+from\s+the\s+same\s+(?:team|league|nation)\b/i,
+    /\bcards?\s+from\s+the\s+same\s+(?:team|league|nation)\b/i,
+    /\bcards?\s+from\b/i,/\bplayers?\s+from\b/i,
+    /\bdifferent\s+(?:leagues?|nationalit(?:y|ies)|nations?|teams?|clubs?|card\s+types?)\b/i,
+    /\b(?:leagues?|nationalities|nations|teams|clubs|special\s+players?|special\s+cards?|icons?|heroes?)\b(?=\s*[:\-]?\s*(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\b)/i,
+    /\b(?:GK|LB|CB|RB|LWB|RWB|CDM|CM|CAM|LM|RM|LW|RW|ST)\b(?=\s*[:\-]?\s*(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\b)/i
+  ];
+  let best=-1;for(const rx of patterns){const m=rx.exec(s);if(m&&(!~best||m.index<best))best=m.index;}return best;
+}
+function _conditionOcrCleanLine(line){
+  let s=String(line||'').replace(/\(\s*[O0Q]\s*\)/gi,' ').replace(/[◯○●©]/g,' ').replace(/[|]/g,'I').replace(/\s+/g,' ').trim();
+  if(!s)return '';
+  const cue=_conditionOcrCueIndex(s);if(cue>0)s=s.slice(cue);
+  s=s.replace(/^conditions?\s*/i,'').replace(/^[\s'"`´.,;:!|()[\]{}<>+*~_-]+/,'');
+  s=s.replace(/^(?:(?:[o0qgcdil1|]\s*){1,4})(?=(?:team|player|card|cards|leagues?|teams?|clubs?|nationalit|nations?|special|icons?|heroes?|specific|gk|lb|cb|rb|lwb|rwb|cdm|cm|cam|lm|rm|lw|rw|st)\b)/i,'');
+  s=s.replace(/^(?:the\s+)?conditions?\s*/i,'').replace(/\bMln\b/gi,'Min').replace(/\bExaetly\b/gi,'Exactly').replace(/\bExaet\b/gi,'Exact');
+  return s.replace(/\s+/g,' ').trim();
+}
 function _conditionOcrRule(line){
-  const s=String(line||'').replace(/\s+/g,' ').trim();let m=s.match(/\b(min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*[:=]?\s*(\d{1,3})\b/i);
-  if(m)return {op:/^min/i.test(m[1])?'gte':/^(max|may)/i.test(m[1])?'lte':'eq',value:Math.max(0,Math.min(105,Number(m[2])||0)),before:s.slice(0,m.index).replace(/[:·\-–—]+$/,'').trim(),after:s.slice(m.index+m[0].length).replace(/^[:·\-–—]+/,'').trim(),explicit:true};
+  const s=_conditionOcrCleanLine(line);let m=s.match(/\b(min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*[:=]?\s*(\d{1,3})\b/i);
+  if(m)return {op:/^min/i.test(m[1])?'gte':/^(max|may)/i.test(m[1])?'lte':'eq',value:Math.max(0,Math.min(105,Number(m[2])||0)),before:s.slice(0,m.index).replace(/[:·\-–—]+$/,'').trim(),after:s.slice(m.index+m[0].length).replace(/^[:·\-–—]+/,'').trim(),explicit:true,clean:s};
   m=s.match(/(?:^|\b)(\d{1,3})\s+(cards?|players?)\s+from\s+(.+)$/i);
-  if(m)return {op:'gte',value:Math.max(0,Math.min(105,Number(m[1])||0)),before:(m[2]+' from '+m[3]).trim(),after:'',explicit:false};
+  if(m)return {op:'gte',value:Math.max(0,Math.min(105,Number(m[1])||0)),before:(m[2]+' from '+m[3]).trim(),after:'',explicit:false,clean:s};
   return null;
 }
-function _conditionOcrBest(values,raw){
-  const q=norm(String(raw||'').replace(/\b(players?|cards?)\b/gi,'').replace(/\b(from|team|league|nation|nationality|club)\b/gi,' ').trim());if(!q)return '';
-  const rows=(values||[]).map(v=>({v,n:norm(v)}));let x=rows.find(r=>r.n===q);if(x)return x.v;
-  x=rows.filter(r=>r.n.includes(q)||q.includes(r.n)).sort((a,b)=>Math.abs(a.n.length-q.length)-Math.abs(b.n.length-q.length))[0];return x?x.v:'';
+function _conditionOcrNorm(v){
+  return String(v||'').toLowerCase().replace(/ß/g,'ss').normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[’‘`´']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 }
-function _conditionOcrExactValue(values,raw){const q=norm(raw);return (values||[]).find(v=>norm(v)===q)||'';}
+function _conditionOcrCompact(v){return _conditionOcrNorm(v).replace(/\s+/g,'');}
+function _conditionOcrTokens(v){return _conditionOcrNorm(v).split(' ').filter(Boolean);}
+function _conditionOcrMatchScore(candidate,raw){
+  const c=_conditionOcrNorm(candidate),q=_conditionOcrNorm(raw);if(!c||!q)return -1;if(c===q)return 10000;
+  const ct=_conditionOcrTokens(c),qt=_conditionOcrTokens(q),set=new Set(qt),overlap=ct.filter(x=>set.has(x)).length;
+  let score=100*overlap/Math.max(ct.length,qt.length);
+  if(q.includes(c))score+=35;if(c.includes(q))score+=20;
+  score-=Math.abs(c.length-q.length)*0.18;
+  if(c.length<=3&&c!==q)score-=60;
+  return score;
+}
+function _conditionOcrBest(values,raw,minScore=48){
+  const rows=(values||[]).map(v=>({v,score:_conditionOcrMatchScore(v,raw)})).sort((a,b)=>b.score-a.score||String(a.v).localeCompare(String(b.v)));
+  return rows[0]&&rows[0].score>=minScore?rows[0].v:'';
+}
+function _conditionOcrExactValue(values,raw){const q=_conditionOcrNorm(raw);return (values||[]).find(v=>_conditionOcrNorm(v)===q)||'';}
 function _conditionOcrExactCard(subject){
-  const q=norm(subject),rows=_conditionSearchCache().cards.filter(c=>q.includes(norm(c.label))&&q.includes(norm(c.cardType||''))).sort((a,b)=>norm(b.cardType||'').length-norm(a.cardType||'').length||b.rating-a.rating);
+  const q=_conditionOcrNorm(subject),rows=_conditionSearchCache().cards.filter(c=>q.includes(_conditionOcrNorm(c.label))&&q.includes(_conditionOcrNorm(c.cardType||''))).sort((a,b)=>_conditionOcrNorm(b.cardType||'').length-_conditionOcrNorm(a.cardType||'').length||b.rating-a.rating);
   if(rows.length!==1)return null;const c=rows[0];return {kind:'must_contain_card',op:'gte',value:1,cardKey:c._cardRef,cardSig:_exactCardSignature(c),cardLabel:_conditionTypeLabel(c)};
 }
 function _conditionOcrSourceCondition(subject,op,value){
-  let s=String(subject||'').replace(/^specific\s+player\s*:\s*/i,'').replace(/^(?:cards?|players?)\s+from\s+/i,'').replace(/^from\s+/i,'').replace(/\s+(?:cards?|players?)$/i,'').trim();
+  let s=_conditionOcrCleanLine(subject);
+  const from=s.search(/\b(?:cards?|players?)\s+from\b/i);if(from>=0)s=s.slice(from);
+  s=s.replace(/^specific\s+player\s*:\s*/i,'').replace(/^(?:cards?|players?)\s+from\s+/i,'').replace(/^from\s+/i,'').replace(/\s+(?:cards?|players?)$/i,'').trim();
   s=s.replace(/^(?:team|club|league|nation|nationality)\s+/i,'').trim();if(!s)return null;
   const exact=_conditionOcrExactCard(s);if(exact){exact.op=op;exact.value=1;return exact;}
   const types=CARD_TYPE_OPTIONS,nations=_conditionAxisValues('nation'),leagues=_conditionAxisValues('league').map(_conditionLeagueDisplay),clubs=_conditionAxisValues('club');
   let v=_conditionOcrExactValue(types,s);if(v)return {kind:'specific_card_type',key:v,op,value};
-  v=_conditionOcrExactValue(nations,s);if(v)return {kind:'cards_from',axis:'nation',key:v,op,value};
   v=_conditionOcrExactValue(leagues,s);if(v)return {kind:'cards_from',axis:'league',key:_conditionLeagueStored(v),op,value};
+  v=_conditionOcrExactValue(nations,s);if(v)return {kind:'cards_from',axis:'nation',key:v,op,value};
   v=_conditionOcrExactValue(clubs,s);if(v)return {kind:'cards_from',axis:'team',key:v,op,value};
-  v=_conditionOcrBest(types,s);if(v)return {kind:'specific_card_type',key:v,op,value};
-  v=_conditionOcrBest(leagues,s);if(v&&norm(s).split(' ').length>1)return {kind:'cards_from',axis:'league',key:_conditionLeagueStored(v),op,value};
-  v=_conditionOcrBest(nations,s);if(v)return {kind:'cards_from',axis:'nation',key:v,op,value};
-  v=_conditionOcrBest(leagues,s);if(v)return {kind:'cards_from',axis:'league',key:_conditionLeagueStored(v),op,value};
-  v=_conditionOcrBest(clubs,s);if(v)return {kind:'cards_from',axis:'team',key:v,op,value};
+  v=_conditionOcrBest(types,s,56);if(v)return {kind:'specific_card_type',key:v,op,value};
+  v=_conditionOcrBest(leagues,s,52);if(v)return {kind:'cards_from',axis:'league',key:_conditionLeagueStored(v),op,value};
+  v=_conditionOcrBest(nations,s,62);if(v)return {kind:'cards_from',axis:'nation',key:v,op,value};
+  v=_conditionOcrBest(clubs,s,66);if(v)return {kind:'cards_from',axis:'team',key:v,op,value};
   return null;
 }
 function _conditionOcrParse(txt){
   _refreshCardTypeCatalog();
-  const rawLines=String(txt||'').replace(/\(\s*[O0]\s*\)/g,'').replace(/[◯○●]/g,' ').split(/\r?\n/).map(x=>x.replace(/[|]/g,'I').replace(/\s+/g,' ').trim()).filter(Boolean),lines=[];
-  for(let i=0;i<rawLines.length;i++){let x=rawLines[i];while(i+1<rawLines.length&&!_conditionOcrRule(x)&&!/^specific\s+player/i.test(x)&&x.length+rawLines[i+1].length<135){x+=' '+rawLines[++i];if(_conditionOcrRule(x)||/^specific\s+player/i.test(x))break;}lines.push(x);}
+  const sourceLines=String(txt||'').split(/\r?\n/).map(raw=>({raw:String(raw||'').trim(),clean:_conditionOcrCleanLine(raw)})).filter(x=>x.clean),lines=[];
+  for(let i=0;i<sourceLines.length;i++){
+    let raw=sourceLines[i].raw,clean=sourceLines[i].clean;
+    while(i+1<sourceLines.length&&!_conditionOcrRule(clean)&&!/^specific\s+player/i.test(clean)&&clean.length+sourceLines[i+1].clean.length<145){
+      raw+=' / '+sourceLines[++i].raw;clean=_conditionOcrCleanLine(clean+' '+sourceLines[i].clean);
+      if(_conditionOcrRule(clean)||/^specific\s+player/i.test(clean))break;
+    }
+    lines.push({raw,clean});
+  }
   const out=[],push=(raw,c,meta)=>{const n=_normaliseImportedCondition(c);if(n)out.push({raw,condition:n,checked:true,assumed:!!(meta&&meta.assumed)});else out.push({raw,condition:null,checked:false,reason:'Unsupported or ambiguous condition'});};
-  for(const raw of lines){
-    let direct=raw.match(/^specific\s+player\s*:\s*(.+?)(?:\s*[:·\-–—]\s*(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*\d+)?$/i);
+  for(const row of lines){
+    const raw=row.raw,clean=row.clean;
+    let direct=clean.match(/^specific\s+player\s*:\s*(.+?)(?:\s*[:·\-–—]\s*(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*\d+)?$/i);
     if(direct){const exact=_conditionOcrExactCard(direct[1]);if(exact)push(raw,exact);else out.push({raw,condition:null,checked:false,reason:'Player/card type was not unique in the DB'});continue;}
-    const rule=_conditionOcrRule(raw);if(!rule)continue;
-    const phrase=[rule.before,rule.after].filter(Boolean).join(' ').replace(/\s+/g,' ').trim(),n=norm(phrase),op=rule.op,value=rule.value,assumed=!rule.explicit;
+    const rule=_conditionOcrRule(clean);if(!rule)continue;
+    const phrase=_conditionOcrCleanLine([rule.before,rule.after].filter(Boolean).join(' ')),n=_conditionOcrNorm(phrase),op=rule.op,value=rule.value,assumed=!rule.explicit;
     if(n.includes('team rating')){push(raw,{kind:'team_rating',op,value},{assumed});continue;}
     if(n.includes('team chemistry')||n==='chemistry'){push(raw,{kind:'team_chem',op,value},{assumed});continue;}
     if(n.includes('player rating')||n.includes('card rating')){push(raw,{kind:'player_rating',op,value},{assumed});continue;}
     if(n.includes('minimum players')||n.includes('players required')){push(raw,{kind:'minimum_players',op:'gte',value},{assumed});continue;}
     if(n.includes('different card type')||/^(card types?|types of cards?)$/.test(n)){push(raw,{kind:'different_card_types',op,value},{assumed});continue;}
-    if(/^leagues?$/.test(n)||n.includes('different leagues')){push(raw,{kind:'total_different',axis:'league',op,value},{assumed});continue;}
-    if(/^(nationalities|nations)$/.test(n)||n.includes('different nationalit')||n.includes('different nations')){push(raw,{kind:'total_different',axis:'nation',op,value},{assumed});continue;}
-    if(/^(teams|clubs)$/.test(n)||n.includes('different teams')||n.includes('different clubs')){push(raw,{kind:'total_different',axis:'team',op,value},{assumed});continue;}
+    if(/^(?:different\s+)?leagues?$/.test(n)){push(raw,{kind:'total_different',axis:'league',op,value},{assumed});continue;}
+    if(/^(?:different\s+)?(?:nationalities|nations)$/.test(n)){push(raw,{kind:'total_different',axis:'nation',op,value},{assumed});continue;}
+    if(/^(?:different\s+)?(?:teams|clubs)$/.test(n)){push(raw,{kind:'total_different',axis:'team',op,value},{assumed});continue;}
     if(n.includes('players from the same team')||n.includes('cards from the same team')){push(raw,{kind:'max_same',axis:'team',op,value},{assumed});continue;}
     if(n.includes('players from the same league')||n.includes('cards from the same league')){push(raw,{kind:'max_same',axis:'league',op,value},{assumed});continue;}
     if(n.includes('players from the same nation')||n.includes('cards from the same nation')||n.includes('same nationality')){push(raw,{kind:'max_same',axis:'nation',op,value},{assumed});continue;}
     if(n.includes('special player')||n==='special cards'){push(raw,{kind:'special_cards',op,value},{assumed});continue;}
     if(n==='icons'||n==='icon players'||n==='icon cards'){push(raw,{kind:'total_icons',op,value},{assumed});continue;}
     if(n==='heroes'||n==='hero players'||n==='hero cards'){push(raw,{kind:'total_heroes',op,value},{assumed});continue;}
-    const pos=POSALL.find(p=>norm(p)===n||n===norm(p+' cards')||n===norm('players in '+p));if(pos){push(raw,{kind:'cards_position',key:pos,op,value},{assumed});continue;}
+    const pos=POSALL.find(p=>_conditionOcrNorm(p)===n||n===_conditionOcrNorm(p+' cards')||n===_conditionOcrNorm('players in '+p));if(pos){push(raw,{kind:'cards_position',key:pos,op,value},{assumed});continue;}
     const specific=phrase.match(/^specific\s+player\s*:\s*(.+)$/i);if(specific){const exact=_conditionOcrExactCard(specific[1]);if(exact)push(raw,exact,{assumed});else out.push({raw,condition:null,checked:false,reason:'Player/card type was not unique in the DB'});continue;}
     const generic=_conditionOcrSourceCondition(phrase,op,value);if(generic){push(raw,generic,{assumed});continue;}
     out.push({raw,condition:null,checked:false,reason:'Could not map this line to a known nation, league, team, card type, position or exact card'});
@@ -11403,7 +11449,11 @@ function _conditionOcrParse(txt){
 }
 function renderConditionsOcrReview(){
   const box=$('#conditionsOcrReview'),a=$('#conditionsOcrReplace'),b=$('#conditionsOcrAdd');if(!box)return;
-  box.innerHTML=CONDITION_OCR_ROWS.length?CONDITION_OCR_ROWS.map((r,i)=>r.condition?'<label class="cond-item" style="display:flex;align-items:flex-start;gap:9px;cursor:pointer"><input type="checkbox" style="width:auto;margin-top:3px" '+(r.checked?'checked':'')+' onchange="CONDITION_OCR_ROWS['+i+'].checked=this.checked;renderConditionsOcrReview()"><span><b>'+esc(_conditionLabel(r.condition))+'</b>'+(r.assumed?'<span class="tiny" style="display:block;color:var(--warn)">No Min/Exact/Max word was read; assumed Min. Review this row.</span>':'')+'<span class="tiny" style="display:block;margin-top:3px">OCR: '+esc(r.raw)+'</span></span></label>':'<div class="cond-item" style="border-color:var(--bad)"><b style="color:var(--bad)">Needs manual review</b><span class="tiny" style="display:block;margin-top:3px">'+esc(r.reason||'Unrecognised condition')+'</span><span class="tiny" style="display:block;margin-top:3px">OCR: '+esc(r.raw)+'</span></div>').join(''):'<div class="note" style="border-color:var(--bad)">No condition-like lines were recognised.</div>';
+  if(CONDITION_OCR_BUSY&&!CONDITION_OCR_ROWS.length){
+    box.innerHTML='<div class="note"><b>Reading Conditions…</b> Results will appear here for review when OCR finishes.</div>';
+  }else{
+    box.innerHTML=CONDITION_OCR_ROWS.length?CONDITION_OCR_ROWS.map((r,i)=>r.condition?'<label class="cond-item" style="display:flex;align-items:flex-start;gap:9px;cursor:pointer"><input type="checkbox" style="width:auto;margin-top:3px" '+(r.checked?'checked':'')+' onchange="CONDITION_OCR_ROWS['+i+'].checked=this.checked;renderConditionsOcrReview()"><span><b>'+esc(_conditionLabel(r.condition))+'</b>'+(r.assumed?'<span class="tiny" style="display:block;color:var(--warn)">No Min/Exact/Max word was read; assumed Min. Review this row.</span>':'')+'<span class="tiny" style="display:block;margin-top:3px">OCR: '+esc(r.raw)+'</span></span></label>':'<div class="cond-item" style="border-color:var(--bad)"><b style="color:var(--bad)">Needs manual review</b><span class="tiny" style="display:block;margin-top:3px">'+esc(r.reason||'Unrecognised condition')+'</span><span class="tiny" style="display:block;margin-top:3px">OCR: '+esc(r.raw)+'</span></div>').join(''):'<div class="note">Choose a Conditions screenshot to begin.</div>';
+  }
   const count=CONDITION_OCR_ROWS.filter(r=>r.condition&&r.checked).length;if(a)a.disabled=CONDITION_OCR_BUSY||!count;if(b)b.disabled=CONDITION_OCR_BUSY||!count;
 }
 function _conditionsLoadTesseract(){
@@ -11415,7 +11465,44 @@ function _conditionsLoadTesseract(){
     s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.async=true;s.dataset.conditionsTesseract='1';s.onload=ready;s.onerror=()=>reject(new Error('OCR library failed to load. Check the internet connection.'));document.head.appendChild(s);
   });
 }
-async function readConditionsScreenshot(event){const inp=event&&event.target,file=inp&&inp.files&&inp.files[0];if(!file||CONDITION_OCR_BUSY)return;CONDITION_OCR_BUSY=true;CONDITION_OCR_ROWS=[];_conditionOcrOpen();const p=$('#conditionsOcrProgress'),raw=$('#conditionsOcrRaw');if(p)p.innerHTML='<b>Loading OCR…</b> Keep this tab open.';renderConditionsOcrReview();try{const T=await _conditionsLoadTesseract();if(!T||typeof T.recognize!=='function')throw new Error('OCR library unavailable.');const rec=await T.recognize(file,'eng',{logger:m=>{if(p&&m&&m.status)p.innerHTML='<b>'+esc(m.status)+'</b>'+(Number.isFinite(m.progress)?' · '+Math.round(m.progress*100)+'%':'');}}),txt=String(rec&&rec.data&&rec.data.text||'');CONDITION_OCR_ROWS=_conditionOcrParse(txt);if(raw){raw.style.display='block';raw.textContent=txt;}const good=CONDITION_OCR_ROWS.filter(x=>x.condition).length,bad=CONDITION_OCR_ROWS.filter(x=>!x.condition).length;if(p)p.innerHTML='<b>Review before applying.</b> '+good+' supported condition'+(good===1?'':'s')+' recognised'+(bad?' · '+bad+' line'+(bad===1?'':'s')+' need manual review':'')+'.';}catch(e){if(p)p.innerHTML='<span style="color:var(--bad)"><b>OCR failed.</b> '+esc(String(e&&e.message||e))+'</span>';}finally{CONDITION_OCR_BUSY=false;renderConditionsOcrReview();if(inp)inp.value='';}}
+async function _conditionsDecodeImage(file){
+  if(window.createImageBitmap){try{return await createImageBitmap(file);}catch(_e){}}
+  return await new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(url);resolve(im);};im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not decode the selected image.'));};im.src=url;});
+}
+function _conditionsPurpleCrop(image){
+  const iw=Number(image.width||image.naturalWidth)||1,ih=Number(image.height||image.naturalHeight)||1,maxW=520,scale=Math.min(1,maxW/iw),w=Math.max(1,Math.round(iw*scale)),h=Math.max(1,Math.round(ih*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(image,0,0,w,h);
+  const d=x.getImageData(0,0,w,h).data;let minX=w,minY=h,maxX=-1,maxY=-1,count=0;
+  for(let yy=0;yy<h;yy+=2)for(let xx=0;xx<w;xx+=2){const i=(yy*w+xx)*4,r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),purple=r>55&&b>65&&r>g*1.22&&b>g*1.14&&(mx-mn)>28;if(purple){minX=Math.min(minX,xx);maxX=Math.max(maxX,xx);minY=Math.min(minY,yy);maxY=Math.max(maxY,yy);count++;}}
+  if(maxX<0||count<(w*h/4)*0.018)return {x:Math.round(iw*.05),y:Math.round(ih*.12),w:Math.round(iw*.90),h:Math.round(ih*.78),detected:false};
+  const inv=1/scale,padX=Math.max(8,(maxX-minX)*.045),padY=Math.max(8,(maxY-minY)*.035),x0=Math.max(0,(minX-padX)*inv),y0=Math.max(0,(minY-padY)*inv),x1=Math.min(iw,(maxX+padX)*inv),y1=Math.min(ih,(maxY+padY)*inv);
+  return {x:Math.round(x0),y:Math.round(y0),w:Math.max(1,Math.round(x1-x0)),h:Math.max(1,Math.round(y1-y0)),detected:true};
+}
+async function _conditionsPrepareOcrCanvases(file){
+  const image=await _conditionsDecodeImage(file),crop=_conditionsPurpleCrop(image),targetW=Math.min(1900,Math.max(1100,crop.w*1.75)),ratio=targetW/crop.w,targetH=Math.max(1,Math.round(crop.h*ratio)),natural=document.createElement('canvas');
+  natural.width=Math.round(targetW);natural.height=targetH;const nx=natural.getContext('2d',{willReadFrequently:true});nx.imageSmoothingEnabled=true;nx.imageSmoothingQuality='high';nx.drawImage(image,crop.x,crop.y,crop.w,crop.h,0,0,natural.width,natural.height);
+  const enhanced=document.createElement('canvas');enhanced.width=natural.width;enhanced.height=natural.height;const ex=enhanced.getContext('2d',{willReadFrequently:true}),im=nx.getImageData(0,0,natural.width,natural.height),d=im.data;
+  for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),lum=.2126*r+.7152*g+.0722*b,cyan=g>135&&b>135&&g>r*1.08,bright=mx>172&&lum>125,textPixel=bright||cyan;d[i]=d[i+1]=d[i+2]=textPixel?0:255;d[i+3]=255;}
+  ex.putImageData(im,0,0);if(image&&typeof image.close==='function')image.close();return {enhanced,natural,crop};
+}
+function _conditionOcrResultScore(rows){const good=(rows||[]).filter(x=>x.condition).length,bad=(rows||[]).filter(x=>!x.condition).length;return good*12-bad*3;}
+async function readConditionsScreenshot(event){
+  const inp=event&&event.target,file=inp&&inp.files&&inp.files[0];if(!file||CONDITION_OCR_BUSY)return;CONDITION_OCR_BUSY=true;CONDITION_OCR_ROWS=[];_conditionOcrOpen();
+  const p=$('#conditionsOcrProgress'),raw=$('#conditionsOcrRaw');if(p)p.innerHTML='<b>Preparing image…</b> Detecting and enhancing the Conditions panel.';renderConditionsOcrReview();
+  try{
+    const [T,prepared]=await Promise.all([_conditionsLoadTesseract(),_conditionsPrepareOcrCanvases(file)]);if(!T||typeof T.recognize!=='function')throw new Error('OCR library unavailable.');
+    const logger=label=>m=>{if(p&&m&&m.status)p.innerHTML='<b>'+esc(label+': '+m.status)+'</b>'+(Number.isFinite(m.progress)?' · '+Math.round(m.progress*100)+'%':'');};
+    const opts={tessedit_pageseg_mode:'6',preserve_interword_spaces:'1',logger:logger('Enhanced OCR')},first=await T.recognize(prepared.enhanced,'eng',opts),txt1=String(first&&first.data&&first.data.text||''),rows1=_conditionOcrParse(txt1);
+    let chosenText=txt1,chosenRows=rows1,usedFallback=false;
+    const ruleLines=(txt1.match(/(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*\d+/gi)||[]).length,weak=_conditionOcrResultScore(rows1)<Math.max(20,ruleLines*7);
+    if(weak){
+      const second=await T.recognize(prepared.natural,'eng',{tessedit_pageseg_mode:'6',preserve_interword_spaces:'1',logger:logger('Natural-colour fallback')}),txt2=String(second&&second.data&&second.data.text||''),rows2=_conditionOcrParse(txt2);
+      if(_conditionOcrResultScore(rows2)>_conditionOcrResultScore(rows1)){chosenText=txt2;chosenRows=rows2;usedFallback=true;}
+    }
+    CONDITION_OCR_ROWS=chosenRows;if(raw){raw.style.display='block';raw.textContent=chosenText;}
+    const good=chosenRows.filter(x=>x.condition).length,bad=chosenRows.filter(x=>!x.condition).length;if(p)p.innerHTML='<b>Review before applying.</b> '+good+' supported condition'+(good===1?'':'s')+' recognised'+(bad?' · '+bad+' line'+(bad===1?'':'s')+' need manual review':'')+(prepared.crop.detected?' · Conditions panel auto-cropped':' · fallback crop used')+(usedFallback?' · natural-colour OCR selected':'')+'.';
+  }catch(e){if(p)p.innerHTML='<span style="color:var(--bad)"><b>OCR failed.</b> '+esc(String(e&&e.message||e))+'</span>';}
+  finally{CONDITION_OCR_BUSY=false;renderConditionsOcrReview();if(inp)inp.value='';}
+}
 function applyConditionsOcr(replace){const chosen=CONDITION_OCR_ROWS.filter(r=>r.condition&&r.checked).map(r=>Object.assign({id:_condUid++},r.condition));if(!chosen.length)return;if(replace)TEST_CONDITIONS=chosen;else TEST_CONDITIONS=TEST_CONDITIONS.concat(chosen);CONDITIONS_ENABLED=true;if($('#conditionsEnabled'))$('#conditionsEnabled').checked=true;_syncConditionCardFields();renderConditionList();_clearSolve();saveLocal();closeConditionsOcr();}
 
 function _testSeededOrder(a,seed,salt){return a.slice().sort((x,y)=>_testHash(seed+'|'+salt+'|'+x._tid)-_testHash(seed+'|'+salt+'|'+y._tid));}
