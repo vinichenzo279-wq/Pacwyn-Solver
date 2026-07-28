@@ -594,7 +594,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.30.10</title>
+<title>Pacwyn Solver v5.30.11</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -4493,9 +4493,11 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
           strict subset/reuse of the other's underlying computation), or this will reproduce the
           same null result.
 
-       K. NO-HOLD CALIBRATION'S SAMPLING ASSUMPTIONS (added v13.4.7, doc-only — a known,
-          deliberately-unaddressed limitation, not a bug to fix). _calMakeScripts (section A's
-          underlying pack simulator) uses copies-weighted draws from the current eligible DB.
+       K. NO-HOLD CALIBRATION'S SAMPLING ASSUMPTIONS (added v13.4.7; expanded v5.30.11).
+          _calMakeScripts (section A's underlying pack simulator) uses copies-weighted draws from
+          the current eligible DB. v5.30.11 adds an OPTIONAL rating-centred draw model, off by
+          default, with independent normal/Hero/Icon centres and one shared falloff curve. It is a
+          sensitivity tool for a known approximation, not a claim to reconstruct PACWYN pull rates.
           Since v5.26.0, every simulated script first chooses one random physical card version for
           each real name+pidx identity, then prevents that person from appearing again anywhere in
           the same draft. This matches PACWYN's one-real-player-per-draft rule while still allowing
@@ -4514,11 +4516,14 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
                unrepresentative if the DB happens to be thin there.
             2. DB COPY WEIGHTS, NOT REAL PULL RATES. Copies weight both which physical version is
                chosen for a real player and how often that identity is offered, but those DB counts
-               are still not PACWYN's encrypted per-card pull probabilities. If real packs skew
-               toward commons more than the curated DB implies, simulated packs can remain stronger
-               than real drafts and nudge the fitted thresholds. NOT FIXABLE FROM INSIDE THIS APP:
-               the true pull-rate distribution is unavailable, so copies-weighted curated-DB supply
-               is the least-bad available prior rather than ground truth.
+               are still not PACWYN's encrypted per-card pull probabilities. The optional rating-
+               centred model multiplies those copy weights by a smooth symmetric likelihood around
+               separate defaults — normal 88, Hero 92, Icon 95. At the default curve, being seven
+               ratings from the relevant centre halves relative weight; farther extremes decay
+               increasingly, with a small floor so no loaded card becomes impossible. This can model
+               the observed game tendency to avoid both very low and very high ratings, but its
+               centres/curve are user hypotheses, not measured rates. True per-card probabilities
+               remain unavailable; copies-only remains the unchanged default.
             3. STARTING-XI HORIZON, NOT A FULL 23-PLAYER DRAFT. Each training script deliberately
                simulates the 11 formation-bound starter picks and scores that resulting XI. It does
                not simulate the later 12 bench/reserve picks and then run solveBest over all 23
@@ -4546,6 +4551,19 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
                a new validation problem and substantial complexity for a small advisory gain. Large
                offline full-draft runs are useful only as occasional audits for systematic bias, not
                as the shipped source of truth.
+            4. COUNTERVAILING SKEWS / HOW TO READ THE SCORE HISTOGRAM. The exact count beside a
+               score is not a literal prediction of how often that score appears in-game. The
+               starter-only horizon and missing later replacements tend to UNDERSTATE access to a
+               rare final XI. Real pull balancing away from rating extremes can either raise the
+               ordinary floor or reduce access to 99+ outliers. In the opposite direction, every one
+               of the simulator's 55 offered cards is already position-eligible and inside the active
+               pivot pool (or a universal Hero/Icon); it does not spend offers on off-pivot or true
+               dead-weight cards, which gives the simulated starter stage MORE useful options than a
+               literal random slice of the whole game. These effects partially oppose one another.
+               Therefore use absolute “X occurrences in N drafts” cautiously. Ratios between adjacent
+               tail outcomes under the SAME settings — for example how many 155s appear before one
+               156 — are plausibly more stable because most assumptions are shared, but even that is
+               comparative evidence rather than a calibrated real-world probability.
           BLAST RADIUS, WHY THIS ISN'T TREATED AS A CORRECTNESS BUG: all three assumptions live
           entirely inside the no-hold calibration's TRAINING distribution for its fitted advisory
           weights (section A). They never reach scoreXI/solveBest, which score whatever cards are
@@ -8361,7 +8379,8 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.29.11 — LA LIGA TARGET H2H / FIELD TOURNAMENT / +1-CAP FOLLOW-UP. Expanded the embedded 2026-07-26 benchmark with the exact target-specific and whole-field outcomes from the 26-finalist staged-outlier run: Del Bosque F3/F5 beat the stored Simeone target, while Simeone F1 lost that direct matchup but won the full home-and-away finalist tournament 46-4-0 for 142 points. Added the hard Team Rating +1 player-cap follow-up: Michels 4-1-2-1-2 F1 (75.263%) and its full XI beat the target 3-2 with six ties in both caller legs; F2 lost both legs and F4 managed only one draw. Documentation only; no solver, evaluator, database, tournament or H2H logic changed. -->
 <!-- v5.29.8 — LA LIGA 85 SEARCH-COVERAGE BENCHMARK. Added the 2026-07-26 legal Exact-85 / Min-81 / LaLiga-11 / Max-3-club / Min-9-nations reference XI to the embedded future-maintainer regression notes. Records the Simeone +1 Atletico three-axis core, full XI display stats, the v5.29.7 Classic evaluation (72.675% win, 9.274% draw, 18.051% loss; 6.640 expected duel points), the ordinary winner's 61.475% contrast, and classifies the failure as search/generation coverage because the evaluator strongly values the XI once supplied. No solver, database, OCR or scoring logic changed. -->
 <!-- v5.29.7 — CREDITS / MARKET-BOUNDARY DOCUMENTATION. Added PW_Alextrat to the centred Special Thanks line and moved the creator/credits block into normal header flow so it wraps without overlapping other header content on narrow screens. Expanded the future-maintainer no-price-model section with two real peer-to-peer examples: rare duplicates used as trader identity signals, and a collection accidentally omitted from packs that became effectively unpackable for weeks; notes that such availability mistakes appear much rarer now. No solver, database, OCR or scoring logic changed. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.30.10</span></h1>
+<!-- v5.30.11 — OPTIONAL RATING-CENTRED CALIBRATION ODDS / SIMULATION CAVEAT. Advanced calibration can now independently bias normal, Hero and Icon draws toward configurable rating centres (defaults 88/92/95) with a shared adjustable falloff curve; every toggle remains off by default, preserving the previous copies-weighted sampler. The same optional odds feed helper-weight and formation simulations, participate in calibration staleness signatures, persist/reset with calibration settings and introduce no worker dependency. The score-frequency panel now states that it is an approximation built from 11 starter picks and 55 eligible pivot offers rather than a full 23-pick draft with known PACWYN pull rates. Maintainer documentation records the opposing skews: later picks increase real choice, rating balancing suppresses extremes, while the simulator’s all-pivot/all-eligible 55-card board removes much dead weight; adjacent tail-score ratios may be more informative than literal per-draft counts. -->
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.30.11</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -8685,6 +8704,16 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
           <div class="pivfield"><label for="calMaxIconsXI">Max Icons in XI</label><input id="calMaxIconsXI" type="number" min="0" max="11" step="1" value="2" inputmode="numeric" onchange="_calMixCommit('calMaxIconsXI','maxIconsXI')"></div>
           <div class="pivfield"><label for="calMaxHeroesXI">Max Heroes in XI</label><input id="calMaxHeroesXI" type="number" min="0" max="11" step="1" value="4" inputmode="numeric" onchange="_calMixCommit('calMaxHeroesXI','maxHeroesXI')"></div>
           <div class="pivfield"><label for="calMaxSpecialsXI">Max Icons + Heroes</label><input id="calMaxSpecialsXI" type="number" min="0" max="11" step="1" value="4" inputmode="numeric" onchange="_calMixCommit('calMaxSpecialsXI','maxSpecialsXI')"></div>
+        </div>
+        <div style="margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:9px;background:rgba(17,28,39,.45)">
+          <label style="margin:0;text-transform:none;letter-spacing:0;color:var(--ink)">Optional rating-centred draw odds</label>
+          <div class="tiny" style="margin:3px 0 7px">Off by default. Enabled card types are most likely near their centre; ratings farther away become gradually less common. Higher curve values concentrate draws more strongly.</div>
+          <div class="pivgrid" style="margin-bottom:4px">
+            <div class="pivfield"><label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0"><input id="calRatingNormalOn" type="checkbox" onchange="_calRatingOddsCommit()"> Common / normal</label><input id="calRatingNormalCenter" type="number" min="1" max="105" step="1" value="88" inputmode="numeric" onchange="_calRatingOddsCommit()"></div>
+            <div class="pivfield"><label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0"><input id="calRatingHeroOn" type="checkbox" onchange="_calRatingOddsCommit()"> Heroes</label><input id="calRatingHeroCenter" type="number" min="1" max="105" step="1" value="92" inputmode="numeric" onchange="_calRatingOddsCommit()"></div>
+            <div class="pivfield"><label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0"><input id="calRatingIconOn" type="checkbox" onchange="_calRatingOddsCommit()"> Icons</label><input id="calRatingIconCenter" type="number" min="1" max="105" step="1" value="95" inputmode="numeric" onchange="_calRatingOddsCommit()"></div>
+            <div class="pivfield"><label for="calRatingCurve">Falloff curve</label><input id="calRatingCurve" type="number" min="0.25" max="4" step="0.05" value="1.35" inputmode="decimal" onchange="_calRatingOddsCommit()"></div>
+          </div>
         </div>
         <div style="margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:9px;background:rgba(17,28,39,.45)">
           <label style="margin:0;text-transform:none;letter-spacing:0;color:var(--ink)">Exclude stored card types from calibration simulations</label>
@@ -23141,6 +23170,37 @@ function _ratingCurveFrac(rating,thr,hardBound,minFrac,maxFrac,isLow){
    rankAndVerdict. Nothing here touches the solver. */
 const _NOHOLD_CAL_KEY='pacwyn_nohold_cal_v8'; // v8 (v0.39): invalidates pre-coupled fits; multi-start diagonal refinement and holdout-guarded selection now choose the calibrated weights
 const _CAL_MIX_KEY='pacwyn_cal_mix_v1';
+const _CAL_RATING_ODDS_KEY='pacwyn_cal_rating_odds_v1';
+const _CAL_RATING_ODDS_DEF={normalOn:false,heroOn:false,iconOn:false,normalCenter:88,heroCenter:92,iconCenter:95,curve:1.35};
+const _CAL_RATING_ODDS_BOUNDS={normalCenter:[1,105],heroCenter:[1,105],iconCenter:[1,105],curve:[0.25,4]};
+const _CAL_RATING_ODDS_SHOULDER=7; // distance from the type centre that halves its relative draw weight
+let CAL_RATING_ODDS_CFG={..._CAL_RATING_ODDS_DEF};
+function _calRatingOddsSanitize(src){
+  src=src||{};const out={normalOn:!!src.normalOn,heroOn:!!src.heroOn,iconOn:!!src.iconOn};
+  for(const k of ['normalCenter','heroCenter','iconCenter','curve']){const b=_CAL_RATING_ODDS_BOUNDS[k],n=Number(src[k]);out[k]=Number.isFinite(n)?Math.max(b[0],Math.min(b[1],n)):_CAL_RATING_ODDS_DEF[k];}
+  out.normalCenter=Math.round(out.normalCenter);out.heroCenter=Math.round(out.heroCenter);out.iconCenter=Math.round(out.iconCenter);
+  return out;
+}
+function _calRatingOddsSig(src){const c=_calRatingOddsSanitize(src||CAL_RATING_ODDS_CFG);return ['normalOn','heroOn','iconOn'].map(k=>k+'='+(c[k]?1:0)).concat(['normalCenter','heroCenter','iconCenter','curve'].map(k=>k+'='+Number(c[k]).toFixed(k==='curve'?3:0))).join('|');}
+function _calRatingOddsSnapshot(){return _calRatingOddsSanitize(CAL_RATING_ODDS_CFG);}
+function _saveCalRatingOdds(){try{localStorage.setItem(_CAL_RATING_ODDS_KEY,JSON.stringify(CAL_RATING_ODDS_CFG));}catch(e){}}
+(function restoreCalRatingOdds(){try{const raw=localStorage.getItem(_CAL_RATING_ODDS_KEY);if(raw)CAL_RATING_ODDS_CFG=_calRatingOddsSanitize(JSON.parse(raw));}catch(e){CAL_RATING_ODDS_CFG={..._CAL_RATING_ODDS_DEF};}})();
+function _calRatingOddsWeight(c,cfg){
+  cfg=_calRatingOddsSanitize(cfg||CAL_RATING_ODDS_CFG);const typ=(c&&c.type)||'normal',on=typ==='icon'?cfg.iconOn:(typ==='hero'?cfg.heroOn:cfg.normalOn);if(!on)return 1;
+  const centre=typ==='icon'?cfg.iconCenter:(typ==='hero'?cfg.heroCenter:cfg.normalCenter),rating=Number(c&&c.rating);if(!Number.isFinite(rating))return 1;
+  const d=Math.abs(rating-centre),w=Math.pow(2,-Math.pow(d/_CAL_RATING_ODDS_SHOULDER,cfg.curve));return Math.max(0.02,Math.min(1,w));
+}
+function _calSyncRatingOddsInputs(){
+  const c=_calRatingOddsSanitize(CAL_RATING_ODDS_CFG),map={calRatingNormalOn:'normalOn',calRatingHeroOn:'heroOn',calRatingIconOn:'iconOn',calRatingNormalCenter:'normalCenter',calRatingHeroCenter:'heroCenter',calRatingIconCenter:'iconCenter',calRatingCurve:'curve'};
+  for(const id in map){const el=$('#'+id);if(!el)continue;const k=map[id];if(el.type==='checkbox')el.checked=!!c[k];else if(document.activeElement!==el)el.value=c[k];}
+  const normal=$('#calRatingNormalCenter'),hero=$('#calRatingHeroCenter'),icon=$('#calRatingIconCenter'),curve=$('#calRatingCurve');if(normal)normal.disabled=!c.normalOn;if(hero)hero.disabled=!c.heroOn;if(icon)icon.disabled=!c.iconOn;if(curve)curve.disabled=!(c.normalOn||c.heroOn||c.iconOn);
+}
+function _calRatingOddsCommit(){
+  const readBool=id=>!!(($('#'+id)||{}).checked),readNum=(id,key)=>{const el=$('#'+id),b=_CAL_RATING_ODDS_BOUNDS[key],n=Number(el&&el.value);return Number.isFinite(n)?Math.max(b[0],Math.min(b[1],n)):_CAL_RATING_ODDS_DEF[key];};
+  CAL_RATING_ODDS_CFG=_calRatingOddsSanitize({normalOn:readBool('calRatingNormalOn'),heroOn:readBool('calRatingHeroOn'),iconOn:readBool('calRatingIconOn'),normalCenter:readNum('calRatingNormalCenter','normalCenter'),heroCenter:readNum('calRatingHeroCenter','heroCenter'),iconCenter:readNum('calRatingIconCenter','iconCenter'),curve:readNum('calRatingCurve','curve')});
+  _saveCalRatingOdds();_calSyncRatingOddsInputs();_renderCalResult();_calGrayManual(_calActive());if(typeof _formCalContextChanged==='function')_formCalContextChanged();
+  const st=$('#calStatus');if(st)st.innerHTML='<span style="color:var(--mut)">'+((NOHOLD_CAL&&NOHOLD_CAL.mixSig!==_calMixSig())?'Calibration settings changed &mdash; recalibrate to apply them.':'Calibration settings saved.')+'</span>';
+}
 const _CAL_SKIP_COUPLING_KEY='pacwyn_cal_skip_coupling_v1';
 let CAL_SKIP_COUPLING=false;
 try{CAL_SKIP_COUPLING=localStorage.getItem(_CAL_SKIP_COUPLING_KEY)==='1';}catch(e){}
@@ -23201,12 +23261,13 @@ function _calMixSanitize(src){
   out.normalAvg=Math.max(0,55-out.iconAvg-out.heroAvg);
   return out;
 }
-function _calMixSig(src){const c=_calMixSanitize(src||CAL_MIX_CFG);return Object.keys(_CAL_MIX_DEF).map(k=>k+'='+c[k].toFixed(3)).join('|')+'|excludedTypes='+_calTypeExclusionSig();}
+function _calMixSig(src,ratingOddsSrc){const c=_calMixSanitize(src||CAL_MIX_CFG);return Object.keys(_CAL_MIX_DEF).map(k=>k+'='+c[k].toFixed(3)).join('|')+'|ratingOdds='+_calRatingOddsSig(ratingOddsSrc||CAL_RATING_ODDS_CFG)+'|excludedTypes='+_calTypeExclusionSig();}
 function _calMixSnapshot(){return _calMixSanitize(CAL_MIX_CFG);}
 function _saveCalMix(){try{localStorage.setItem(_CAL_MIX_KEY,JSON.stringify(CAL_MIX_CFG));}catch(e){}}
 (function restoreCalMix(){try{const raw=localStorage.getItem(_CAL_MIX_KEY);if(raw)CAL_MIX_CFG=_calMixSanitize(JSON.parse(raw));}catch(e){CAL_MIX_CFG={..._CAL_MIX_DEF};}})();
 function _calSyncMixInputs(){
   const c=_calMixSanitize(CAL_MIX_CFG);
+  _calSyncRatingOddsInputs();
   const map={calMixIconAvg:'iconAvg',calMixHeroAvg:'heroAvg',calMixIconSpread:'iconSpread',calMixHeroSpread:'heroSpread',calMaxIconsXI:'maxIconsXI',calMaxHeroesXI:'maxHeroesXI',calMaxSpecialsXI:'maxSpecialsXI'};
   for(const id in map){const el=$('#'+id);if(el&&document.activeElement!==el)el.value=c[map[id]];}
 }
@@ -23224,7 +23285,7 @@ function _calMixCommit(id,key){
 }
 function resetCalMix(){
   if(!confirm('Reset calibration settings to defaults?'))return;
-  CAL_MIX_CFG={..._CAL_MIX_DEF};CAL_SKIP_COUPLING=false;CAL_EXCLUDED_TYPE_KEYS.clear();_saveCalMix();_saveCalTypeExclusions();try{localStorage.setItem(_CAL_SKIP_COUPLING_KEY,'0');}catch(e){}_calSyncMixInputs();_calSyncSkipCoupling();renderCalTypeExclusions();_CAL_RARITY_CTX_CACHE=null;_renderCalResult();_calGrayManual(_calActive());if(typeof _formCalContextChanged==='function')_formCalContextChanged();
+  CAL_MIX_CFG={..._CAL_MIX_DEF};CAL_RATING_ODDS_CFG={..._CAL_RATING_ODDS_DEF};CAL_SKIP_COUPLING=false;CAL_EXCLUDED_TYPE_KEYS.clear();_saveCalMix();_saveCalRatingOdds();_saveCalTypeExclusions();try{localStorage.setItem(_CAL_SKIP_COUPLING_KEY,'0');}catch(e){}_calSyncMixInputs();_calSyncSkipCoupling();renderCalTypeExclusions();_CAL_RARITY_CTX_CACHE=null;_renderCalResult();_calGrayManual(_calActive());if(typeof _formCalContextChanged==='function')_formCalContextChanged();
   if(typeof runPivotAnalysis==='function')runPivotAnalysis();
   const st=$('#calStatus');if(st)st.innerHTML='<span style="color:var(--mut)">'+((NOHOLD_CAL&&NOHOLD_CAL.mixSig!==_calMixSig())?'Calibration settings reset &mdash; recalibrate to apply them.':'Calibration settings reset.')+'</span>';
 }
@@ -23529,10 +23590,12 @@ function _calMakeScorer(w,rarityCtx){
   };
 }
 function _calPersonKey(c){const nm=String(c&&((c.name||c.label)||'')||'').trim().toLowerCase(),px=c&&c.pidx!==undefined&&c.pidx!==null&&c.pidx!==''?String(c.pidx).trim():'';return px?nm+'|pidx:'+px:nm;}
-function _calPersonGroups(db){const map=new Map();for(const c of (db||[])){const key=_calPersonKey(c);if(!key)continue;let g=map.get(key);if(!g){g={key,cards:[],cum:[],total:0};map.set(key,g);}const w=(typeof c.copies==='number'&&c.copies>0)?c.copies:1;g.total+=w;g.cards.push(c);g.cum.push(g.total);}return Array.from(map.values());}
+// v5.30.11: optional rating-centred odds multiply copy supply before both physical-version
+// selection and identity draws. Defaults are all off, preserving the prior RNG distribution exactly.
+function _calPersonGroups(db,ratingOddsCfg){const map=new Map(),odds=_calRatingOddsSanitize(ratingOddsCfg||CAL_RATING_ODDS_CFG);for(const c of (db||[])){const key=_calPersonKey(c);if(!key)continue;let g=map.get(key);if(!g){g={key,cards:[],cum:[],total:0};map.set(key,g);}const copies=(typeof c.copies==='number'&&c.copies>0)?c.copies:1,w=copies*_calRatingOddsWeight(c,odds);g.total+=w;g.cards.push(c);g.cum.push(g.total);}return Array.from(map.values());}
 function _calSamplePersonPool(groups,rng){const out=[];for(const g of groups){const r=rng()*g.total;let lo=0,hi=g.cum.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(g.cum[mid]<r)lo=mid+1;else hi=mid;}out.push(Object.assign({},g.cards[lo],{_calPersonKey:g.key,_calPersonWeight:g.total}));}return out;}
-function _calMakeScripts(db,forms,nScripts,K,rng,normalFallbackDb,mixCfg){
-  const pick=arr=>arr[Math.floor(rng()*arr.length)],scripts=[],personGroups=_calPersonGroups(db);
+function _calMakeScripts(db,forms,nScripts,K,rng,normalFallbackDb,mixCfg,ratingOddsCfg){
+  const pick=arr=>arr[Math.floor(rng()*arr.length)],scripts=[],personGroups=_calPersonGroups(db,ratingOddsCfg);
   // v5.26.0: each simulated draft first samples one physical card version per real name+pidx
   // identity (version probability follows copies), then offers identities without replacement across
   // the whole script. A real draft cannot contain two versions of the same person; old DB growth made
@@ -23551,8 +23614,8 @@ function _calMakeScripts(db,forms,nScripts,K,rng,normalFallbackDb,mixCfg){
   }
   return scripts;
 }
-async function _calMakeScriptsAsync(db,forms,nScripts,K,rng,normalFallbackDb,mixCfg,onProgress,state,cancelToken){
-  const pick=arr=>arr[Math.floor(rng()*arr.length)],scripts=[],personGroups=_calPersonGroups(db),_cw=c=>(typeof c._calPersonWeight==='number'&&c._calPersonWeight>0)?c._calPersonWeight:((typeof c.copies==='number'&&c.copies>0)?c.copies:1),bucket=cards=>{const cum=[];let total=0;for(const c of cards){total+=_cw(c);cum.push(total);}return{cards,cum,total};},draw=b=>{const r=rng()*b.total;let lo=0,hi=b.cum.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(b.cum[mid]<r)lo=mid+1;else hi=mid;}return b.cards[lo];},drawUnused=(b,used)=>{if(!b||!b.cards.length)return null;for(let t=0;t<24;t++){const c=draw(b),k=c._calPersonKey||_calPersonKey(c);if(!used.has(k))return c;}let total=0;const rows=[];for(const c of b.cards){const k=c._calPersonKey||_calPersonKey(c);if(used.has(k))continue;total+=_cw(c);rows.push({c,total});}if(!rows.length)return null;const r=rng()*total;let lo=0,hi=rows.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(rows[mid].total<r)lo=mid+1;else hi=mid;}return rows[lo].c;};
+async function _calMakeScriptsAsync(db,forms,nScripts,K,rng,normalFallbackDb,mixCfg,ratingOddsCfg,onProgress,state,cancelToken){
+  const pick=arr=>arr[Math.floor(rng()*arr.length)],scripts=[],personGroups=_calPersonGroups(db,ratingOddsCfg),_cw=c=>(typeof c._calPersonWeight==='number'&&c._calPersonWeight>0)?c._calPersonWeight:((typeof c.copies==='number'&&c.copies>0)?c.copies:1),bucket=cards=>{const cum=[];let total=0;for(const c of cards){total+=_cw(c);cum.push(total);}return{cards,cum,total};},draw=b=>{const r=rng()*b.total;let lo=0,hi=b.cum.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(b.cum[mid]<r)lo=mid+1;else hi=mid;}return b.cards[lo];},drawUnused=(b,used)=>{if(!b||!b.cards.length)return null;for(let t=0;t<24;t++){const c=draw(b),k=c._calPersonKey||_calPersonKey(c);if(!used.has(k))return c;}let total=0;const rows=[];for(const c of b.cards){const k=c._calPersonKey||_calPersonKey(c);if(used.has(k))continue;total+=_cw(c);rows.push({c,total});}if(!rows.length)return null;const r=rng()*total;let lo=0,hi=rows.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(rows[mid].total<r)lo=mid+1;else hi=mid;}return rows[lo].c;};
   const mix=_calMixSanitize(mixCfg||CAL_MIX_CFG),offerEnabled={normal:true,icon:!(mix.iconAvg===0&&mix.iconSpread===0),hero:!(mix.heroAvg===0&&mix.heroSpread===0)},bell=spread=>(rng()+rng()+rng()+rng()-2)*spread,planCounts=totalOffers=>{const scale=totalOffers/55,iconN=Math.round(Math.max(0,Math.min(totalOffers,mix.iconAvg*scale+bell(mix.iconSpread*scale)))),heroN=Math.round(Math.max(0,Math.min(totalOffers-iconN,mix.heroAvg*scale+bell(mix.heroSpread*scale))));return[iconN,heroN,totalOffers-iconN-heroN];};
   for(let s=0;s<nScripts;s++){
     _calThrowIfCancelled(cancelToken);const f=pick(forms),scriptDb=_calSamplePersonPool(personGroups,rng),byPos={},usedPeople=new Set(),totalOffers=f.slots.length*K,counts=planCounts(totalOffers),iconN=counts[0],heroN=counts[1],normalN=counts[2],typePlan=[];
@@ -23805,8 +23868,8 @@ function _calibrateNoHold(db,forms,opts){
   const feasErr=_calFeasible(pool,forms,K);if(feasErr)return{error:feasErr};
   const hash=_calDbHash(db);
   const seed=(opts.seed!=null&&!isNaN(opts.seed))?(Math.min(4294967295,Math.max(0,Math.floor(opts.seed)))>>>0):hash;
-  const rng=_calRng(seed),mix=_calMixSanitize(opts.mix||CAL_MIX_CFG),measured=_calMeasurementMask(mix,PIVOT_KIND,pool);
-  const scripts=_calMakeScripts(pool,forms,nScripts,K,rng,db,mix),rarityCtx=_calBuildRarityContext(db);
+  const rng=_calRng(seed),mix=_calMixSanitize(opts.mix||CAL_MIX_CFG),ratingOdds=_calRatingOddsSanitize(opts.ratingOdds||CAL_RATING_ODDS_CFG),measured=_calMeasurementMask(mix,PIVOT_KIND,pool);
+  const scripts=_calMakeScripts(pool,forms,nScripts,K,rng,db,mix,ratingOdds),rarityCtx=_calBuildRarityContext(db);
   if(scripts.length<20)return{error:'Could not build enough valid draft scenarios from this DB.'};
   const nTrain=Math.floor(scripts.length*0.7),train=scripts.slice(0,nTrain),hold=scripts.slice(nTrain),R=(a,b)=>a+rng()*(b-a),dims=_calMeasuredDims(measured),trainCache=new Map(),starts=[];let legacySeed=null,legacyBest=-Infinity;
   for(let v=0;v<nVec;v++){const w=_calRandomWeights(R,measured),m=_calMeanCached(trainCache,train,w,rarityCtx,dims);if(m>legacyBest){legacyBest=m;legacySeed={...w};}if(!skipCoupling)_calInsertTopStart(starts,w,m,dims,v,Math.min(_CAL_MULTI_STARTS,nVec));}
@@ -23815,7 +23878,7 @@ function _calibrateNoHold(db,forms,opts){
   const enhanced=[];
   if(!skipCoupling)for(const s of starts){const c=_calEnhancedClimbSync(s.weights,s.train,dims,train,rarityCtx,trainCache);c.hold=_calMean(hold,_calMakeScorer(c.weights,rarityCtx));enhanced.push(c);}
   const chosen=skipCoupling?legacy:_calSelectGuardedFit(legacy,enhanced,dims),best=chosen.weights,cur=chosen.train,finalScorer=_calMakeScorer(best,rarityCtx),peakScore=_calMaxScore(scripts,finalScorer);
-  return{hash,seed,weights:best,measured,trainMean:cur,holdMean:chosen.hold,baselineTrainMean:legacy.train,baselineHoldMean:legacy.hold,fitStarts:skipCoupling?1:starts.length,fitStepFloor:skipCoupling?0.2:0.05,coupledFit:!skipCoupling,couplingSkipped:skipCoupling,holdGuarded:!skipCoupling,fitDiagonalProfile:skipCoupling?'':'targeted type/freshness + clash/freshness + freshness triple',fitSource:skipCoupling?'legacy baseline (coupling skipped)':chosen.source,maxScore:peakScore,scoreHist:_calScoreHist(scripts,finalScorer,peakScore,5),nScripts:scripts.length,K,mix,mixSig:_calMixSig(mix),excludedTypes:_calExcludedTypeLabels(),date:new Date().toISOString().slice(0,10)};
+  return{hash,seed,weights:best,measured,trainMean:cur,holdMean:chosen.hold,baselineTrainMean:legacy.train,baselineHoldMean:legacy.hold,fitStarts:skipCoupling?1:starts.length,fitStepFloor:skipCoupling?0.2:0.05,coupledFit:!skipCoupling,couplingSkipped:skipCoupling,holdGuarded:!skipCoupling,fitDiagonalProfile:skipCoupling?'':'targeted type/freshness + clash/freshness + freshness triple',fitSource:skipCoupling?'legacy baseline (coupling skipped)':chosen.source,maxScore:peakScore,scoreHist:_calScoreHist(scripts,finalScorer,peakScore,5),nScripts:scripts.length,K,mix,ratingOdds,mixSig:_calMixSig(mix,ratingOdds),excludedTypes:_calExcludedTypeLabels(),date:new Date().toISOString().slice(0,10)};
 }
 
 // Is the calibrated no-hold path currently the ACTIVE ranking source?
@@ -23875,9 +23938,9 @@ async function _calibrateNoHoldAsync(db,forms,opts,onProgress){
   _calThrowIfCancelled(cancelToken);
   if(typeof _refreshPivotEdge==='function')_refreshPivotEdge();
   const pool=_calFilteredDb(db).filter(_calSampleEligible),feasErr=_calFeasible(pool,forms,K);if(feasErr)return{error:feasErr};
-  const hash=_calDbHash(db),seed=(opts.seed!=null&&!isNaN(opts.seed))?(Math.min(4294967295,Math.max(0,Math.floor(opts.seed)))>>>0):hash,rng=_calRng(seed),mix=_calMixSanitize(opts.mix||CAL_MIX_CFG),measured=_calMeasurementMask(mix,PIVOT_KIND,pool),state={t:performance.now(),progress:_calProgressInit(skipCoupling,nScripts,nVec)};
+  const hash=_calDbHash(db),seed=(opts.seed!=null&&!isNaN(opts.seed))?(Math.min(4294967295,Math.max(0,Math.floor(opts.seed)))>>>0):hash,rng=_calRng(seed),mix=_calMixSanitize(opts.mix||CAL_MIX_CFG),ratingOdds=_calRatingOddsSanitize(opts.ratingOdds||CAL_RATING_ODDS_CFG),measured=_calMeasurementMask(mix,PIVOT_KIND,pool),state={t:performance.now(),progress:_calProgressInit(skipCoupling,nScripts,nVec)};
   if(onProgress)onProgress(_calProgressText(state,{phase:'scripts',label:'Building simulated drafts'},0));
-  const scripts=await _calMakeScriptsAsync(pool,forms,nScripts,K,rng,db,mix,onProgress,state,cancelToken),rarityCtx=_calBuildRarityContext(db);if(scripts.length<20)return{error:'Could not build enough valid draft scenarios from this DB.'};
+  const scripts=await _calMakeScriptsAsync(pool,forms,nScripts,K,rng,db,mix,ratingOdds,onProgress,state,cancelToken),rarityCtx=_calBuildRarityContext(db);if(scripts.length<20)return{error:'Could not build enough valid draft scenarios from this DB.'};
   const nTrain=Math.floor(scripts.length*0.7),train=scripts.slice(0,nTrain),hold=scripts.slice(nTrain),R=(a,b)=>a+rng()*(b-a),dims=_calMeasuredDims(measured),trainCache=new Map(),starts=[];let legacySeed=null,legacyBest=-Infinity;
   for(let v=0;v<nVec;v++){
     _calThrowIfCancelled(cancelToken);
@@ -23899,7 +23962,7 @@ async function _calibrateNoHoldAsync(db,forms,opts,onProgress){
   }else if(onProgress)onProgress('<b style="color:var(--ink)">Overall '+Math.floor(state.progress.lastOverall)+'%</b> &middot; Coupled refinement skipped &mdash; finalising…');
   const chosen=skipCoupling?legacy:_calSelectGuardedFit(legacy,enhanced,dims),best=chosen.weights,cur=chosen.train,finalScorer=_calMakeScorer(best,rarityCtx),stats=await _calFinalStatsAsync(scripts,finalScorer,state,onProgress,cancelToken);
   _calThrowIfCancelled(cancelToken);
-  return{hash,seed,weights:best,measured,trainMean:cur,holdMean:chosen.hold,baselineTrainMean:legacy.train,baselineHoldMean:legacy.hold,fitStarts:skipCoupling?1:starts.length,fitStepFloor:skipCoupling?0.2:0.05,coupledFit:!skipCoupling,couplingSkipped:skipCoupling,holdGuarded:!skipCoupling,fitDiagonalProfile:skipCoupling?'':'targeted type/freshness + clash/freshness + freshness triple',fitSource:skipCoupling?'legacy baseline (coupling skipped)':chosen.source,maxScore:stats.peakScore,scoreHist:stats.scoreHist,nScripts:scripts.length,K,mix,mixSig:_calMixSig(mix),excludedTypes:_calExcludedTypeLabels(),date:new Date().toISOString().slice(0,10)};
+  return{hash,seed,weights:best,measured,trainMean:cur,holdMean:chosen.hold,baselineTrainMean:legacy.train,baselineHoldMean:legacy.hold,fitStarts:skipCoupling?1:starts.length,fitStepFloor:skipCoupling?0.2:0.05,coupledFit:!skipCoupling,couplingSkipped:skipCoupling,holdGuarded:!skipCoupling,fitDiagonalProfile:skipCoupling?'':'targeted type/freshness + clash/freshness + freshness triple',fitSource:skipCoupling?'legacy baseline (coupling skipped)':chosen.source,maxScore:stats.peakScore,scoreHist:stats.scoreHist,nScripts:scripts.length,K,mix,ratingOdds,mixSig:_calMixSig(mix,ratingOdds),excludedTypes:_calExcludedTypeLabels(),date:new Date().toISOString().slice(0,10)};
 }
 
 // ============================ v16.0.0 MULTI-PIVOT ANALYZER ============================
@@ -24349,9 +24412,9 @@ function _fcalSeed(base){
   }
   return h>>>0;
 }
-function _fcalBucket(cards){
-  const cum=[];let total=0;
-  for(const c of cards){total+=(typeof c.copies==='number'&&c.copies>0)?c.copies:1;cum.push(total);}
+function _fcalBucket(cards,ratingOddsCfg){
+  const cum=[];let total=0,odds=_calRatingOddsSanitize(ratingOddsCfg||CAL_RATING_ODDS_CFG);
+  for(const c of cards){const copies=(typeof c.copies==='number'&&c.copies>0)?c.copies:1;total+=copies*_calRatingOddsWeight(c,odds);cum.push(total);}
   return{cards,cum,total};
 }
 function _fcalDraw(bucket,rng,usedPeople){
@@ -24361,7 +24424,7 @@ function _fcalDraw(bucket,rng,usedPeople){
   for(const c of bucket.cards)if(!usedPeople.has(c.personKey))return c;
   return null;
 }
-function _fcalBuildPools(){
+function _fcalBuildPools(ratingOddsCfg){
   const src=playerDB.length?playerDB:DEFAULT_DB;
   const wrapped=[];
   for(let i=0;i<src.length;i++){
@@ -24377,9 +24440,9 @@ function _fcalBuildPools(){
   for(const p of positions){
     const at=wrapped.filter(c=>c.primary===p);
     byPos[p]={
-      normal:_fcalBucket(at.filter(c=>c.type==='normal'&&_pivotMatches(c))),
-      hero:_fcalBucket(at.filter(c=>c.type==='hero')),
-      icon:_fcalBucket(at.filter(c=>c.type==='icon'))
+      normal:_fcalBucket(at.filter(c=>c.type==='normal'&&_pivotMatches(c)),ratingOddsCfg),
+      hero:_fcalBucket(at.filter(c=>c.type==='hero'),ratingOddsCfg),
+      icon:_fcalBucket(at.filter(c=>c.type==='icon'),ratingOddsCfg)
     };
   }
   return{byPos,total:wrapped.length,pivotNormals:wrapped.filter(c=>c.type==='normal'&&_pivotMatches(c)).length,heroes:wrapped.filter(c=>c.type==='hero').length,icons:wrapped.filter(c=>c.type==='icon').length};
@@ -24474,12 +24537,12 @@ function _renderFormCalResult(){
 async function runFormCalibration(){
   if(_fcalRunning)return;
   _fcalSyncInputs();
-  const x=FORM_CAL_CFG.x,seed=FORM_CAL_CFG.seed,mix=_calMixSnapshot(),st=$('#formCalStatus');
+  const x=FORM_CAL_CFG.x,seed=FORM_CAL_CFG.seed,mix=_calMixSnapshot(),ratingOdds=_calRatingOddsSnapshot(),st=$('#formCalStatus');
   _fcalSetBusy(true);
   try{
     if(st)st.innerHTML='<span style="color:var(--mut)">⏳ Building primary-position draft pools…</span>';
     await _calYield();
-    const pools=_fcalBuildPools(),forms=FORMS.filter(f=>f.name!=='Custom');
+    const pools=_fcalBuildPools(ratingOdds),forms=FORMS.filter(f=>f.name!=='Custom');
     for(const f of forms)for(const pos of f.slots){const p=pools.byPos[pos];if(!p||!(p.normal.cards.length||p.hero.cards.length||p.icon.cards.length))throw new Error('No primary-position cards are available for '+pos+'.');}
     const values={},stats={};let completed=0,rejected=0,attempted=0,total=forms.length*x;
     const t0=performance.now();
@@ -24497,7 +24560,7 @@ async function runFormCalibration(){
       if(!count){values[f.name]=-999;stats[f.name]={failed:true,rejected:x,rank:-999};continue;}
       const avg=sum/count,rank=_fcalRankScore(avg,best,worst);values[f.name]=rank;stats[f.name]={avg,best,worst,rank,rejected:x-count};
     }
-    const res={values,stats,x,seed,beam:_FCAL_BEAM,mix,excludedTypes:_calExcludedTypeLabels(),rejected,validDrafts:completed,failedAll:completed===0,source:'primary-only 11×5 seeded simulation · pivot normals + global specials · user card-type exclusions · XI special caps · real squad score + manager · rank 50% average / 25% best / 25% worst',date:new Date().toISOString(),dbHash:_calDbHash(playerDB),pivotKind:PIVOT_KIND,pivotKey:PIVOT_KEY,calSig:_fcalConfigSig(mix),poolStats:{pivotNormals:pools.pivotNormals,heroes:pools.heroes,icons:pools.icons}};
+    const res={values,stats,x,seed,beam:_FCAL_BEAM,mix,ratingOdds,excludedTypes:_calExcludedTypeLabels(),rejected,validDrafts:completed,failedAll:completed===0,source:'primary-only 11×5 seeded simulation · pivot normals + global specials · user card-type exclusions · XI special caps · real squad score + manager · rank 50% average / 25% best / 25% worst',date:new Date().toISOString(),dbHash:_calDbHash(playerDB),pivotKind:PIVOT_KIND,pivotKey:PIVOT_KEY,calSig:_fcalConfigSig(mix),poolStats:{pivotNormals:pools.pivotNormals,heroes:pools.heroes,icons:pools.icons}};
     FORM_CAL=res;try{localStorage.setItem(_FORMCAL_KEY,JSON.stringify(res));}catch(e){}
     recomputeFormScores();_renderFormCalResult();
     const ranked=Object.entries(values).filter(([,v])=>v>-900).sort((a,b)=>b[1]-a[1]),ms=Math.max(1,Math.round(performance.now()-t0));
@@ -24635,8 +24698,10 @@ function _renderCalResult(){
     +' &middot; <b>first hero '+showW('firstHeroValue',firstHeroValue)+'</b> / later hero '+showW('extraHeroValue',extraHeroValue)+'.'
     +'</div>';
   const cm=_calMixSanitize(NOHOLD_CAL.mix||_CAL_MIX_DEF);
+  const ro=_calRatingOddsSanitize(NOHOLD_CAL.ratingOdds||_CAL_RATING_ODDS_DEF),roOn=ro.normalOn||ro.heroOn||ro.iconOn;
+  const roTxt=roOn?' &middot; rating odds '+[ro.normalOn?'N'+ro.normalCenter:'',ro.heroOn?'H'+ro.heroCenter:'',ro.iconOn?'I'+ro.iconCenter:''].filter(Boolean).join('/')+' curve '+ro.curve.toFixed(2):'';
   const trainTxt=Number.isFinite(NOHOLD_CAL.trainMean)?NOHOLD_CAL.trainMean.toFixed(3):'n/a',holdTxt=Number.isFinite(NOHOLD_CAL.holdMean)?NOHOLD_CAL.holdMean.toFixed(3):'n/a';
-  const excluded=(NOHOLD_CAL.excludedTypes||[]);html+='<div class="tiny" style="margin-top:6px;color:var(--mut)">Fit: '+NOHOLD_CAL.nScripts+' scenarios, K='+NOHOLD_CAL.K+' &middot; mix '+cm.iconAvg+'/'+cm.heroAvg+'/'+cm.normalAvg+' &middot; excluded types '+(excluded.length?esc(excluded.join(', ')):'none')+' &middot; DB '+(NOHOLD_CAL.hash>>>0).toString(16).slice(0,8)+' &middot; seed '+(NOHOLD_CAL.seed>>>0)+' &middot; '+NOHOLD_CAL.date
+  const excluded=(NOHOLD_CAL.excludedTypes||[]);html+='<div class="tiny" style="margin-top:6px;color:var(--mut)">Fit: '+NOHOLD_CAL.nScripts+' scenarios, K='+NOHOLD_CAL.K+' &middot; mix '+cm.iconAvg+'/'+cm.heroAvg+'/'+cm.normalAvg+' &middot; excluded types '+(excluded.length?esc(excluded.join(', ')):'none')+' &middot; DB '+(NOHOLD_CAL.hash>>>0).toString(16).slice(0,8)+' &middot; seed '+(NOHOLD_CAL.seed>>>0)+roTxt+' &middot; '+NOHOLD_CAL.date
     +(typeof NOHOLD_CAL.maxScore==='number'?' &middot; best simulated draft scored <b>'+NOHOLD_CAL.maxScore+'</b> (with manager)':'')
     +'<br>Train mean <b>'+trainTxt+'</b> &middot; hold mean <b>'+holdTxt+'</b>'
     +(NOHOLD_CAL.coupledFit?' &middot; coupled search '+(NOHOLD_CAL.fitStarts||1)+' starts &middot; '+Number(NOHOLD_CAL.fitStepFloor||0.05).toFixed(2)+' floor &middot; holdout guarded'+(NOHOLD_CAL.fitDiagonalProfile?' &middot; targeted diagonals':''):(NOHOLD_CAL.couplingSkipped?' &middot; coupling skipped &middot; axis-only 0.20 floor':''))
@@ -24648,7 +24713,8 @@ function _renderCalResult(){
     const tailHtml=h.belowCount>0?'<br><span style="display:inline-block;min-width:56px">&le;'+h.belowMax+':</span> '+h.belowCount:'';
     html+='<div class="tiny" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line);color:var(--mut)">'
       +'<b style="color:var(--ink)">How often each score came up</b> (with manager, across all '+NOHOLD_CAL.nScripts+' simulated drafts)<br>'
-      +'<div style="font-family:monospace;margin-top:3px">'+rowsHtml+tailHtml+'</div></div>';
+      +'<div style="font-family:monospace;margin-top:3px">'+rowsHtml+tailHtml+'</div>'
+      +'<div style="margin-top:5px">Approximation only: the simulator models 11 starter picks from 55 eligible pivot offers, not the full 23-pick draft, and PACWYN&rsquo;s true card pull odds are unknown.</div></div>';
   }
   html+='<button class="btn gho sm" style="margin-top:7px" onclick="runNoHoldCalibration()">Recalibrate</button>';
   html+='<button class="btn gho sm" style="margin-top:6px;color:var(--warn)" onclick="clearNoHoldCalibration()">Uncalibrate</button>';
