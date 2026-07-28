@@ -594,7 +594,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.30.16</title>
+<title>Pacwyn Solver v5.30.17</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -8420,7 +8420,8 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.30.14 — FORMATION-UI CLEANUP / SEARCHABLE SBC FORMATIONS. The custom-formation fallback now keeps its mandatory goalkeeper fixed at one instead of showing meaningless plus/minus controls, and its copy clarifies that it is mainly a recovery tool for a missing or incorrect formation definition. The in-draft Change formation dialog now explains its actual use case—preserving an already-entered card pool and holds when the chosen formation was wrong—without claiming cards must be reassigned to matching board slots. Formation rows use a fixed name column and eleven equal position columns so names and slot labels align consistently across rows and mobile widths. The SBC solver formation picker is now type-to-search by formation name or slot sequence while retaining the existing selected-formation state and repair synchronisation. No solver, database, worker or formation definitions changed. -->
 <!-- v5.30.15 — SUDAMERICANA CANONICAL DB MIGRATION / FORMATION-PICKER POLISH. Replaced the legacy internal league value “suda” with the canonical “Sudamericana” in LEAGUES, CLUBS_BY_LEAGUE and all 110 embedded player rows, so every ordinary DB browser, Mini-Game, solver result and exported default row now displays the full league name. The old “suda” shorthand remains accepted by search, imports, saved/custom DB restoration, saved Conditions, Live Play keys and manager league/boost normalisation, preventing older data from becoming incompatible. The custom-formation GK count now occupies the same count column as every other position without a redundant “fixed” label or controls. The SBC formation picker now genuinely starts at None selected instead of silently falling back to 4-4-2; the existing run-time validation already blocks solving until a formation is chosen. No card identities, clubs, ratings, positions, solver scoring, worker source or formation definitions changed. -->
 <!-- v5.30.16 — CUSTOM-FORMATION COUNT ALIGNMENT. Replaced the mixed flex/spacer layout with one responsive three-column grid shared by every custom-formation row: position label, fixed-width centred count, and fixed-width controls column. GK keeps an invisible controls placeholder, so its mandatory count aligns exactly with every editable position count at all viewport widths. No formation logic, slot totals, solver path, worker source or database data changed. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.30.16</span></h1>
+<!-- v5.30.17 — HIDDEN PIVOT-POOL RANDOM DEMO / REAL-PERSON UNIQUENESS. The Random demo count field accepts an undocumented test token such as “47pivot”: it builds exactly that many cards from normal cards matching the currently selected league/nation pivot plus global Heroes and Icons. Ordinary numeric/random demos keep the full DB pool. Random-demo construction now uses a randomized bipartite identity-to-pick matcher instead of a greedy duplicate fallback, so the same displayed-name+pidx real-person identity can never appear twice and an exact requested count is returned only when a legal unique assignment exists. The hidden token does not change solver, calibration, worker or persisted settings. -->
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.30.17</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -8468,7 +8469,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
     <div class="tiny" id="confirmFormNote" style="margin-top:4px;color:var(--mut)">Pick a formation above, then confirm to build your 23-slot board.</div>
     <div style="margin-top:10px">
       <label style="margin:0 0 4px">Random demo card count <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
-      <input id="randomDemoCardCount" type="number" min="11" max="115" step="1" inputmode="numeric" placeholder="random" onblur="clampRandomDemoCount(this)">
+      <input id="randomDemoCardCount" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="12" placeholder="random" onblur="clampRandomDemoCount(this)">
       <div class="row" style="margin-top:8px;gap:8px">
         <button class="btn gho sm" onclick="loadDemo()">Load 156 demo</button>
         <button class="btn gho sm" onclick="loadRandomDemo()">&#127922; Random demo</button>
@@ -25953,22 +25954,79 @@ function loadDemo(){
   document.querySelector('.tabbar button[data-v="v-cards"]').click();
   _clearSolve();if(typeof closeSlot==='function')closeSlot();
 }
+function _randomDemoCountSpec(raw){
+  raw=String(raw==null?'':raw).trim();
+  if(raw==='')return {target:null,pivotOnly:false,blank:true};
+  const m=raw.match(/^(\d+)\s*(pivot)?$/i);if(!m)return null;
+  return {target:Math.max(11,Math.min(115,Math.round(Number(m[1])||11))),pivotOnly:!!m[2],blank:false};
+}
 function clampRandomDemoCount(input){
-  const el=input||$('#randomDemoCardCount'),raw=String(el&&el.value||'').trim();if(!el||raw==='')return null;const n=Math.max(11,Math.min(115,Math.round(Number(raw)||11)));el.value=String(n);return n;
+  const el=input||$('#randomDemoCardCount'),raw=String(el&&el.value||'').trim();if(!el||raw==='')return null;
+  const spec=_randomDemoCountSpec(raw);if(!spec)return null;
+  el.value=String(spec.target)+(spec.pivotOnly?'pivot':'');return spec.target;
+}
+function _randomDemoPersonKey(p){return norm(String(p&&p.name||p&&p.label||''))+'|'+(p&&p.pidx==null?'':String(p.pidx));}
+function _randomDemoIdentityPool(pivotOnly){
+  const groups=new Map();
+  for(const p of (playerDB||[])){
+    if(!p||!p.name||!['normal','hero','icon'].includes(p.type||'normal'))continue;
+    if(pivotOnly&&p.type==='normal'&&!_pivotMatches(p))continue;
+    const key=_randomDemoPersonKey(p);if(!key||key==='|')continue;
+    let g=groups.get(key);if(!g){g={key,rows:[],byPos:new Map()};groups.set(key,g);}g.rows.push(p);
+    for(const pos0 of (p.pos||[])){const pos=normPos(pos0);if(!pos)continue;let a=g.byPos.get(pos);if(!a){a=[];g.byPos.set(pos,a);}a.push(p);}
+  }
+  return Array.from(groups.values());
+}
+function _randomDemoSlots(form){
+  const slots=form.slots.map((p,i)=>({id:'P'+i,kind:'pos',pos:p}));
+  for(let i=1;i<=12;i++)slots.push({id:'B'+i,kind:'bench',pos:null});
+  return slots;
+}
+function _randomDemoCounts(slots,target,groups,rnd){
+  const byPosCount=new Map();
+  for(const g of groups)for(const pos of g.byPos.keys())byPosCount.set(pos,(byPosCount.get(pos)||0)+1);
+  const counts=new Map(slots.map(s=>[s.id,0])),caps=new Map();
+  for(const slot of slots){const cap=slot.kind==='bench'?5:Math.min(5,byPosCount.get(slot.pos)||0);caps.set(slot.id,cap);if(slot.kind==='pos'){if(cap<1)return null;counts.set(slot.id,1);}}
+  let remain=target-slots.filter(s=>s.kind==='pos').length;
+  const totalCapacity=Array.from(caps.values()).reduce((a,b)=>a+b,0);if(target>totalCapacity||target>groups.length)return null;
+  while(remain>0){const open=slots.filter(s=>(counts.get(s.id)||0)<(caps.get(s.id)||0));if(!open.length)return null;const slot=open[Math.floor(rnd()*open.length)];counts.set(slot.id,(counts.get(slot.id)||0)+1);remain--;}
+  return counts;
+}
+function _randomDemoUniquePlan(slots,counts,groups,rnd,shuffle){
+  const all=shuffle(groups.map((_,i)=>i)),byPos=new Map();
+  for(const pos of new Set(slots.filter(s=>s.kind==='pos').map(s=>s.pos))){byPos.set(pos,shuffle(groups.map((g,i)=>g.byPos.has(pos)?i:-1).filter(i=>i>=0)));}
+  const demands=[];
+  for(const slot of slots){const need=counts.get(slot.id)||0,candidates=slot.kind==='bench'?all:(byPos.get(slot.pos)||[]);for(let i=0;i<need;i++)demands.push({slot,candidates,tie:rnd()});}
+  if(demands.some(d=>!d.candidates.length))return null;
+  const order=demands.map((_,i)=>i).sort((a,b)=>demands[a].candidates.length-demands[b].candidates.length||demands[a].tie-demands[b].tie);
+  const owner=new Int32Array(groups.length);owner.fill(-1);const assigned=new Int32Array(demands.length);assigned.fill(-1);const seen=new Int32Array(groups.length);let stamp=0;
+  function visit(di){
+    const cand=demands[di].candidates,n=cand.length,start=n?Math.floor(rnd()*n):0;
+    for(let z=0;z<n;z++){const gi=cand[(start+z)%n];if(seen[gi]===stamp)continue;seen[gi]=stamp;const prev=owner[gi];if(prev<0||visit(prev)){owner[gi]=di;assigned[di]=gi;return true;}}
+    return false;
+  }
+  for(const di of order){stamp++;if(!visit(di))return null;}
+  return demands.map((d,di)=>{const g=groups[assigned[di]],rows=d.slot.kind==='bench'?g.rows:(g.byPos.get(d.slot.pos)||[]),p=rows[Math.floor(rnd()*rows.length)];return {slotId:d.slot.id,p};});
 }
 function loadRandomDemo(){
-  const f=FORMS[Math.floor(Math.random()*FORMS.length)];chosenForm=f.name;buildBoard(f);
   const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,shuffle=arr=>{const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
-  const input=$('#randomDemoCardCount'),raw=String(input&&input.value||'').trim(),target=raw===''?rnd(11,115):Math.max(11,Math.min(115,Math.round(Number(raw)||11)));if(input&&raw!=='')input.value=String(target);
-  const counts=new Map(board.map(s=>[s.id,0])),starters=board.filter(s=>s.kind==='pos'),allSlots=board.slice();
-  for(const slot of starters)counts.set(slot.id,1);
-  let remain=target-starters.length;
-  while(remain>0){const open=allSlots.filter(s=>(counts.get(s.id)||0)<5);if(!open.length)break;const slot=open[Math.floor(Math.random()*open.length)];counts.set(slot.id,(counts.get(slot.id)||0)+1);remain--;}
-  const usedPeople=new Set(),personKey=p=>norm(String(p&&p.name||''))+'|'+(p&&p.pidx==null?'':String(p.pidx));
-  function candidatesFor(slot){return playerDB.filter(p=>(slot.kind==='bench'||slot.pos===null||(p.pos||[]).includes(slot.pos))&&!usedPeople.has(personKey(p)));}
-  for(const slot of allSlots){const need=counts.get(slot.id)||0;slot.busted=need===0;if(!need)continue;for(let k=0;k<need;k++){let pool=candidatesFor(slot);if(!pool.length)pool=playerDB.filter(p=>slot.kind==='bench'||slot.pos===null||(p.pos||[]).includes(slot.pos));if(!pool.length)continue;const p=pool[Math.floor(Math.random()*pool.length)],pk=personKey(p);usedPeople.add(pk);cards.push({id:uid++,slot:slot.id,hold:null,label:p.name,type:p.type,rating:p.rating,nation:p.nation,league:p.league,club:p.club,pos:(p.pos||[]).slice(),pidx:p.pidx});}syncSlot(slot.id);}
+  const input=$('#randomDemoCardCount'),raw=String(input&&input.value||'').trim(),spec=_randomDemoCountSpec(raw);
+  if(!spec){if(typeof _toast==='function')_toast('Enter a card count from 11 to 115, or leave it blank.');else alert('Enter a card count from 11 to 115, or leave it blank.');return;}
+  const target=spec.blank?rnd(11,115):spec.target,pivotOnly=!!spec.pivotOnly;if(input&&!spec.blank)input.value=String(target)+(pivotOnly?'pivot':'');
+  const groups=_randomDemoIdentityPool(pivotOnly),forms=shuffle(FORMS||[]);let chosen=null;
+  const attempts=Math.max(24,forms.length*2);
+  for(let a=0;a<attempts&&!chosen;a++){
+    const f=forms[a%forms.length]||FORMS[Math.floor(Math.random()*FORMS.length)],slots=_randomDemoSlots(f),counts=_randomDemoCounts(slots,target,groups,Math.random);if(!counts)continue;
+    const picks=_randomDemoUniquePlan(slots,counts,groups,Math.random,shuffle);if(picks&&picks.length===target)chosen={f,picks};
+  }
+  if(!chosen){const scope=pivotOnly?'the current '+PIVOT_KIND+' pivot ('+PIVOT_KEY+') plus Heroes and Icons':'the current database';const msg='Could not build '+target+' unique cards from '+scope+' for any tested formation. Try a smaller count or a broader pivot.';if(typeof _toast==='function')_toast(msg);else alert(msg);return;}
+  const f=chosen.f;chosenForm=f.name;buildBoard(f);
+  const identities=new Set();
+  for(const pick of chosen.picks){const p=pick.p,key=_randomDemoPersonKey(p);if(identities.has(key))throw new Error('Random demo identity matcher returned a duplicate real person: '+key);identities.add(key);cards.push({id:uid++,slot:pick.slotId,hold:null,label:p.name,type:p.type,rating:p.rating,nation:p.nation,league:p.league,club:p.club,pos:(p.pos||[]).slice(),pidx:p.pidx});}
+  board.forEach(s=>{s.busted=!cards.some(c=>c.slot===s.id);syncSlot(s.id);});
   managers=shuffle(MANAGER_DB.slice()).slice(0,Math.min(5,MANAGER_DB.length)).map(m=>({name:m.name,nation:m.nation,league:m.league,boosts:_cloneManagerBoosts(m.boosts)}));
-  renderCards();renderMgr();updateSolveForm();saveLocal();document.querySelector('.tabbar button[data-v="v-cards"]').click();_clearSolve();if(typeof closeSlot==='function')closeSlot();if(typeof _toast==='function')_toast('Built a realistic '+cards.length+'-card random draft · '+f.name+'.');
+  renderCards();renderMgr();updateSolveForm();saveLocal();document.querySelector('.tabbar button[data-v="v-cards"]').click();_clearSolve();if(typeof closeSlot==='function')closeSlot();
+  if(typeof _toast==='function')_toast(pivotOnly?'Built a '+cards.length+'-card pivot-pool test draft · '+(PIVOT_KIND==='nation'?'nation ':'')+PIVOT_KEY+' · '+f.name+'.':'Built a realistic '+cards.length+'-card random draft · '+f.name+'.');
 }
 
 
