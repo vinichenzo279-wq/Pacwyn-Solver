@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ================================================================================================
-     PACWYN SOLVER v5.29.44 — RELEASE BUILD
+     PACWYN SOLVER v5.29.46 — RELEASE BUILD
      ================================================================================================
      This standalone release combines the Draft Solver, hard XI conditions, RTG/WL, Draft Cups,
      SBC, Live Play, formation/pivot analysis and the editable player/manager databases.
@@ -594,7 +594,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.29.44</title>
+<title>Pacwyn Solver v5.29.46</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -1351,6 +1351,27 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
 .rtg-wl-preferred-explanation{max-width:700px;margin:7px auto 0}
 #rtgWlPreferredRatingStatus{margin-top:6px;text-align:center}
 @media(max-width:560px){.rtg-wl-preferred-row{grid-template-columns:1fr}.rtg-wl-preferred-input{max-width:220px;margin:0 auto;width:100%}}
+
+/* v5.29.45 — WL rating suggestions and reset. */
+.rtg-wl-rating-suggestions{max-width:760px;margin:9px auto 0;text-align:center}
+.rtg-wl-rating-suggestions>summary{text-align:center}
+.rtg-wl-rating-suggestion-body{max-width:720px;margin:8px auto 0}
+.rtg-wl-rating-suggestion-list{display:grid;gap:7px;margin-top:8px}
+.rtg-wl-rating-suggestion{display:grid;grid-template-columns:34px 52px minmax(0,1fr);gap:8px;align-items:center;width:100%;padding:9px;border:1px solid var(--line);border-radius:10px;background:rgba(31,227,204,.045);color:var(--ink);text-align:left;cursor:pointer}
+.rtg-wl-rating-suggestion:hover{border-color:var(--cyan)}
+.rtg-wl-rating-rank{font-size:11px;color:var(--mut);font-weight:900;text-align:center}
+.rtg-wl-rating-number{font-size:22px;color:var(--cyan);font-weight:900;text-align:center}
+.rtg-wl-rating-copy{display:grid;gap:2px;min-width:0}
+.rtg-wl-rating-copy span{font-size:10px;color:var(--mut);line-height:1.4;overflow-wrap:anywhere}
+#rtgWlRatingSuggestionMore{margin:8px auto 0}
+.rtg-wl-reset-row{justify-content:center;margin-top:9px}
+@media(max-width:520px){.rtg-wl-rating-suggestion{grid-template-columns:28px 42px minmax(0,1fr)}.rtg-wl-rating-number{font-size:19px}}
+
+/* v5.29.46 — explicit-click WL rating analysis and transparent fit breakdown. */
+#rtgWlRatingSuggestionAnalyse{display:flex;justify-content:center}
+.rtg-wl-rating-copy{gap:3px}
+.rtg-wl-rating-copy span{display:block}
+#rtgWlRatingOverwriteWarning{text-align:center}
 </style>
 
 <!-- v5.27.15 — CLOSE-CALL UNIT AUDIT. Preserved Win-first exactly. Corrected Overperformance-first retention to respect its real discrete unit: the displayed metric is an eleven-card average, while the numerator is integer best-stat-minus-rating points. A slider value of 3.00 now means three aggregate XI overperformance points (3/11 average), not 3% of eleven (3.63 aggregate points). Score gap remains scaled to eleven expected rounds; normalized balance, coverage, chemistry and axis-depth utilities remain literal percentage-point bands; team-rating-first remains exact. Updated the active-basis UI to show both aggregate and average overperformance tolerance. -->
@@ -8167,6 +8188,8 @@ Draft and RTG/WL must not be judged by the same standard.
 - The intended architecture is therefore bounded DFS -> diverse/close-call finalists -> context-aware repair -> exact H2H where possible. Optional patches are controlled modelling hypotheses used to protect working benchmarks while testing edge-case assumptions.
 - Success should be judged by benchmark recovery, exact H2H, human-quality squads and real outcomes, not by visual elegance or a claim of universal optimality.
 END RTG/WL SEARCH MODEL CONCEPT NOTE -->
+<!-- v5.29.46 — CLICK-ONLY WL RATING ANALYSIS AND FUT-RATING FIT MODEL. Suggested-rating analysis no longer runs when the minimum receives a second digit or merely when the dropdown opens. Opening shows the current Advanced Top-N and outlier-gap context; the calculation starts only after Analyse suggested ratings is clicked. The suggestion pool now uses the existing repairMissedCandidateCount setting instead of a duplicated fixed 50 and unconditionally uses the existing ratingCapAbove gap, so a target+4 card receives zero credit at the default +3 unless the user raises that setting. Added exact squad-composition fit based on the real futRatingRaw sum-of-mean formula: each card rating is tested for how many copies can coexist in an exact target-rated XI and what complementary rating is required, rewarding balanced fits such as ten 87s plus one 86 in an exact-86 squad while penalising high cards that require extreme low fillers. Lower-rated cards remain eligible when their measured stats reach the target, including patterns such as 84→86 in an 85 squad and 83→85 as a clean match. Clean overperformance, clean target matches and discounted manager-assisted equivalents are now reported separately, with named examples and rating-composition explanations, eliminating the opaque inflated “strong” count. Manager assistance is weighted by route type, boost amount, available-manager count and nation/league/club commonness; club-only and rare-club routes are discounted below common nation/position routes and all manager assistance remains below equivalent clean strength. Added a visible yellow warning only when existing Team Rating Conditions will actually be replaced; no warning is shown when Build is simply adding the first rating rule. No DFS, opponent model, rating formula, DB or regular WL solve path changed. -->
+<!-- v5.29.45 — WL RATING SUGGESTIONS, RATING-CONDITION REPLACEMENT, TEAM-SET BUTTON FIX AND WL RESET. Added a collapsed Suggested exact ratings panel below the optional preferred rating. It evaluates every rating at or above the entered WL minimum using the Top 50 unique-player pool, nonlinear card-rating distance, measured axis overperformance, four-role depth and the number/quality of available manager chemistry and boost routes. The top five are shown first with Show all ratings; selecting one enables the preferred exact rating. The score is explicitly a squad-building preference rather than proof that one rating is universally best. Flipped the examples to minimum 87 / exact 90. WL quick Build now deliberately replaces every existing Team Rating condition in the Conditions tab with its selected Min or Exact rule while retaining all non-rating Conditions, and the UI warns about that overwrite. Implemented the previously missing Team-set option setter functions: changing Three teams / 3+1 / Balanced four, effort or repair settings now saves immediately and updates the main Build button label instead of leaving the other strategies effectively unusable. Added Reset WL settings, which restores WL-only minimum/preferred/team-set/high-rating defaults while keeping shared advanced RTG settings and non-rating Conditions. No opponent formula, DB, chemistry, pidx or ordinary RTG default changed. -->
 <!-- v5.29.44 — EMPTY CONDITION SEARCH, WL EXACT-RATING PREFERENCE AND FINALIST TOOL POLISH. Cards per league/nation/team now opens blank and displays Start typing to search instead of assuming the first league/nation/team. Switching axes clears the previous source and team league; Team does not populate clubs until an exact league is selected, and changing that league clears the old team. Cards-from Conditions require an exact catalogue selection. Added an off-by-default WL Preferred exact team rating setting. When enabled, WL Build applies Team Rating · Exact at the chosen value, validates it against the current WL minimum and conflicting user Conditions, and persists the preference separately; when disabled, normal Team Rating · Min behaviour remains. The UI explains that the opponent model varies materially by rating, so each rating has its own model-defined best XI and choosing one is preference rather than objective truth. Select all in the finalist exclusion panel now includes the current manager. Exclude all 11 explicitly excludes all card types for the eleven displayed name+pidx player identities; unrelated same-name pidx identities remain available. Centred the finalist manager/exclusion header, Advanced details and both H2H dropdowns and their control groups. H2H tools remain conditional on multiple retained finalists. No model formula, H2H scoring, pidx key, database or ordinary RTG default changed. -->
 <!-- v5.29.43 — FINALIST HEADER, H2H DROPDOWNS AND CONDITION-AXIS RESET. Every displayed RTG/WL finalist now prints its manager prominently at the top and places all exact-card plus manager redo exclusions in one clean top section. Player-card rows no longer repeat bulky exclusion labels. Detailed manager chemistry/stat-boost mechanics and equivalent-manager notes now live inside Advanced metrics, manager details and solver notes. The Optimal-play finalist tournament and Iterative H2H improvement tools are closed dropdowns while preserving their controls, saved output and Stop actions. Fixed Cards per league/nation/team switching: a typed league or team is retained only when it is an exact valid option on the newly selected axis; otherwise the new axis resets to its first valid value, so a league can no longer remain in the nation field. No search, H2H scoring, manager calculation, exclusion semantics, finalist ordering, database or saved-setting behaviour changed. -->
 <!-- v5.29.42 — GREEN TODAY-CONDITIONS OCR, RATING-COUNT RULE AND COLLAPSED MAIN SETTINGS. Conditions OCR now recognises both the purple popup and the green/teal Today Conditions panel. Panel detection uses row-dense purple or dark-teal colour regions, avoiding the separate bright-green formation thumbnails below the panel. Trailing live-count markers such as (88), (11), (0) and (1), green ticks and circular bullets are stripped before parsing. Added a real Players at/above rating count condition, so “Players with 80+ rating: Exactly 11” is represented faithfully instead of being weakened into an every-card guess; it is supported by manual entry, JSON import/export, validation, candidate matching, DFS forward checks, repairs and final hard-condition evaluation. The green-page example Team Rating Exact 81, Players with 80+ Exact 11, Teams Min 5 and Nationalities Min 4 is regression-tested alongside the two purple-popup formats. Fixed the malformed rule-count regex used to decide whether the natural-colour OCR fallback should run. RTG/WL Main settings now starts collapsed rather than open. No database, model objective, SBC outlier-peel logic or saved default value changed. -->
@@ -8204,7 +8227,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.29.11 — LA LIGA TARGET H2H / FIELD TOURNAMENT / +1-CAP FOLLOW-UP. Expanded the embedded 2026-07-26 benchmark with the exact target-specific and whole-field outcomes from the 26-finalist staged-outlier run: Del Bosque F3/F5 beat the stored Simeone target, while Simeone F1 lost that direct matchup but won the full home-and-away finalist tournament 46-4-0 for 142 points. Added the hard Team Rating +1 player-cap follow-up: Michels 4-1-2-1-2 F1 (75.263%) and its full XI beat the target 3-2 with six ties in both caller legs; F2 lost both legs and F4 managed only one draw. Documentation only; no solver, evaluator, database, tournament or H2H logic changed. -->
 <!-- v5.29.8 — LA LIGA 85 SEARCH-COVERAGE BENCHMARK. Added the 2026-07-26 legal Exact-85 / Min-81 / LaLiga-11 / Max-3-club / Min-9-nations reference XI to the embedded future-maintainer regression notes. Records the Simeone +1 Atletico three-axis core, full XI display stats, the v5.29.7 Classic evaluation (72.675% win, 9.274% draw, 18.051% loss; 6.640 expected duel points), the ordinary winner's 61.475% contrast, and classifies the failure as search/generation coverage because the evaluator strongly values the XI once supplied. No solver, database, OCR or scoring logic changed. -->
 <!-- v5.29.7 — CREDITS / MARKET-BOUNDARY DOCUMENTATION. Added PW_Alextrat to the centred Special Thanks line and moved the creator/credits block into normal header flow so it wraps without overlapping other header content on narrow screens. Expanded the future-maintainer no-price-model section with two real peer-to-peer examples: rare duplicates used as trader identity signals, and a collection accidentally omitted from packs that became effectively unpackable for weeks; notes that such availability mistakes appear much rarer now. No solver, database, OCR or scoring logic changed. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.44</span></h1>
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.46</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -8731,25 +8754,38 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
     <label style="display:flex;align-items:flex-start;gap:8px;margin:0 0 10px;text-transform:none;letter-spacing:0;color:var(--ink);font-size:13px"><input id="rtgWlMode" type="checkbox" style="width:auto;margin-top:2px" onchange="setRtgWlMode(this.checked)"><span><b>I am building a Weekend League squad</b><br><span class="tiny">Uses the WL wording and switches to the Weekend League 30 wins target preset. Unchecking returns to Win first. All advanced controls remain editable.</span></span></label>
     <div id="rtgWlModeNote" class="note" style="display:none;margin:0 0 10px;border-color:var(--warn);color:var(--warn)">
       <div class="rtg-wl-quick-card">
-        <div><b>Weekend League quick build</b><br><span class="tiny">Enter PACWYN’s current minimum rating. Optionally choose a preferred exact rating; Build turns the selected rating rule into an active Condition.</span></div>
+        <div><b>Weekend League quick build</b><br><span class="tiny">Enter PACWYN’s current minimum rating. Optionally choose a preferred exact rating; If Team Rating rules already exist in the Conditions tab, Build replaces them with the selected Min or Exact rule; otherwise it adds that rule. Other Conditions remain active.</span></div>
         <div class="rtg-wl-quick-row">
           <label style="color:var(--ink)">Current WL minimum rating
-            <input id="rtgWlMinRating" type="number" min="1" max="105" step="1" inputmode="numeric" placeholder="e.g. 90" oninput="saveRtgWlMinimumInput(this)" onblur="clampRtgWlMinimumInput(this)">
+            <input id="rtgWlMinRating" type="number" min="1" max="105" step="1" inputmode="numeric" placeholder="e.g. 87" oninput="saveRtgWlMinimumInput(this)" onblur="clampRtgWlMinimumInput(this)">
           </label>
           <button id="rtgWlMultiRunBtn" class="btn sec" type="button" data-test-action="1" onclick="runRtgWlMultiTeamSolver()">Build 3+1 WL teams</button>
           <button id="rtgWlMultiStopBtn" class="btn gho" type="button" onclick="stopRtgWlMultiTeamSolver(event)" style="display:none">Stop</button>
         </div>
         <div id="rtgWlMinStatus" class="tiny rtg-wl-quick-status"></div>
+        <div id="rtgWlRatingOverwriteWarning" class="note" style="display:none;margin:7px 0 0;border-color:var(--warn);color:var(--warn)"></div>
         <div class="rtg-wl-preferred-rating">
           <div class="rtg-wl-preferred-row">
-            <label class="rtg-wl-preferred-toggle"><input id="rtgWlPreferredRatingEnabled" type="checkbox" onchange="setRtgWlPreferredRatingEnabled(this.checked)"><span><b>Prefer an exact WL team rating</b><br><span class="tiny">Off by default. When enabled, Build adds Team Rating · Exact instead of letting the solver choose any rating above the WL minimum.</span></span></label>
+            <label class="rtg-wl-preferred-toggle"><input id="rtgWlPreferredRatingEnabled" type="checkbox" onchange="setRtgWlPreferredRatingEnabled(this.checked)"><span><b>Prefer an exact WL team rating</b><br><span class="tiny">Off by default. When enabled, Build replaces existing Team Rating rules with Team Rating · Exact only when such rules already exist; otherwise it adds the Exact rule.</span></span></label>
             <label class="rtg-wl-preferred-input">Exact rating
-              <input id="rtgWlPreferredRating" type="number" min="1" max="105" step="1" inputmode="numeric" placeholder="e.g. 87" oninput="saveRtgWlPreferredRatingInput(this)" onblur="clampRtgWlPreferredRatingInput(this)" disabled>
+              <input id="rtgWlPreferredRating" type="number" min="1" max="105" step="1" inputmode="numeric" placeholder="e.g. 90" oninput="saveRtgWlPreferredRatingInput(this)" onblur="clampRtgWlPreferredRatingInput(this)" disabled>
             </label>
           </div>
           <div class="tiny rtg-wl-preferred-explanation">The RTG/WL opponent model changes substantially by rating, so each rating can produce its own model-defined “best” XI. Choosing a rating is therefore a practical preference, not an objective claim that one rating is universally best.</div>
           <div id="rtgWlPreferredRatingStatus" class="tiny"></div>
         </div>
+
+        <details id="rtgWlRatingSuggestions" class="hlp rtg-wl-rating-suggestions" ontoggle="renderRtgWlRatingSuggestionPrompt()">
+          <summary>Suggested exact ratings from the card and manager pool</summary>
+          <div class="rtg-wl-rating-suggestion-body">
+            <div class="tiny">Uses the current <b>Base Top-N repair target</b> from Advanced settings, the current <b>high-rated outlier gap</b>, measured ATK/BAL/DEF strength, exact FUT-rating composition fit, positional and axis depth, current exclusions/Conditions, and the usefulness and likelihood of available manager routes. Cards above target + the configured outlier gap receive no credit. Manager-assisted strength is discounted below clean overperformance.</div>
+            <div id="rtgWlRatingSuggestionContext" class="tiny" style="margin-top:6px"></div>
+            <button id="rtgWlRatingSuggestionAnalyse" class="btn sec sm" type="button" onclick="analyseRtgWlRatingSuggestions(event)" style="margin:8px auto 0">Analyse suggested ratings</button>
+            <div id="rtgWlRatingSuggestionList" class="rtg-wl-rating-suggestion-list"><div class="tiny">Enter the WL minimum, then click Analyse suggested ratings.</div></div>
+            <button id="rtgWlRatingSuggestionMore" class="btn gho sm" type="button" onclick="toggleRtgWlRatingSuggestionCount(event)" style="display:none">Show all ratings</button>
+          </div>
+        </details>
+        <div class="row rtg-wl-reset-row"><button class="btn gho sm" type="button" onclick="resetRtgWlDefaults()">Reset WL settings</button></div>
         <div id="rtgWlOtherConditions" class="note" style="display:none;margin:8px 0 0;border-color:var(--warn);color:var(--warn)"></div>
       </div>
 
@@ -9833,6 +9869,7 @@ const _RTG_WL_MODE_KEY='pacwyn_rtg_wl_mode_v1';
 const _RTG_WL_MIN_KEY='pacwyn_rtg_wl_min_rating_v1';
 const _RTG_WL_PREFERRED_RATING_KEY='pacwyn_rtg_wl_preferred_rating_v1';
 let RTG_WL_MODE=false,RTG_WL_MIN_RATING='',RTG_WL_PREFERRED_RATING_ENABLED=false,RTG_WL_PREFERRED_RATING='';
+let _RTG_WL_RATING_SUGGEST_SHOW_ALL=false,_RTG_WL_RATING_SUGGEST_CACHE=null;
 const _RTG_WL_MULTI_KEY='pacwyn_rtg_wl_multi_v1';
 const _RTG_WL_HIGH_GUARD_KEY='pacwyn_rtg_wl_high_guard_v1',_RTG_WL_HIGH_GUARD_DEFAULTS_VERSION=3;
 let RTG_WL_MULTI_EFFORT=1,RTG_WL_MULTI_FOURTH_MODE='leftover',RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true,RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES=0,RTG_WL_MULTI_FINAL_REPAIR_BREADTH=1,_WL_MULTI_ACTIVE=null,_WL_MULTI_LAST=null,_WL_MULTI_TERMINAL_HTML='';
@@ -10104,20 +10141,169 @@ function _saveRtgWlMode(){try{localStorage.setItem(_RTG_WL_MODE_KEY,RTG_WL_MODE?
 function _restoreRtgWlMode(){try{RTG_WL_MODE=localStorage.getItem(_RTG_WL_MODE_KEY)==='1';}catch(e){RTG_WL_MODE=false;}}
 function _saveRtgWlMinimum(){try{if(RTG_WL_MIN_RATING)localStorage.setItem(_RTG_WL_MIN_KEY,String(RTG_WL_MIN_RATING));else localStorage.removeItem(_RTG_WL_MIN_KEY);}catch(e){}}
 function _restoreRtgWlMinimum(){try{const n=Math.round(Number(localStorage.getItem(_RTG_WL_MIN_KEY)));RTG_WL_MIN_RATING=Number.isFinite(n)&&n>=1&&n<=105?String(n):'';}catch(e){RTG_WL_MIN_RATING='';}}
+
+function _rtgWlSuggestionFrequency(cards,keyFn){
+  const map=new Map(),seen=new Set();
+  for(const c of (cards||[])){const key=keyFn(c);if(!key)continue;const sig=_testPersonKey(c)+'|'+key;if(seen.has(sig))continue;seen.add(sig);map.set(key,(map.get(key)||0)+1);}
+  return map;
+}
+function _rtgWlSuggestionRouteCommonness(axis,key,freq){
+  if(axis==='position')return .72;
+  const map=axis==='nation'?freq.nation:axis==='league'?freq.league:freq.club,count=map.get(key)||0,max=axis==='nation'?freq.maxNation:axis==='league'?freq.maxLeague:freq.maxClub,share=max?Math.sqrt(count/max):0;
+  return axis==='nation'?.48+.46*share:axis==='league'?.38+.42*share:.12+.38*share;
+}
+function _rtgWlSuggestionManagerMeta(card,managers,freq){
+  let bestBoost=0,bestRoute=0,boostLikelihood=0,chemLikelihood=0,cleanLikelihood=0,boostRoutes=0,chemRoutes=0;
+  const positions=new Set((card.pos||[]).map(normPos)),league=leagueOf(card);
+  for(const mgr of (managers||[])){
+    let managerBoost=0,managerRoute=0;
+    for(const sel of _testManagerBoosts(mgr)){
+      const match=sel.axis==='position'?positions.has(normPos(sel.key)):sel.axis==='nation'?card.nation===sel.key:sel.axis==='league'?league===sel.key:card.club===sel.key;
+      if(!match)continue;
+      const route=_rtgWlSuggestionRouteCommonness(sel.axis,sel.key,freq),amount=Math.max(1,Number(sel.amount)||1);
+      if(amount*route>managerBoost*managerRoute){managerBoost=amount;managerRoute=route;}
+    }
+    const nationChem=!!(mgr.nation&&mgr.nation===card.nation),leagueChem=!!(mgr.league&&mgr.league===league);
+    const chemRoute=nationChem?(.50+.38*Math.sqrt((freq.nation.get(card.nation)||0)/Math.max(1,freq.maxNation))):leagueChem?(.42+.34*Math.sqrt((freq.league.get(league)||0)/Math.max(1,freq.maxLeague))):0;
+    if(managerBoost){boostRoutes++;bestBoost=Math.max(bestBoost,managerBoost);bestRoute=Math.max(bestRoute,managerRoute);boostLikelihood=1-(1-boostLikelihood)*(1-.115*managerRoute*Math.min(1.35,.82+.18*managerBoost));}
+    if(chemRoute){chemRoutes++;chemLikelihood=1-(1-chemLikelihood)*(1-.085*chemRoute);}
+    if(managerBoost&&chemRoute)cleanLikelihood=1-(1-cleanLikelihood)*(1-.125*Math.min(managerRoute,chemRoute));
+  }
+  return {bestBoost,bestRoute,boostLikelihood:Math.min(.78,boostLikelihood),chemLikelihood:Math.min(.70,chemLikelihood),cleanLikelihood:Math.min(.76,cleanLikelihood),boostRoutes,chemRoutes};
+}
+function _rtgWlSuggestionRoles(card){
+  const pos=new Set((card.pos||[]).map(normPos)),out=[];
+  if(pos.has('GK'))out.push('GK');
+  if(['LB','CB','RB','LWB','RWB'].some(x=>pos.has(x)))out.push('DEF');
+  if(['CDM','CM','CAM','LM','RM'].some(x=>pos.has(x)))out.push('MID');
+  if(['LW','RW','ST'].some(x=>pos.has(x)))out.push('ATT');
+  return out.length?out:['MID'];
+}
+function _rtgWlSuggestionAxisWeights(settings){
+  const raw={
+    atk:1+.035*(Number(settings.axisDepthMinAtk)||0)+.022*(Number(settings.axisDepthRatingMinAtk)||0)+.012*(Number(settings.axisDepthPlusOneMinAtk)||0),
+    bal:1+.035*(Number(settings.axisDepthMinBal)||0)+.022*(Number(settings.axisDepthRatingMinBal)||0)+.012*(Number(settings.axisDepthPlusOneMinBal)||0),
+    def:1+.035*(Number(settings.axisDepthMinDef)||0)+.022*(Number(settings.axisDepthRatingMinDef)||0)+.012*(Number(settings.axisDepthPlusOneMinDef)||0)
+  },mean=(raw.atk+raw.bal+raw.def)/3;return {atk:raw.atk/mean,bal:raw.bal/mean,def:raw.def/mean};
+}
+function _rtgWlSuggestionAxisValue(stat,cardRating,target){
+  const targetDelta=stat-target,ownDelta=stat-cardRating;if(targetDelta<-2)return 0;
+  const targetTerm=Math.pow(Math.max(0,targetDelta+2.15),1.30),ownFactor=ownDelta>=1?1+.12*Math.min(3,ownDelta):ownDelta===0?.68:ownDelta===-1?.40:.20;
+  return targetTerm*ownFactor;
+}
+function _rtgWlRatingCounts(cards){
+  const sets=new Map();for(const c of (cards||[])){const r=Number(c.rating)||0;if(!sets.has(r))sets.set(r,new Set());sets.get(r).add(_testPersonKey(c));}
+  return new Map(Array.from(sets,([r,s])=>[r,s.size]));
+}
+function _rtgWlRatingFitProfile(target,rating,ratingCounts,capAbove){
+  if(rating>target+capAbove)return {factor:0,maxCopies:0,filler:null,raw:null,cost:Infinity,label:'outside +'+capAbove+' cap'};
+  const available=Array.from(ratingCounts.keys()).filter(r=>(ratingCounts.get(r)||0)>0&&r<=target+capAbove).sort((a,b)=>a-b),maxPrimary=Math.min(11,ratingCounts.get(rating)||0);let best=null;
+  for(let copies=1;copies<=maxPrimary;copies++){
+    const remaining=11-copies;
+    if(!remaining){
+      const raw=futRatingRaw(Array(11).fill(rating));if(Math.floor(raw)===target)best={copies,filler:null,raw,cost:Math.abs(rating-target)};
+      continue;
+    }
+    for(const filler of available){
+      const need=remaining+(filler===rating?copies:0);if((ratingCounts.get(filler)||0)<need)continue;
+      const ratings=Array(copies).fill(rating).concat(Array(remaining).fill(filler)),raw=futRatingRaw(ratings);if(Math.floor(raw)!==target)continue;
+      const meanDeviation=(copies*Math.abs(rating-target)+remaining*Math.abs(filler-target))/11,spread=Math.abs(rating-filler),cost=meanDeviation+.18*spread;
+      if(!best||copies>best.copies||(copies===best.copies&&cost<best.cost))best={copies,filler,raw,cost};
+    }
+  }
+  if(!best)return {factor:.08*Math.exp(-.18*Math.abs(rating-target)),maxCopies:0,filler:null,raw:null,cost:Infinity,label:'no simple exact-rating composition'};
+  const share=best.copies/11,factor=Math.max(.12,Math.min(1,(.20+.80*Math.pow(share,.58))*Math.exp(-.045*best.cost))),remaining=11-best.copies,label=best.filler==null?best.copies+'×'+rating+' → exact '+target:best.copies+'×'+rating+' + '+remaining+'×'+best.filler+' → exact '+target;
+  return {factor,maxCopies:best.copies,filler:best.filler,raw:best.raw,cost:best.cost,label};
+}
+function _rtgWlCardSuggestionScore(card,target,managerMeta,settings,axisWeights,fit){
+  const rating=Number(card.rating)||0,stats={atk:Number(card.fake&&card.fake.atk)||0,bal:Number(card.fake&&card.fake.bal)||0,def:Number(card.fake&&card.fake.def)||0},rows=['atk','bal','def'].map(axis=>({axis,value:_rtgWlSuggestionAxisValue(stats[axis],rating,target)*axisWeights[axis],stat:stats[axis]})).sort((a,b)=>b.value-a.value),clean=rows[0].value+.31*rows[1].value+.08*rows[2].value;
+  const expectedBoost=managerMeta.bestBoost*managerMeta.boostLikelihood,boostedRows=['atk','bal','def'].map(axis=>({axis,value:_rtgWlSuggestionAxisValue(stats[axis]+expectedBoost,rating,target)*axisWeights[axis]})).sort((a,b)=>b.value-a.value),boosted=boostedRows[0].value+.31*boostedRows[1].value+.08*boostedRows[2].value,managerGain=Math.max(0,boosted-clean)*(.24+.14*managerMeta.cleanLikelihood),chemHelp=clean*.035*managerMeta.chemLikelihood;
+  const bestStat=Math.max(stats.atk,stats.bal,stats.def),ownOver=bestStat-rating,targetOver=bestStat-target,cleanStrong=ownOver>=1&&targetOver>=1,cleanMatch=!cleanStrong&&ownOver>=1&&targetOver>=0;
+  const requiredBoost=Math.max(0,1-ownOver,1-targetOver),assistEligible=!cleanStrong&&!cleanMatch&&requiredBoost>0&&requiredBoost<=managerMeta.bestBoost,assistEquivalent=assistEligible?managerMeta.boostLikelihood*managerMeta.bestRoute*(requiredBoost===1?.52:.30)*(.82+.18*managerMeta.cleanLikelihood):0;
+  const distance=Math.exp(-.018*Math.pow(Math.abs(rating-target),1.35)),score=(clean+managerGain+chemHelp)*fit.factor*distance;
+  return {score,bestStat,ownOver,targetOver,cleanStrong,cleanMatch,assistEquivalent,stats};
+}
+function _rtgWlRatingSuggestionRows(minimum){
+  const min=Math.max(1,Math.min(105,Math.round(Number(minimum)||0)));if(!min)return {rows:[],meta:null};
+  const settings=_testRtgModelSettings(),topN=Math.max(1,Math.min(500,Math.round(Number(settings.repairMissedCandidateCount)||1))),capAbove=Math.max(0,Math.min(10,Math.round(Number(settings.ratingCapAbove)||0))),conds=_testConditionsForMode('rtg').filter(c=>c.kind!=='team_rating');
+  const cards=_makeTestCards(1,'rtg').filter(c=>!_testCardIsExcluded(c,RTG_TEST_EXCLUSIONS)&&_testPlayerRatingAllowed(c,conds)&&_testForcedCardAllowed(c,conds)),blocked=new Set([...RTG_PRE_MANAGER_EXCLUSIONS,...RTG_TEST_MANAGER_EXCLUSIONS]),managers=RTG_NO_MANAGERS?[]:MANAGER_DB.filter(m=>!blocked.has(_testManagerKey(m))),freq={nation:_rtgWlSuggestionFrequency(cards,c=>c.nation),league:_rtgWlSuggestionFrequency(cards,c=>leagueOf(c)),club:_rtgWlSuggestionFrequency(cards,c=>c.club)};
+  freq.maxNation=Math.max(1,...freq.nation.values());freq.maxLeague=Math.max(1,...freq.league.values());freq.maxClub=Math.max(1,...freq.club.values());
+  const managerMeta=new Map(),axisWeights=_rtgWlSuggestionAxisWeights(settings),ratingCounts=_rtgWlRatingCounts(cards);for(const c of cards)managerMeta.set(c._tid,_rtgWlSuggestionManagerMeta(c,managers,freq));
+  const maxTarget=Math.min(105,Math.max(min,...cards.map(c=>Number(c.rating)||0))),rows=[];
+  for(let target=min;target<=maxTarget;target++){
+    const fitByRating=new Map();for(const rating of ratingCounts.keys())fitByRating.set(rating,_rtgWlRatingFitProfile(target,rating,ratingCounts,capAbove));
+    const byPerson=new Map();
+    for(const c of cards){
+      const rating=Number(c.rating)||0;if(rating>target+capAbove)continue;
+      const meta=managerMeta.get(c._tid),fit=fitByRating.get(rating),bestRaw=Math.max(Number(c.fake&&c.fake.atk)||0,Number(c.fake&&c.fake.bal)||0,Number(c.fake&&c.fake.def)||0);
+      if(bestRaw+meta.bestBoost*meta.boostLikelihood<target-.15||!fit||fit.factor<=0)continue;
+      const quality=_rtgWlCardSuggestionScore(c,target,meta,settings,axisWeights,fit),key=_testPersonKey(c),old=byPerson.get(key);
+      if(!old||quality.score>old.quality.score)byPerson.set(key,{card:c,quality,meta,fit,roles:_rtgWlSuggestionRoles(c)});
+    }
+    const pool=Array.from(byPerson.values()).sort((a,b)=>b.quality.score-a.quality.score).slice(0,topN),weights=pool.map((_,i)=>1/Math.sqrt(i+1)),weightSum=weights.reduce((a,b)=>a+b,0)||1,weighted=pool.reduce((sum,x,i)=>sum+x.quality.score*weights[i],0)/weightSum;
+    const roleMeans={};for(const role of ['GK','DEF','MID','ATT']){const take=Math.max(3,Math.min(10,Math.ceil(topN/7))),a=pool.filter(x=>x.roles.includes(role)).slice(0,take);roleMeans[role]=a.length?a.reduce((s,x)=>s+x.quality.score,0)/a.length:0;}
+    const axisDepth={atk:0,bal:0,def:0},axisPlus={atk:0,bal:0,def:0};for(const x of pool)for(const axis of ['atk','bal','def']){if(x.quality.stats[axis]>=target)axisDepth[axis]++;if(x.quality.stats[axis]>=target+1)axisPlus[axis]++;}
+    const cleanStrong=pool.filter(x=>x.quality.cleanStrong).length,cleanMatch=pool.filter(x=>x.quality.cleanMatch).length,assistedEq=pool.reduce((s,x)=>s+x.quality.assistEquivalent,0),fitMean=pool.length?pool.reduce((s,x)=>s+x.fit.factor,0)/pool.length:0,roleValues=Object.values(roleMeans),coverage=roleValues.reduce((a,b)=>a+b,0)/4,coverageFloor=Math.min(...roleValues);
+    const depthNeed={atk:(Number(settings.axisDepthMinAtk)||0)+.6*(Number(settings.axisDepthRatingMinAtk)||0)+.35*(Number(settings.axisDepthPlusOneMinAtk)||0),bal:(Number(settings.axisDepthMinBal)||0)+.6*(Number(settings.axisDepthRatingMinBal)||0)+.35*(Number(settings.axisDepthPlusOneMinBal)||0),def:(Number(settings.axisDepthMinDef)||0)+.6*(Number(settings.axisDepthRatingMinDef)||0)+.35*(Number(settings.axisDepthPlusOneMinDef)||0)},depthFit=['atk','bal','def'].reduce((s,a)=>s+Math.min(1,axisDepth[a]/Math.max(1,depthNeed[a]))+.45*Math.min(1,axisPlus[a]/Math.max(1,depthNeed[a]*.6)),0)/4.35;
+    const dist=new Map();for(const x of pool)dist.set(Number(x.card.rating)||0,(dist.get(Number(x.card.rating)||0)||0)+1);
+    const dominant=Array.from(dist.entries()).sort((a,b)=>b[1]-a[1]||Math.abs(a[0]-target)-Math.abs(b[0]-target)).slice(0,4).map(([rating,count])=>({rating,count,fit:fitByRating.get(rating)})),examples=pool.filter(x=>x.quality.cleanStrong||x.quality.cleanMatch||x.quality.assistEquivalent>.12).slice(0,5).map(x=>({name:x.card.label||x.card.name,rating:Number(x.card.rating)||0,best:x.quality.bestStat,kind:x.quality.cleanStrong?'clean strong':x.quality.cleanMatch?'clean match':'manager-assisted',fit:x.fit.label}));
+    const coverageWeight=settings.coverageEnabled?.20:.10,raw=.43*weighted+coverageWeight*coverage+.10*coverageFloor+.10*depthFit+.09*fitMean+.05*Math.log1p(cleanStrong)+.022*Math.log1p(cleanMatch)+.012*Math.log1p(assistedEq);
+    rows.push({rating:target,raw,cleanStrong,cleanMatch,assistedEq,dominant,examples,topN,capAbove,axisDepth,axisPlus,fitMean});
+  }
+  const maxRaw=Math.max(...rows.map(x=>x.raw),1),minRaw=Math.min(...rows.map(x=>x.raw));for(const row of rows)row.score=Math.round(50+50*(row.raw-minRaw)/Math.max(1e-9,maxRaw-minRaw));
+  return {rows:rows.sort((a,b)=>b.raw-a.raw||a.rating-b.rating),meta:{topN,capAbove,cardCount:cards.length,managerCount:managers.length}};
+}
+function _rtgWlSuggestionCacheKey(minimum){
+  const s=_testRtgModelSettings(),conds=CONDITIONS_ENABLED?(TEST_CONDITIONS||[]).filter(c=>c.kind!=='team_rating').map(c=>JSON.stringify(Object.fromEntries(Object.entries(c).filter(([k])=>k!=='id')))).sort().join(';'):'off';
+  return [minimum,s.repairMissedCandidateCount,s.ratingCapAbove,s.coverageEnabled,s.axisDepthMinAtk,s.axisDepthMinBal,s.axisDepthMinDef,s.axisDepthRatingMinAtk,s.axisDepthRatingMinBal,s.axisDepthRatingMinDef,s.axisDepthPlusOneMinAtk,s.axisDepthPlusOneMinBal,s.axisDepthPlusOneMinDef,MANAGER_DB.length,RTG_NO_MANAGERS?1:0,Array.from(RTG_PRE_MANAGER_EXCLUSIONS).sort().join(','),Array.from(RTG_TEST_MANAGER_EXCLUSIONS).sort().join(','),Array.from(RTG_TEST_EXCLUSIONS).sort().join(','),conds].join('|');
+}
+function renderRtgWlRatingSuggestionPrompt(){
+  const box=$('#rtgWlRatingSuggestionList'),more=$('#rtgWlRatingSuggestionMore'),ctx=$('#rtgWlRatingSuggestionContext'),button=$('#rtgWlRatingSuggestionAnalyse'),minimum=Math.round(Number(RTG_WL_MIN_RATING||($('#rtgWlMinRating')||{}).value)),s=_testRtgModelSettings(),topN=Math.max(1,Math.min(500,Math.round(Number(s.repairMissedCandidateCount)||1))),cap=Math.max(0,Math.min(10,Math.round(Number(s.ratingCapAbove)||0)));
+  if(ctx)ctx.innerHTML='<b>Current analysis settings:</b> Top '+topN+' unique players per rating · cards above target +'+cap+' ignored · exact FUT-rating fit calculated with the real sum-of-mean formula.';
+  if(button){button.disabled=false;button.textContent='Analyse suggested ratings';}
+  if(!box)return;
+  const key=Number.isFinite(minimum)&&minimum>=1?_rtgWlSuggestionCacheKey(minimum):'';
+  if(!Number.isFinite(minimum)||minimum<1){box.innerHTML='<div class="note" style="border-color:var(--warn)">Enter the current WL minimum first. Ratings below it are never analysed.</div>';if(more)more.style.display='none';return;}
+  if(!_RTG_WL_RATING_SUGGEST_CACHE||_RTG_WL_RATING_SUGGEST_CACHE.key!==key){box.innerHTML='<div class="tiny">Ready. Click Analyse suggested ratings. Typing the minimum does not run this calculation.</div>';if(more)more.style.display='none';return;}
+  renderRtgWlRatingSuggestions();
+}
+function analyseRtgWlRatingSuggestions(event){
+  if(event){event.preventDefault();event.stopPropagation();}
+  const box=$('#rtgWlRatingSuggestionList'),button=$('#rtgWlRatingSuggestionAnalyse'),minimum=Math.round(Number(RTG_WL_MIN_RATING||($('#rtgWlMinRating')||{}).value));
+  if(!Number.isFinite(minimum)||minimum<1){renderRtgWlRatingSuggestionPrompt();const x=$('#rtgWlMinRating');if(x)x.focus();return;}
+  if(button){button.disabled=true;button.textContent='Analysing…';}if(box)box.innerHTML='<div class="tiny">Analysing exact rating fit, the selected Top-N pool and manager routes…</div>';
+  setTimeout(()=>{try{const result=_rtgWlRatingSuggestionRows(minimum);_RTG_WL_RATING_SUGGEST_CACHE={key:_rtgWlSuggestionCacheKey(minimum),rows:result.rows,meta:result.meta};renderRtgWlRatingSuggestions();}catch(err){if(box)box.innerHTML='<div class="note" style="border-color:var(--bad)">Rating analysis failed: '+esc(String(err&&err.message||err))+'</div>';}finally{if(button){button.disabled=false;button.textContent='Analyse again';}}},30);
+}
+function renderRtgWlRatingSuggestions(){
+  const box=$('#rtgWlRatingSuggestionList'),more=$('#rtgWlRatingSuggestionMore'),ctx=$('#rtgWlRatingSuggestionContext'),cache=_RTG_WL_RATING_SUGGEST_CACHE;if(!box||!cache)return;
+  const rows=cache.rows||[],shown=_RTG_WL_RATING_SUGGEST_SHOW_ALL?rows:rows.slice(0,5),meta=cache.meta||{};
+  if(ctx)ctx.innerHTML='<b>Analysed:</b> Top '+Number(meta.topN||0)+' unique players · target +'+Number(meta.capAbove||0)+' maximum card gap · '+Number(meta.cardCount||0).toLocaleString()+' eligible cards · '+Number(meta.managerCount||0)+' available managers.';
+  box.innerHTML=shown.length?shown.map((r,i)=>{
+    const dominant=r.dominant.map(x=>x.rating+'×'+x.count+(x.fit&&x.fit.maxCopies?' ['+x.fit.label+']':'')).join(' · '),examples=r.examples.map(x=>esc(x.name)+' '+x.rating+'→'+x.best+' '+x.kind).join('; ');
+    return '<button class="rtg-wl-rating-suggestion" type="button" onclick="chooseRtgWlSuggestedRating('+r.rating+')"><span class="rtg-wl-rating-rank">#'+(i+1)+'</span><span class="rtg-wl-rating-number">'+r.rating+'</span><span class="rtg-wl-rating-copy"><b>Pool score '+r.score+'/100</b><span>'+r.cleanStrong+' clean strong · '+r.cleanMatch+' clean matches · '+r.assistedEq.toFixed(1)+' manager-assisted equivalent · Top '+r.topN+'</span><span><b>Rating fit:</b> '+dominant+'</span>'+(examples?'<span><b>Examples:</b> '+examples+'</span>':'')+'</span></button>';
+  }).join(''):'<div class="note">No rating suggestions were available at or above the selected minimum under the current outlier gap and Conditions.</div>';
+  if(more){more.style.display=rows.length>5?'inline-flex':'none';more.textContent=_RTG_WL_RATING_SUGGEST_SHOW_ALL?'Show top 5 only':'Show all '+rows.length+' ratings';}
+}
+function toggleRtgWlRatingSuggestionCount(event){if(event){event.preventDefault();event.stopPropagation();}_RTG_WL_RATING_SUGGEST_SHOW_ALL=!_RTG_WL_RATING_SUGGEST_SHOW_ALL;renderRtgWlRatingSuggestions();}
+function chooseRtgWlSuggestedRating(rating){
+  RTG_WL_PREFERRED_RATING_ENABLED=true;RTG_WL_PREFERRED_RATING=String(Math.max(1,Math.min(105,Math.round(Number(rating)||1))));_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();renderRtgWlConditionSummary();if(typeof _toast==='function')_toast('Preferred exact WL rating set to '+RTG_WL_PREFERRED_RATING+'. Build will replace existing Team Rating Conditions only when they exist.');
+}
+
 function _saveRtgWlPreferredRating(){try{localStorage.setItem(_RTG_WL_PREFERRED_RATING_KEY,JSON.stringify({enabled:!!RTG_WL_PREFERRED_RATING_ENABLED,rating:RTG_WL_PREFERRED_RATING||''}));}catch(e){}}
 function _restoreRtgWlPreferredRating(){try{const raw=JSON.parse(localStorage.getItem(_RTG_WL_PREFERRED_RATING_KEY)||'{}'),n=Math.round(Number(raw&&raw.rating));RTG_WL_PREFERRED_RATING_ENABLED=raw&&raw.enabled===true;RTG_WL_PREFERRED_RATING=Number.isFinite(n)&&n>=1&&n<=105?String(n):'';}catch(e){RTG_WL_PREFERRED_RATING_ENABLED=false;RTG_WL_PREFERRED_RATING='';}}
 function setRtgWlPreferredRatingEnabled(enabled){RTG_WL_PREFERRED_RATING_ENABLED=!!enabled;_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();renderRtgWlConditionSummary();if(enabled&&!RTG_WL_PREFERRED_RATING){const x=$('#rtgWlPreferredRating');if(x)x.focus();}}
 function saveRtgWlPreferredRatingInput(input){const raw=String(input&&input.value||'').trim(),n=Math.round(Number(raw));RTG_WL_PREFERRED_RATING=raw!==''&&Number.isFinite(n)?String(Math.max(1,Math.min(105,n))):'';_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();}
-function clampRtgWlPreferredRatingInput(input){const el=input||$('#rtgWlPreferredRating'),raw=String(el&&el.value||'').trim();if(raw===''){RTG_WL_PREFERRED_RATING='';_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();return;}const n=Math.round(Number(raw));RTG_WL_PREFERRED_RATING=String(Number.isFinite(n)?Math.max(1,Math.min(105,n)):87);if(el)el.value=RTG_WL_PREFERRED_RATING;_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();}
+function clampRtgWlPreferredRatingInput(input){const el=input||$('#rtgWlPreferredRating'),raw=String(el&&el.value||'').trim();if(raw===''){RTG_WL_PREFERRED_RATING='';_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();return;}const n=Math.round(Number(raw));RTG_WL_PREFERRED_RATING=String(Number.isFinite(n)?Math.max(1,Math.min(105,n)):90);if(el)el.value=RTG_WL_PREFERRED_RATING;_saveRtgWlPreferredRating();renderRtgWlPreferredRatingUi();}
 function renderRtgWlPreferredRatingUi(){
   const on=$('#rtgWlPreferredRatingEnabled'),input=$('#rtgWlPreferredRating'),status=$('#rtgWlPreferredRatingStatus');if(on)on.checked=!!RTG_WL_PREFERRED_RATING_ENABLED;if(input){input.disabled=!RTG_WL_PREFERRED_RATING_ENABLED;if(document.activeElement!==input)input.value=RTG_WL_PREFERRED_RATING;}
   if(status){if(!RTG_WL_PREFERRED_RATING_ENABLED)status.innerHTML='<b>Preferred exact rating:</b> Off.';else if(!RTG_WL_PREFERRED_RATING)status.innerHTML='<b style="color:var(--warn)">Choose the exact rating before building.</b>';else{const min=Number(RTG_WL_MIN_RATING)||0,preferred=Number(RTG_WL_PREFERRED_RATING)||0;status.innerHTML=preferred<min?'<b style="color:var(--bad)">Exact '+preferred+' is below the current WL minimum '+min+'.</b>':'<b>Preferred exact rating:</b> '+preferred+'. Build will enforce Team Rating · Exact '+preferred+'.';}}
 }
-function saveRtgWlMinimumInput(input){const raw=String(input&&input.value||'').trim(),n=Math.round(Number(raw));RTG_WL_MIN_RATING=raw!==''&&Number.isFinite(n)?String(Math.max(1,Math.min(105,n))):'';_saveRtgWlMinimum();renderRtgWlConditionSummary();}
-function clampRtgWlMinimumInput(input){const el=input||$('#rtgWlMinRating'),raw=String(el&&el.value||'').trim();if(raw===''){RTG_WL_MIN_RATING='';_saveRtgWlMinimum();renderRtgWlConditionSummary();return;}const n=Math.round(Number(raw));RTG_WL_MIN_RATING=String(Number.isFinite(n)?Math.max(1,Math.min(105,n)):87);if(el)el.value=RTG_WL_MIN_RATING;_saveRtgWlMinimum();renderRtgWlConditionSummary();}
+function saveRtgWlMinimumInput(input){const raw=String(input&&input.value||'').trim(),n=Math.round(Number(raw));RTG_WL_MIN_RATING=raw!==''&&Number.isFinite(n)?String(Math.max(1,Math.min(105,n))):'';_saveRtgWlMinimum();_RTG_WL_RATING_SUGGEST_CACHE=null;renderRtgWlConditionSummary();const d=$('#rtgWlRatingSuggestions');if(d&&d.open)renderRtgWlRatingSuggestionPrompt();}
+function clampRtgWlMinimumInput(input){const el=input||$('#rtgWlMinRating'),raw=String(el&&el.value||'').trim();if(raw===''){RTG_WL_MIN_RATING='';_saveRtgWlMinimum();_RTG_WL_RATING_SUGGEST_CACHE=null;renderRtgWlConditionSummary();const d=$('#rtgWlRatingSuggestions');if(d&&d.open)renderRtgWlRatingSuggestionPrompt();return;}const n=Math.round(Number(raw));RTG_WL_MIN_RATING=String(Number.isFinite(n)?Math.max(1,Math.min(105,n)):87);if(el)el.value=RTG_WL_MIN_RATING;_saveRtgWlMinimum();_RTG_WL_RATING_SUGGEST_CACHE=null;renderRtgWlConditionSummary();const d=$('#rtgWlRatingSuggestions');if(d&&d.open)renderRtgWlRatingSuggestionPrompt();}
 function _rtgWlOtherActiveConditions(){return CONDITIONS_ENABLED?TEST_CONDITIONS.filter(c=>c.kind!=='team_rating'&&c.kind!=='player_rating'):[];}
 function renderRtgWlConditionSummary(){
-  const inp=$('#rtgWlMinRating'),status=$('#rtgWlMinStatus'),other=$('#rtgWlOtherConditions');if(inp&&document.activeElement!==inp)inp.value=RTG_WL_MIN_RATING;renderRtgWlPreferredRatingUi();
+  const inp=$('#rtgWlMinRating'),status=$('#rtgWlMinStatus'),other=$('#rtgWlOtherConditions'),overwrite=$('#rtgWlRatingOverwriteWarning');if(inp&&document.activeElement!==inp)inp.value=RTG_WL_MIN_RATING;renderRtgWlPreferredRatingUi();
+  if(overwrite){const ratings=TEST_CONDITIONS.filter(c=>c.kind==='team_rating'),preferred=RTG_WL_PREFERRED_RATING_ENABLED&&RTG_WL_PREFERRED_RATING?'Team Rating · Exact '+RTG_WL_PREFERRED_RATING:RTG_WL_MIN_RATING?'Team Rating · Min '+RTG_WL_MIN_RATING:'the selected Team Rating rule';if(RTG_WL_MODE&&ratings.length){overwrite.style.display='block';overwrite.innerHTML='<b>Build will replace '+ratings.length+' existing Team Rating condition'+(ratings.length===1?'':'s')+' with '+esc(preferred)+'.</b><br>All non-rating Conditions remain active.';}else{overwrite.style.display='none';overwrite.innerHTML='';}}
   if(status){const ratings=TEST_CONDITIONS.filter(c=>c.kind==='team_rating'),mins=ratings.filter(c=>c.op==='gte').map(c=>Number(c.value)||0),exacts=ratings.filter(c=>c.op==='eq').map(c=>Number(c.value)||0),maxes=ratings.filter(c=>c.op==='lte').map(c=>Number(c.value)||0),suffix=CONDITIONS_ENABLED?'.':', but Conditions mode is off.';if(exacts.length)status.innerHTML='<b>Current condition:</b> Team Rating · Exact '+Math.max(...exacts)+suffix;else if(mins.length)status.innerHTML='<b>Current condition:</b> Team Rating · Min '+Math.max(...mins)+suffix;else if(maxes.length)status.innerHTML='<b>No WL minimum yet.</b> A Team Rating · Max '+Math.min(...maxes)+' condition is present'+suffix;else status.innerHTML='No Team Rating minimum is currently active. Build applies the typed minimum automatically.';}
   if(other){const extras=_rtgWlOtherActiveConditions();if(!RTG_WL_MODE||!extras.length){other.style.display='none';other.innerHTML='';}else{const labels=extras.slice(0,4).map(_conditionLabel),more=extras.length-labels.length;other.style.display='block';other.innerHTML='<b>Other active Conditions will also shape this WL squad:</b><br>'+labels.map(x=>'• '+esc(x)).join('<br>')+(more?'<br>• and '+more+' more…':'')+'<div class="tiny" style="margin-top:5px">Keep them when intentional; remove or disable them for a normal unrestricted WL build.</div>';}}
 }
@@ -10135,20 +10321,11 @@ function _ensureRtgWlMinimumCondition(silent){
     if(preferred<minimum){if(typeof _toast==='function')_toast('Preferred exact rating '+preferred+' is below the WL minimum '+minimum+'.');renderRtgWlConditionSummary();return false;}
   }
 
-  TEST_CONDITIONS=TEST_CONDITIONS.filter(c=>!(c&&c._wlQuickRating));
-  const userRatings=TEST_CONDITIONS.filter(c=>c.kind==='team_rating'),userExact=userRatings.filter(c=>c.op==='eq'),userMins=userRatings.filter(c=>c.op==='gte'),userMaxes=userRatings.filter(c=>c.op==='lte');
-  let message='';
-  if(preferred!==null){
-    const conflict=userExact.find(c=>Number(c.value)!==preferred)||userMins.find(c=>Number(c.value)>preferred)||userMaxes.find(c=>Number(c.value)<preferred);
-    if(conflict){if(typeof _toast==='function')_toast('An existing Team Rating condition conflicts with preferred exact rating '+preferred+'.');renderRtgWlConditionSummary();return false;}
-    if(userExact.some(c=>Number(c.value)===preferred))message='Existing Team Rating · Exact '+preferred+' already matches the preferred rating.';
-    else{TEST_CONDITIONS.push({id:_condUid++,kind:'team_rating',value:preferred,op:'eq',_wlQuickRating:true,_wlPreferredExact:true});message='Applied preferred Team Rating · Exact '+preferred+'.';}
-  }else{
-    const conflict=userExact.find(c=>Number(c.value)<minimum)||userMaxes.find(c=>Number(c.value)<minimum);
-    if(conflict){if(typeof _toast==='function')_toast('An existing Team Rating Exact/Max conflicts with WL minimum '+minimum+'.');renderRtgWlConditionSummary();return false;}
-    if(userExact.some(c=>Number(c.value)>=minimum)||userMins.some(c=>Number(c.value)>=minimum))message='Existing Team Rating condition already meets WL minimum '+minimum+'.';
-    else{TEST_CONDITIONS.push({id:_condUid++,kind:'team_rating',value:minimum,op:'gte',_wlQuickRating:true});message='Applied Team Rating · Min '+minimum+'.';}
-  }
+  const overwritten=TEST_CONDITIONS.filter(c=>c&&c.kind==='team_rating').length;
+  TEST_CONDITIONS=TEST_CONDITIONS.filter(c=>!(c&&c.kind==='team_rating'));
+  if(preferred!==null){TEST_CONDITIONS.push({id:_condUid++,kind:'team_rating',value:preferred,op:'eq',_wlQuickRating:true,_wlPreferredExact:true});message='Applied Team Rating · Exact '+preferred+'.';}
+  else{TEST_CONDITIONS.push({id:_condUid++,kind:'team_rating',value:minimum,op:'gte',_wlQuickRating:true});message='Applied Team Rating · Min '+minimum+'.';}
+  if(overwritten)message+=' Replaced '+overwritten+' existing Team Rating condition'+(overwritten===1?'':'s')+'.';
   CONDITIONS_ENABLED=true;const enabled=$('#conditionsEnabled');if(enabled)enabled.checked=true;_syncConditionCardFields();renderConditionList();_clearSolve();saveLocal();renderRtgWlConditionSummary();if(!silent&&typeof _toast==='function')_toast(message+' Conditions mode is active.');return true;
 }
 function applyRtgWlMinimumCondition(){return _ensureRtgWlMinimumCondition(false);}
@@ -10160,6 +10337,14 @@ function renderRtgModeUi(){
 function setRtgWlMode(enabled){RTG_WL_MODE=!!enabled;_saveRtgWlMode();applyRtgModelPreset(RTG_WL_MODE?'win':'winfirst');renderRtgModeUi();if(typeof _toast==='function')_toast(RTG_WL_MODE?'Weekend League mode enabled · enter the current PACWYN WL minimum above.':'RTG mode restored · Win first preset selected.');}
 
 function _wlMultiPackageChoice(value){const choices=[0,1,3,6,12,20,50],n=Math.max(0,Math.min(50,Math.round(Number(value)||0)));return choices.reduce((best,x)=>Math.abs(x-n)<Math.abs(best-n)?x:best,choices[0]);}
+
+function _saveRtgWlMultiSettings(){try{localStorage.setItem(_RTG_WL_MULTI_KEY,JSON.stringify({effort:RTG_WL_MULTI_EFFORT,fourthMode:RTG_WL_MULTI_FOURTH_MODE,finalRepairEnabled:RTG_WL_MULTI_FINAL_REPAIR_ENABLED,finalRepairMaxPackages:RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES,finalRepairBreadth:RTG_WL_MULTI_FINAL_REPAIR_BREADTH}));}catch(e){}if(typeof _wlMultiRefreshStaleState==='function')_wlMultiRefreshStaleState();}
+function setRtgWlMultiFourthMode(value){const mode=String(value||'');RTG_WL_MULTI_FOURTH_MODE=['skip','leftover','balanced'].includes(mode)?mode:'leftover';_saveRtgWlMultiSettings();renderRtgWlMultiUi();}
+function setRtgWlMultiEffort(value){const n=Number(value);RTG_WL_MULTI_EFFORT=[1,3,9].includes(n)?n:1;_saveRtgWlMultiSettings();renderRtgWlMultiUi();}
+function setRtgWlMultiFinalRepairEnabled(value){RTG_WL_MULTI_FINAL_REPAIR_ENABLED=String(value)!=='0';_saveRtgWlMultiSettings();renderRtgWlMultiUi();}
+function setRtgWlMultiFinalRepairMaxPackages(value){RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES=_wlMultiPackageChoice(value);_saveRtgWlMultiSettings();renderRtgWlMultiUi();}
+function setRtgWlMultiFinalRepairBreadth(value){const n=Number(value);RTG_WL_MULTI_FINAL_REPAIR_BREADTH=[1,2,4].includes(n)?n:1;_saveRtgWlMultiSettings();renderRtgWlMultiUi();}
+
 function _restoreRtgWlMultiSettings(){try{const raw=JSON.parse(localStorage.getItem(_RTG_WL_MULTI_KEY)||'{}'),n=Number(raw&&raw.effort),mode=String(raw&&raw.fourthMode||'leftover'),packages=Number(raw&&raw.finalRepairMaxPackages),breadth=Number(raw&&raw.finalRepairBreadth);RTG_WL_MULTI_EFFORT=[1,3,9].includes(n)?n:1;RTG_WL_MULTI_FOURTH_MODE=['skip','leftover','balanced'].includes(mode)?mode:'leftover';RTG_WL_MULTI_FINAL_REPAIR_ENABLED=raw.finalRepairEnabled!==false;RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES=_wlMultiPackageChoice(packages);RTG_WL_MULTI_FINAL_REPAIR_BREADTH=[1,2,4].includes(breadth)?breadth:1;}catch(e){RTG_WL_MULTI_EFFORT=1;RTG_WL_MULTI_FOURTH_MODE='leftover';RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true;RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES=0;RTG_WL_MULTI_FINAL_REPAIR_BREADTH=1;}}
 function _restoreRtgWlHighRatingGuard(){
   try{
@@ -10542,6 +10727,16 @@ function updateRtgAxisDepthTierWarning(){const warn=$('#rtgAxisDepthTierWarn'),t
 
 function clampRtgRatingCap(input){const el=input||$('#rtgRatingCapAbove'),n=Math.round(Number(el&&el.value));if(el)el.value=String(Number.isFinite(n)?Math.max(0,Math.min(10,n)):3);readRtgModelSettings(true);}
 function applyRtgModelPreset(name){const p=_RTG_MODEL_PRESETS[name]||_RTG_MODEL_PRESETS.winfirst,old=_normaliseRtgModelSettings(_RTG_MODEL_SETTINGS),next=JSON.parse(JSON.stringify(p));Object.assign(next,{ratingCapEnabled:old.ratingCapEnabled,ratingCapAbove:old.ratingCapAbove,conditionMatchedOpponents:old.conditionMatchedOpponents,closeCallEnabled:old.closeCallEnabled,closeCallWinPp:old.closeCallWinPp,repairTimeSeconds:old.repairTimeSeconds,repairMissedCandidateCount:old.repairMissedCandidateCount,repairAxisFloorEnabled:old.repairAxisFloorEnabled,finalistProbabilityModel:old.finalistProbabilityModel,searchModel:old.searchModel,adjacentRatingProbeEnabled:old.adjacentRatingProbeEnabled,adjacentRatingProbeDepth:old.adjacentRatingProbeDepth,adjacentRatingProbeEffort:old.adjacentRatingProbeEffort,highRatingOpponentPoolMode:old.highRatingOpponentPoolMode,highRatingOpponentPoolThreshold:old.highRatingOpponentPoolThreshold});if(name!=='manager'&&old.preset!=='manager')Object.assign(next,{axisDepthHardEnabled:old.axisDepthHardEnabled,axisDepthMinAtk:old.axisDepthMinAtk,axisDepthMinBal:old.axisDepthMinBal,axisDepthMinDef:old.axisDepthMinDef,axisDepthRatingMinAtk:old.axisDepthRatingMinAtk,axisDepthRatingMinBal:old.axisDepthRatingMinBal,axisDepthRatingMinDef:old.axisDepthRatingMinDef,axisDepthPlusOneMinAtk:old.axisDepthPlusOneMinAtk,axisDepthPlusOneMinBal:old.axisDepthPlusOneMinBal,axisDepthPlusOneMinDef:old.axisDepthPlusOneMinDef});_RTG_MODEL_SETTINGS=_normaliseRtgModelSettings(next);_RTG_MODEL_SETTINGS.preset=_rtgNamedPresetForSettings(_RTG_MODEL_SETTINGS);renderRtgModelSettings();_saveRtgModelSettings();}
+
+function resetRtgWlDefaults(){
+  if(!confirm('Reset WL-only settings to their defaults? Shared advanced RTG settings and non-rating Conditions will be kept.'))return;
+  RTG_WL_MODE=true;RTG_WL_MIN_RATING='';RTG_WL_PREFERRED_RATING_ENABLED=false;RTG_WL_PREFERRED_RATING='';_RTG_WL_RATING_SUGGEST_SHOW_ALL=false;_RTG_WL_RATING_SUGGEST_CACHE=null;
+  RTG_WL_MULTI_EFFORT=1;RTG_WL_MULTI_FOURTH_MODE='leftover';RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true;RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES=0;RTG_WL_MULTI_FINAL_REPAIR_BREADTH=1;
+  RTG_WL_HIGH_GUARD_ENABLED=true;RTG_WL_HIGH_GUARD_GAP=4;RTG_WL_HIGH_GUARD_PROBE_DEPTH=0;RTG_WL_HIGH_GUARD_PROBE_EFFORT=1;RTG_WL_HIGH_RATING_CORRECTION_ENABLED=false;RTG_WL_HIGH_RATING_CORRECTION_THRESHOLD=92;
+  TEST_CONDITIONS=TEST_CONDITIONS.filter(c=>!(c&&c._wlQuickRating));_saveRtgWlMode();_saveRtgWlMinimum();_saveRtgWlPreferredRating();_saveRtgWlMultiSettings();_saveRtgWlHighRatingGuard();
+  applyRtgModelPreset('win');renderConditionList();renderRtgModeUi();saveLocal();if(typeof _toast==='function')_toast('WL settings reset · minimum blank · preferred exact off · 3+1 from leftovers · ×1 · WL safety defaults restored.');
+}
+
 function resetRtgModelDefaults(){
   if(!confirm('Reset every RTG / WL setting, forced card or manager, exclusion, search effort and formation selection? Shared Conditions will be kept.'))return;
   const legacyKeys=['pacwyn_rtg_model_v1','pacwyn_rtg_model_v2','pacwyn_rtg_model_v3','pacwyn_rtg_model_v4','pacwyn_rtg_model_v5','pacwyn_rtg_model_v6','pacwyn_rtg_model_v7','pacwyn_rtg_model_v8','pacwyn_rtg_model_v9','pacwyn_rtg_model_v10','pacwyn_rtg_model_v11','pacwyn_rtg_model_v12','pacwyn_rtg_model_v13','pacwyn_rtg_model_v14','pacwyn_rtg_model_v15',_RTG_MODEL_KEY,_RTG_WL_MODE_KEY,_RTG_WL_MIN_KEY,_RTG_WL_PREFERRED_RATING_KEY,_RTG_WL_MULTI_KEY,_RTG_WL_HIGH_GUARD_KEY,_RTG_PATCH_LEGACY_KEY,_RTG_PATCH_KEY];for(const k of legacyKeys){try{localStorage.removeItem(k);}catch(e){}try{sessionStorage.removeItem(k);}catch(e){}}
