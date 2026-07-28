@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ================================================================================================
-     PACWYN SOLVER v5.29.41 — RELEASE BUILD
+     PACWYN SOLVER v5.29.42 — RELEASE BUILD
      ================================================================================================
      This standalone release combines the Draft Solver, hard XI conditions, RTG/WL, Draft Cups,
      SBC, Live Play, formation/pivot analysis and the editable player/manager databases.
@@ -594,7 +594,7 @@
 <meta property="og:description" content="Pacwyn Solver">
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.29.41</title>
+<title>Pacwyn Solver v5.29.42</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -8125,6 +8125,7 @@ Draft and RTG/WL must not be judged by the same standard.
 - The intended architecture is therefore bounded DFS -> diverse/close-call finalists -> context-aware repair -> exact H2H where possible. Optional patches are controlled modelling hypotheses used to protect working benchmarks while testing edge-case assumptions.
 - Success should be judged by benchmark recovery, exact H2H, human-quality squads and real outcomes, not by visual elegance or a claim of universal optimality.
 END RTG/WL SEARCH MODEL CONCEPT NOTE -->
+<!-- v5.29.42 — GREEN TODAY-CONDITIONS OCR, RATING-COUNT RULE AND COLLAPSED MAIN SETTINGS. Conditions OCR now recognises both the purple popup and the green/teal Today Conditions panel. Panel detection uses row-dense purple or dark-teal colour regions, avoiding the separate bright-green formation thumbnails below the panel. Trailing live-count markers such as (88), (11), (0) and (1), green ticks and circular bullets are stripped before parsing. Added a real Players at/above rating count condition, so “Players with 80+ rating: Exactly 11” is represented faithfully instead of being weakened into an every-card guess; it is supported by manual entry, JSON import/export, validation, candidate matching, DFS forward checks, repairs and final hard-condition evaluation. The green-page example Team Rating Exact 81, Players with 80+ Exact 11, Teams Min 5 and Nationalities Min 4 is regression-tested alongside the two purple-popup formats. Fixed the malformed rule-count regex used to decide whether the natural-colour OCR fallback should run. RTG/WL Main settings now starts collapsed rather than open. No database, model objective, SBC outlier-peel logic or saved default value changed. -->
 <!-- v5.29.41 — CONDITIONS OCR PARSER ROOT-CAUSE FIX. The OCR engine was already reading the supplied Conditions text accurately, but the parser reused the app-wide norm() helper, which intentionally removes every space for compact player/card searches. The parser then compared compact strings such as “teamrating” against spaced phrases such as “team rating”, causing nearly every ordinary condition to fall through to manual review while exact-card matching still happened to work. Conditions OCR now uses its own accent-insensitive, token-preserving normaliser for phrase detection, catalogue scoring, exact-value matching, positions and exact player/card-type matching. The displayed empty review state now says Reading Conditions while OCR is active instead of incorrectly saying that no condition-like lines were recognised. Added © and Q-style bullet/count cleanup. Regression tests now use the real compact application norm() alongside the new OCR normaliser and cover the exact v5.29.40 output: Team Rating, Team Chemistry, Leagues, same-Team Max, Belgium cards, World Cup Story and Showdown Trossard. No image-processing, solver, SBC, database, worker dependency or saved-condition behaviour changed. -->
 <!-- v5.29.40 — CONDITIONS OCR IMAGE/PARSER ACCURACY PASS. Improved Conditions screenshot recognition at both the image and parser layers. The importer now detects the purple Conditions panel, crops away status bars/background UI, enlarges it and performs a high-contrast black-on-white OCR pass; when that pass is weak it automatically compares a natural-colour crop and keeps the better parse. Added aggressive but condition-aware line cleanup for bullet artefacts and merged prefixes such as “O Team…”, “O LEAGUES…”, “Io Cards from…” and status-bar/CONDITIONS text attached to the first rule. Replaced loose substring catalogue matching with scored token matching and stricter thresholds, preventing generic “Leagues” from becoming club OL while still recovering long names such as England Super League W. Generic Min/Exact/Max, exact-card, nation, league, team, card-type and position support remains unchanged; unresolved lines still remain visible for review. Added parser regression tests using the exact malformed OCR strings shown in the v5.29.39 report. No solver, SBC, database, worker dependency or saved-condition behaviour changed. -->
 <!-- v5.29.39 — CONDITIONS OCR LOADER/GENERALISATION AND SBC EXACT-OUTLIER PEEL. Fixed the Conditions screenshot failure caused by calling osLoadTesseract outside the private Live Axis import scope; Conditions now owns a globally visible lazy Tesseract loader. Removed the duplicate secondary Import screenshot button, leaving one prominent screenshot action plus Export/Import JSON utilities. Reworked the parser around generic Min/Exact/Max-before-or-after grammar rather than the supplied examples only. It recognises team/player ratings, chemistry, minimum players, distinct leagues/nations/teams/card types, max-same team/league/nation, icons, heroes, specials, any stored card type, any DB nation/league/team, all positions, and uniquely identifiable exact player+card-type rows; unrecognised condition-like lines remain visible for manual review rather than disappearing. Plain “N cards from Y” OCR is accepted as an assumed Min and warned in review. Completed every missing cards_position predicate/forward-bound/candidate path. Replaced the unsuccessful binary max-card ceiling route with automatic exact high-rating outlier peeling: detect a selected card at least three ratings above the next card or four above team rating, temporarily exclude that exact card, rebuild the SBC dominance pool exactly as a manual exclusion would, and retry. Repeat until no outlier remains or the next exclusion has no solution, then retain the last valid XI. Added the required dominance-pool worker dependencies and exported the peel trace. -->
@@ -8159,7 +8160,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.29.11 — LA LIGA TARGET H2H / FIELD TOURNAMENT / +1-CAP FOLLOW-UP. Expanded the embedded 2026-07-26 benchmark with the exact target-specific and whole-field outcomes from the 26-finalist staged-outlier run: Del Bosque F3/F5 beat the stored Simeone target, while Simeone F1 lost that direct matchup but won the full home-and-away finalist tournament 46-4-0 for 142 points. Added the hard Team Rating +1 player-cap follow-up: Michels 4-1-2-1-2 F1 (75.263%) and its full XI beat the target 3-2 with six ties in both caller legs; F2 lost both legs and F4 managed only one draw. Documentation only; no solver, evaluator, database, tournament or H2H logic changed. -->
 <!-- v5.29.8 — LA LIGA 85 SEARCH-COVERAGE BENCHMARK. Added the 2026-07-26 legal Exact-85 / Min-81 / LaLiga-11 / Max-3-club / Min-9-nations reference XI to the embedded future-maintainer regression notes. Records the Simeone +1 Atletico three-axis core, full XI display stats, the v5.29.7 Classic evaluation (72.675% win, 9.274% draw, 18.051% loss; 6.640 expected duel points), the ordinary winner's 61.475% contrast, and classifies the failure as search/generation coverage because the evaluator strongly values the XI once supplied. No solver, database, OCR or scoring logic changed. -->
 <!-- v5.29.7 — CREDITS / MARKET-BOUNDARY DOCUMENTATION. Added PW_Alextrat to the centred Special Thanks line and moved the creator/credits block into normal header flow so it wraps without overlapping other header content on narrow screens. Expanded the future-maintainer no-price-model section with two real peer-to-peer examples: rare duplicates used as trader identity signals, and a collection accidentally omitted from packs that became effectively unpackable for weeks; notes that such availability mistakes appear much rarer now. No solver, database, OCR or scoring logic changed. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.41</span></h1>
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.29.42</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -8607,6 +8608,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
       <option value="team_chem">Team chemistry</option>
       <option value="minimum_players">Minimum total players (SBC only)</option>
       <option value="player_rating">Player rating (every card)</option>
+      <option value="rating_count">Players at/above rating</option>
       <option value="cards_from">Cards from league / nation / team</option>
       <option value="total_different">Different leagues / nations / teams</option>
       <option value="max_same">Cards from same league / nation / team</option>
@@ -8626,6 +8628,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
     <div id="condClubLeagueWrap" style="display:none"><label>Team league</label><div class="combo"><input id="condClubLeague" type="text" autocomplete="off" placeholder="Type to search leagues" oninput="conditionClubLeagueChanged();renderConditionSearchCombo('condClubLeague')" onfocus="renderConditionSearchCombo('condClubLeague')"><div class="combolist" id="condClubLeague-list"></div></div></div>
     <div id="condKeyWrap" style="display:none"><label id="condKeyLabel">Which value</label><div class="combo"><input id="condKey" type="text" autocomplete="off" placeholder="Type to search" oninput="renderConditionSearchCombo('condKey')" onfocus="renderConditionSearchCombo('condKey')"><div class="combolist" id="condKey-list"></div></div><div class="tiny">Type any part of the league, nation or team. Aliases such as English, women’s and “suda” are supported.</div></div>
     <div id="condPositionWrap" style="display:none"><label>Position</label><select id="condPosition"></select></div>
+    <div id="condRatingThresholdWrap" style="display:none"><label>Rating threshold</label><input type="number" id="condRatingThreshold" min="1" max="105" step="1" value="80" inputmode="numeric" oninput="_clampRatingInput(this,1)"><div class="tiny">Counts cards whose displayed rating is at least this value.</div></div>
     <div id="condTypeWrap" style="display:none">
       <label>Stored card type</label><div class="combo"><input type="text" id="condTypeText" placeholder="Search stored card types" autocomplete="off"><div class="combolist" id="condTypeText-list"></div></div>
       <datalist id="cardTypeCatalog" style="display:none"></datalist>
@@ -8669,7 +8672,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <div id="conditionsOcrModal" style="display:none;position:fixed;inset:0;z-index:180;background:rgba(0,0,0,.82);overflow-y:auto;padding:16px 10px 90px">
   <div style="max-width:650px;margin:0 auto;background:var(--panel);border:1px solid var(--cyan-dim);border-radius:14px;padding:14px">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0;color:var(--cyan)">Import Conditions screenshot</h2><button class="btn gho sm" type="button" onclick="closeConditionsOcr()">× Close</button></div>
-    <div id="conditionsOcrProgress" class="note" style="margin-top:10px">Choose a screenshot containing PACWYN’s purple Conditions popup.</div>
+    <div id="conditionsOcrProgress" class="note" style="margin-top:10px">Choose a screenshot containing PACWYN’s purple Conditions popup or green Today Conditions panel.</div>
     <div id="conditionsOcrRaw" class="tiny" style="display:none;white-space:pre-wrap;max-height:150px;overflow:auto;margin-top:8px"></div>
     <div id="conditionsOcrReview" style="margin-top:10px"></div>
     <div class="row" style="margin-top:10px"><button id="conditionsOcrReplace" class="btn" type="button" onclick="applyConditionsOcr(true)" disabled>Replace current</button><button id="conditionsOcrAdd" class="btn sec" type="button" onclick="applyConditionsOcr(false)" disabled>Add selected</button><button class="btn gho" type="button" onclick="pickConditionsScreenshot()">Choose another</button></div>
@@ -8784,7 +8787,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
       <div id="rtgFormationChoices" class="fgrid rtg-fgrid" style="margin-top:8px"></div>
       <div id="rtgFormationChoiceErr" class="tiny" style="color:var(--warn)"></div>
     </div>
-    <details class="hlp rtg-main-settings" id="rtgMainSettings" style="margin-top:10px" open>
+    <details class="hlp rtg-main-settings" id="rtgMainSettings" style="margin-top:10px">
       <summary id="rtgMainSummary">Main settings — preset &amp; forced-axis depth</summary>
       <div class="tiny" style="margin-top:7px">For most RTG / WL builds, these are the only solver settings you need to change. Everything else remains available below for unusual searches and diagnostics.</div>
       <div class="rtg-model-grid rtg-main-settings-grid">
@@ -11148,7 +11151,7 @@ function _conditionValueMax(kind){
   // Every count below describes cards or distinct properties inside one XI, so it cannot exceed 11.
   // Team chemistry and ratings use their own game/database ceilings. This clamp is shared by manual
   // entry, imports and restored saves so impossible oversized values cannot leak in through another path.
-  const maxByKind={team_rating:105,team_chem:33,minimum_players:11,player_rating:105,cards_from:11,total_different:11,max_same:11,total_icons:11,total_heroes:11,special_cards:11,different_card_types:11,specific_card_type:11,cards_position:11,must_contain_card:1,must_contain_player:1};
+  const maxByKind={team_rating:105,team_chem:33,minimum_players:11,player_rating:105,rating_count:11,cards_from:11,total_different:11,max_same:11,total_icons:11,total_heroes:11,special_cards:11,different_card_types:11,specific_card_type:11,cards_position:11,must_contain_card:1,must_contain_player:1};
   return Object.prototype.hasOwnProperty.call(maxByKind,kind)?maxByKind[kind]:null;
 }
 function _clampRatingInput(el,min){
@@ -11167,6 +11170,7 @@ function conditionKindChanged(){
   $('#condKeyWrap').style.display=k==='cards_from'?'block':'none';
   $('#condTypeWrap').style.display=k==='specific_card_type'?'block':'none';
   const posWrap=$('#condPositionWrap'),posSel=$('#condPosition');if(posWrap)posWrap.style.display=k==='cards_position'?'block':'none';if(k==='cards_position'&&posSel&&!posSel.options.length)posSel.innerHTML=POSALL.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
+  const ratingThresholdWrap=$('#condRatingThresholdWrap');if(ratingThresholdWrap)ratingThresholdWrap.style.display=k==='rating_count'?'block':'none';
   $('#condDifferentTypeHelp').style.display=k==='different_card_types'?'block':'none';
   $('#condExactWrap').style.display=k==='must_contain_card'?'block':'none';if(k==='must_contain_card')setTimeout(renderConditionExactPicker,0);
   $('#condPlayerWrap').style.display=k==='must_contain_player'?'block':'none';if(k==='must_contain_player')setTimeout(renderConditionPlayerPicker,0);
@@ -11174,7 +11178,7 @@ function conditionKindChanged(){
   $('#condValueWrap').style.display=single?'none':'block';
   const value=$('#condValue'),label=$('#condValueLabel');
   if(value){if(minPlayers&&value.dataset.conditionKind!=='minimum_players')value.value='';else if(!minPlayers&&value.dataset.conditionKind==='minimum_players'&&value.value==='')value.value='1';value.dataset.conditionKind=k;value.placeholder=minPlayers?'11':'';}
-  if(label)label.textContent=minPlayers?'Players (blank = 11)':'Number';
+  if(label)label.textContent=minPlayers?'Players (blank = 11)':k==='rating_count'?'Matching players':'Number';
   syncConditionValueClamp();conditionAxisChanged();
 }
 function conditionClubLeagueChanged(){
@@ -11257,6 +11261,7 @@ function _conditionLabel(c){
   if(c.kind==='team_chem')return 'Team chemistry · '+op+' '+c.value;
   if(c.kind==='minimum_players')return 'Minimum total players (SBC only) · '+c.value;
   if(c.kind==='player_rating')return 'Player rating (every card) · '+op+' '+c.value;
+  if(c.kind==='rating_count')return 'Players rated '+Number(c.threshold||0)+'+ · '+op+' '+c.value;
   if(c.kind==='cards_from')return 'Cards from '+axis+' “'+(c.axis==='league'?_conditionLeagueDisplay(c.key):c.key)+'” · '+op+' '+c.value;
   if(c.kind==='total_different')return 'Different '+axis+'s · '+op+' '+c.value;
   if(c.kind==='max_same')return 'Cards from same '+axis+' · '+op+' '+c.value;
@@ -11275,6 +11280,7 @@ function addCondition(){
   if(k==='cards_from'||k==='total_different'||k==='max_same')c.axis=$('#condAxis').value;
   if(k==='cards_from'){c.key=$('#condKey').value;if(c.axis==='league')c.key=_conditionLeagueStored(c.key);if(!c.key){$('#conditionAddErr').textContent='Pick a league, nation, or team.';return;}}
   if(k==='cards_position'){c.key=normPos(String(($('#condPosition')||{}).value||''));if(!c.key){$('#conditionAddErr').textContent='Pick a position.';return;}}
+  if(k==='rating_count'){c.threshold=Math.max(1,Math.min(105,Math.round(Number(($('#condRatingThreshold')||{}).value)||80)));}
   if(k==='specific_card_type'){
     c.key=_canonicalCardTypeValue($('#condTypeText').value);if(!c.key){$('#conditionAddErr').textContent='Choose a canonical stored card type from the list. Add new types through player DB editing first.';return;}$('#condTypeText').value=c.key;
   }
@@ -11302,7 +11308,7 @@ function exportConditions(){
 }
 function _normaliseImportedCondition(raw){
   if(!raw||typeof raw!=='object')return null;
-  const kinds=new Set(['team_rating','team_chem','minimum_players','player_rating','cards_from','total_different','max_same','total_icons','total_heroes','special_cards','different_card_types','specific_card_type','cards_position','must_contain_card','must_contain_player']);
+  const kinds=new Set(['team_rating','team_chem','minimum_players','player_rating','rating_count','cards_from','total_different','max_same','total_icons','total_heroes','special_cards','different_card_types','specific_card_type','cards_position','must_contain_card','must_contain_player']);
   const kind=String(raw.kind||'');if(!kinds.has(kind))return null;
   const c={kind,op:['gte','eq','lte'].includes(raw.op)?raw.op:'eq',value:Number.isFinite(Number(raw.value))?Math.round(Number(raw.value)):1};
   const mx=_conditionValueMax(kind),mn=kind==='minimum_players'?1:0;c.value=Math.max(mn,mx===null?c.value:Math.min(mx,c.value));
@@ -11316,6 +11322,7 @@ function _normaliseImportedCondition(raw){
   }
   if(kind==='specific_card_type'){c.key=_canonicalCardTypeValue(raw.key);if(!c.key)return null;}
   if(kind==='cards_position'){c.key=normPos(String(raw.key||''));if(!POSALL.includes(c.key))return null;}
+  if(kind==='rating_count'){c.threshold=Math.max(1,Math.min(105,Math.round(Number(raw.threshold)||1)));}
   if(kind==='must_contain_card'){
     c.op='gte';c.value=1;c.cardKey=raw.cardKey?String(raw.cardKey):'';c.cardSig=raw.cardSig?String(raw.cardSig):'';c.cardLabel=raw.cardLabel?String(raw.cardLabel):'selected card';if(!c.cardKey&&!c.cardSig)return null;
   }
@@ -11341,7 +11348,7 @@ function closeConditionsOcr(){const m=$('#conditionsOcrModal');if(m)m.style.disp
 function _conditionOcrOpen(){const m=$('#conditionsOcrModal');if(m)m.style.display='block';}
 function _conditionOcrCueIndex(line){
   const s=String(line||''),patterns=[
-    /\bteam\s+rating\b/i,/\bteam\s+chemistry\b/i,/\bplayer\s+rating\b/i,/\bcard\s+rating\b/i,
+    /\bteam\s+rating\b/i,/\bteam\s+chemistry\b/i,/\bplayer\s+rating\b/i,/\bcard\s+rating\b/i,/\bplayers?\s+with\s+\d{1,3}\s*\+?\s*rating\b/i,/\b\d{1,3}\s*\+\s*rated\s+players?\b/i,
     /\bminimum\s+players\b/i,/\bplayers?\s+required\b/i,/\bspecific\s+player\b/i,
     /\bplayers?\s+from\s+the\s+same\s+(?:team|league|nation)\b/i,
     /\bcards?\s+from\s+the\s+same\s+(?:team|league|nation)\b/i,
@@ -11353,7 +11360,7 @@ function _conditionOcrCueIndex(line){
   let best=-1;for(const rx of patterns){const m=rx.exec(s);if(m&&(!~best||m.index<best))best=m.index;}return best;
 }
 function _conditionOcrCleanLine(line){
-  let s=String(line||'').replace(/\(\s*[O0Q]\s*\)/gi,' ').replace(/[◯○●©]/g,' ').replace(/[|]/g,'I').replace(/\s+/g,' ').trim();
+  let s=String(line||'').replace(/\(\s*\d{1,3}\s*\)\s*$/g,' ').replace(/\(\s*[O0Q]\s*\)/gi,' ').replace(/[◯○●©✓✔]/g,' ').replace(/[|]/g,'I').replace(/\s+/g,' ').trim();
   if(!s)return '';
   const cue=_conditionOcrCueIndex(s);if(cue>0)s=s.slice(cue);
   s=s.replace(/^conditions?\s*/i,'').replace(/^[\s'"`´.,;:!|()[\]{}<>+*~_-]+/,'');
@@ -11428,6 +11435,7 @@ function _conditionOcrParse(txt){
     const phrase=_conditionOcrCleanLine([rule.before,rule.after].filter(Boolean).join(' ')),n=_conditionOcrNorm(phrase),op=rule.op,value=rule.value,assumed=!rule.explicit;
     if(n.includes('team rating')){push(raw,{kind:'team_rating',op,value},{assumed});continue;}
     if(n.includes('team chemistry')||n==='chemistry'){push(raw,{kind:'team_chem',op,value},{assumed});continue;}
+    const ratingCountMatch=phrase.match(/players?\s+with\s+(\d{1,3})\s*\+?\s*rating/i)||phrase.match(/(\d{1,3})\s*\+\s*rated\s+players?/i)||phrase.match(/players?\s+(?:rated|with\s+rating)\s+(\d{1,3})\s*(?:\+|or\s+higher)/i);if(ratingCountMatch){push(raw,{kind:'rating_count',threshold:Number(ratingCountMatch[1])||1,op,value},{assumed});continue;}
     if(n.includes('player rating')||n.includes('card rating')){push(raw,{kind:'player_rating',op,value},{assumed});continue;}
     if(n.includes('minimum players')||n.includes('players required')){push(raw,{kind:'minimum_players',op:'gte',value},{assumed});continue;}
     if(n.includes('different card type')||/^(card types?|types of cards?)$/.test(n)){push(raw,{kind:'different_card_types',op,value},{assumed});continue;}
@@ -11469,16 +11477,27 @@ async function _conditionsDecodeImage(file){
   if(window.createImageBitmap){try{return await createImageBitmap(file);}catch(_e){}}
   return await new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(url);resolve(im);};im.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not decode the selected image.'));};im.src=url;});
 }
-function _conditionsPurpleCrop(image){
+function _conditionsPanelCrop(image){
   const iw=Number(image.width||image.naturalWidth)||1,ih=Number(image.height||image.naturalHeight)||1,maxW=520,scale=Math.min(1,maxW/iw),w=Math.max(1,Math.round(iw*scale)),h=Math.max(1,Math.round(ih*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(image,0,0,w,h);
-  const d=x.getImageData(0,0,w,h).data;let minX=w,minY=h,maxX=-1,maxY=-1,count=0;
-  for(let yy=0;yy<h;yy+=2)for(let xx=0;xx<w;xx+=2){const i=(yy*w+xx)*4,r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),purple=r>55&&b>65&&r>g*1.22&&b>g*1.14&&(mx-mn)>28;if(purple){minX=Math.min(minX,xx);maxX=Math.max(maxX,xx);minY=Math.min(minY,yy);maxY=Math.max(maxY,yy);count++;}}
-  if(maxX<0||count<(w*h/4)*0.018)return {x:Math.round(iw*.05),y:Math.round(ih*.12),w:Math.round(iw*.90),h:Math.round(ih*.78),detected:false};
-  const inv=1/scale,padX=Math.max(8,(maxX-minX)*.045),padY=Math.max(8,(maxY-minY)*.035),x0=Math.max(0,(minX-padX)*inv),y0=Math.max(0,(minY-padY)*inv),x1=Math.min(iw,(maxX+padX)*inv),y1=Math.min(ih,(maxY+padY)*inv);
-  return {x:Math.round(x0),y:Math.round(y0),w:Math.max(1,Math.round(x1-x0)),h:Math.max(1,Math.round(y1-y0)),detected:true};
+  const d=x.getImageData(0,0,w,h).data,points=[],rowCounts=new Array(h).fill(0),sampledPerRow=Math.ceil(w/2);
+  for(let yy=0;yy<h;yy+=2)for(let xx=0;xx<w;xx+=2){
+    const i=(yy*w+xx)*4,r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),
+      purple=r>55&&b>65&&r>g*1.22&&b>g*1.14&&(mx-mn)>28,
+      teal=g>45&&b>35&&g>r*1.7&&b>r*1.45&&Math.abs(g-b)<45;
+    if(purple||teal){points.push([xx,yy]);rowCounts[yy]++;}
+  }
+  for(let yy=1;yy<h;yy+=2)rowCounts[yy]=rowCounts[yy-1];
+  const threshold=sampledPerRow*.20,spans=[];let start=-1;
+  for(let yy=0;yy<=h;yy++){const on=yy<h&&rowCounts[yy]>=threshold;if(on&&start<0)start=yy;if(!on&&start>=0){if(yy-start>=h*.07)spans.push([start,yy-1]);start=-1;}}
+  let span=null;if(spans.length)span=spans.sort((a,b)=>(b[1]-b[0])-(a[1]-a[0])||a[0]-b[0])[0];
+  const usable=span?points.filter(p=>p[1]>=span[0]&&p[1]<=span[1]):points;
+  if(!usable.length)return {x:Math.round(iw*.05),y:Math.round(ih*.10),w:Math.round(iw*.90),h:Math.round(ih*.80),detected:false,style:'fallback'};
+  let minX=w,minY=h,maxX=-1,maxY=-1;for(const [xx,yy] of usable){minX=Math.min(minX,xx);maxX=Math.max(maxX,xx);minY=Math.min(minY,yy);maxY=Math.max(maxY,yy);}
+  const inv=1/scale,padX=Math.max(8,(maxX-minX)*.045),padY=Math.max(8,(maxY-minY)*.045),x0=Math.max(0,(minX-padX)*inv),y0=Math.max(0,(minY-padY)*inv),x1=Math.min(iw,(maxX+padX)*inv),y1=Math.min(ih,(maxY+padY)*inv);
+  return {x:Math.round(x0),y:Math.round(y0),w:Math.max(1,Math.round(x1-x0)),h:Math.max(1,Math.round(y1-y0)),detected:true,style:'purple/teal'};
 }
 async function _conditionsPrepareOcrCanvases(file){
-  const image=await _conditionsDecodeImage(file),crop=_conditionsPurpleCrop(image),targetW=Math.min(1900,Math.max(1100,crop.w*1.75)),ratio=targetW/crop.w,targetH=Math.max(1,Math.round(crop.h*ratio)),natural=document.createElement('canvas');
+  const image=await _conditionsDecodeImage(file),crop=_conditionsPanelCrop(image),targetW=Math.min(1900,Math.max(1100,crop.w*1.75)),ratio=targetW/crop.w,targetH=Math.max(1,Math.round(crop.h*ratio)),natural=document.createElement('canvas');
   natural.width=Math.round(targetW);natural.height=targetH;const nx=natural.getContext('2d',{willReadFrequently:true});nx.imageSmoothingEnabled=true;nx.imageSmoothingQuality='high';nx.drawImage(image,crop.x,crop.y,crop.w,crop.h,0,0,natural.width,natural.height);
   const enhanced=document.createElement('canvas');enhanced.width=natural.width;enhanced.height=natural.height;const ex=enhanced.getContext('2d',{willReadFrequently:true}),im=nx.getImageData(0,0,natural.width,natural.height),d=im.data;
   for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),lum=.2126*r+.7152*g+.0722*b,cyan=g>135&&b>135&&g>r*1.08,bright=mx>172&&lum>125,textPixel=bright||cyan;d[i]=d[i+1]=d[i+2]=textPixel?0:255;d[i+3]=255;}
@@ -11487,13 +11506,13 @@ async function _conditionsPrepareOcrCanvases(file){
 function _conditionOcrResultScore(rows){const good=(rows||[]).filter(x=>x.condition).length,bad=(rows||[]).filter(x=>!x.condition).length;return good*12-bad*3;}
 async function readConditionsScreenshot(event){
   const inp=event&&event.target,file=inp&&inp.files&&inp.files[0];if(!file||CONDITION_OCR_BUSY)return;CONDITION_OCR_BUSY=true;CONDITION_OCR_ROWS=[];_conditionOcrOpen();
-  const p=$('#conditionsOcrProgress'),raw=$('#conditionsOcrRaw');if(p)p.innerHTML='<b>Preparing image…</b> Detecting and enhancing the Conditions panel.';renderConditionsOcrReview();
+  const p=$('#conditionsOcrProgress'),raw=$('#conditionsOcrRaw');if(p)p.innerHTML='<b>Preparing image…</b> Detecting and enhancing the purple or green Conditions panel.';renderConditionsOcrReview();
   try{
     const [T,prepared]=await Promise.all([_conditionsLoadTesseract(),_conditionsPrepareOcrCanvases(file)]);if(!T||typeof T.recognize!=='function')throw new Error('OCR library unavailable.');
     const logger=label=>m=>{if(p&&m&&m.status)p.innerHTML='<b>'+esc(label+': '+m.status)+'</b>'+(Number.isFinite(m.progress)?' · '+Math.round(m.progress*100)+'%':'');};
     const opts={tessedit_pageseg_mode:'6',preserve_interword_spaces:'1',logger:logger('Enhanced OCR')},first=await T.recognize(prepared.enhanced,'eng',opts),txt1=String(first&&first.data&&first.data.text||''),rows1=_conditionOcrParse(txt1);
     let chosenText=txt1,chosenRows=rows1,usedFallback=false;
-    const ruleLines=(txt1.match(/(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*\d+/gi)||[]).length,weak=_conditionOcrResultScore(rows1)<Math.max(20,ruleLines*7);
+    const ruleLines=(txt1.match(/\b(?:min(?:imum)?|exact(?:ly)?|max(?:imum)?|may)\s*\d+/gi)||[]).length,weak=_conditionOcrResultScore(rows1)<Math.max(20,ruleLines*7);
     if(weak){
       const second=await T.recognize(prepared.natural,'eng',{tessedit_pageseg_mode:'6',preserve_interword_spaces:'1',logger:logger('Natural-colour fallback')}),txt2=String(second&&second.data&&second.data.text||''),rows2=_conditionOcrParse(txt2);
       if(_conditionOcrResultScore(rows2)>_conditionOcrResultScore(rows1)){chosenText=txt2;chosenRows=rows2;usedFallback=true;}
@@ -11568,6 +11587,7 @@ function _conditionScalarKey(c){
   if(c.kind==='total_different'||c.kind==='max_same')return c.kind+'|'+c.axis;
   if(c.kind==='specific_card_type')return 'specific_card_type|'+norm(c.key||'');
   if(c.kind==='cards_position')return 'cards_position|'+normPos(c.key||'');
+  if(c.kind==='rating_count')return 'rating_count|'+Math.max(1,Number(c.threshold)||1);
   if(['team_rating','team_chem','minimum_players','player_rating','total_icons','total_heroes','special_cards','different_card_types'].includes(c.kind))return c.kind;
   return '';
 }
@@ -11582,6 +11602,7 @@ function _conditionBaselineForKey(key,ctx){
   let m=key.match(/^cards_from\|(nation|league|club)\|(.*)$/);if(m)return [0,Math.min(11,(ctx.groups[m[1]].get(m[2])||new Set()).size)];
   m=key.match(/^specific_card_type\|(.*)$/);if(m)return [0,Math.min(11,(ctx.groups.cardType.get(m[1])||new Set()).size)];
   m=key.match(/^cards_position\|(.*)$/);if(m)return [0,11];
+  m=key.match(/^rating_count\|(\d+)$/);if(m){const threshold=Number(m[1])||1,ids=new Set(ctx.cards.filter(c=>(Number(c.rating)||0)>=threshold).map(_conditionIdentityKey));return [0,Math.min(11,ids.size)];}
   m=key.match(/^total_different\|(nation|league|club)$/);if(m)return [0,Math.min(11,ctx.groups[m[1]].size)];
   m=key.match(/^max_same\|(nation|league|club)$/);if(m)return [0,Math.min(11,ctx.maxGroup[m[1]]||0)];
   return [0,11];
@@ -11664,7 +11685,7 @@ function _conditionStackIssues(source){
   const chemBounds=bounds.get('team_chem');
   if(chemBounds&&chemBounds.lo===1&&chemBounds.hi===1)push('sbc','SBC exact chemistry 1 is unreachable without a manager: the smallest positive chemistry link affects at least two cards.');
   if(sbcTarget<11&&chemBounds&&chemBounds.lo>3*sbcTarget)push('sbc','SBC is set to '+sbcTarget+' players, so its maximum possible chemistry is '+(3*sbcTarget)+'.');
-  if(sbcTarget<11){for(const [key,b] of bounds)if(key!=='minimum_players'&&b.lo>sbcTarget&&['cards_from','total_icons','total_heroes','special_cards','specific_card_type'].some(x=>key.startsWith(x)))push('sbc','SBC is set to '+sbcTarget+' players, but '+key.replaceAll('|',' · ')+' requires at least '+b.lo+'.');if(requiredIds.size>sbcTarget)push('sbc','SBC is set to '+sbcTarget+' players, but the stack requires '+requiredIds.size+' different player identities.');}
+  if(sbcTarget<11){for(const [key,b] of bounds)if(key!=='minimum_players'&&b.lo>sbcTarget&&['cards_from','total_icons','total_heroes','special_cards','specific_card_type','rating_count'].some(x=>key.startsWith(x)))push('sbc','SBC is set to '+sbcTarget+' players, but '+key.replaceAll('|',' · ')+' requires at least '+b.lo+'.');if(requiredIds.size>sbcTarget)push('sbc','SBC is set to '+sbcTarget+' players, but the stack requires '+requiredIds.size+' different player identities.');}
   return issues;
 }
 function renderConditionStackWarning(){
@@ -11951,6 +11972,7 @@ function _testCardMatchesCondition(c,cond){
   if(cond.kind==='special_cards')return c.type==='icon'||c.type==='hero'||c.isSpecial===true;
   if(cond.kind==='specific_card_type')return norm(c.cardType||'')===norm(cond.key||'');
   if(cond.kind==='cards_position')return (c.pos||[]).map(normPos).includes(normPos(cond.key||''));
+  if(cond.kind==='rating_count')return (Number(c.rating)||0)>=Math.max(1,Number(cond.threshold)||1);
   if(cond.kind==='must_contain_card')return _exactCardConditionMatches(c,cond);
   if(cond.kind==='must_contain_player')return _playerIdentityConditionMatches(c,cond);
   return false;
@@ -11967,7 +11989,7 @@ function _testPlayerRatingAllowed(c,conds){
 function _testForcedCardAllowed(c,conds){
   for(const x of conds){
     if(Number(x.value)!==11||!(x.op==='gte'||x.op==='eq'))continue;
-    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(x.kind)&&!_testCardMatchesCondition(c,x))return false;
+    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(x.kind)&&!_testCardMatchesCondition(c,x))return false;
   }
   return true;
 }
@@ -11988,6 +12010,7 @@ function _testDerivedConditionDomains(conds,all){
   for(const cond of (conds||[]))if((cond.op==='lte'||cond.op==='eq')&&Number(cond.value)===0){
     if(cond.kind==='cards_from')excludedPredicates.push({why:'Cards from '+cond.axis+' “'+cond.key+'” · Max 0',test:c=>_testCardMatchesCondition(c,cond)});
     else if(cond.kind==='specific_card_type')excludedPredicates.push({why:'Card type “'+cond.key+'” · Max 0',test:c=>_testCardMatchesCondition(c,cond)});
+    else if(cond.kind==='rating_count')excludedPredicates.push({why:'Players rated '+Number(cond.threshold||0)+'+ · Max 0',test:c=>_testCardMatchesCondition(c,cond)});
     else if(cond.kind==='total_icons')excludedPredicates.push({why:'Icons · Max 0',test:c=>c.type==='icon'});
     else if(cond.kind==='total_heroes')excludedPredicates.push({why:'Heroes · Max 0',test:c=>c.type==='hero'});
     else if(cond.kind==='special_cards')excludedPredicates.push({why:'Special cards · Max 0',test:c=>c.type==='icon'||c.type==='hero'||c.isSpecial===true});
@@ -12094,7 +12117,7 @@ function _testSbcDominanceSignature(c,conds){
   const parts=['pos='+(c.pos||[]).slice().sort().join('/')];
   for(let i=0;i<conds.length;i++){
     const x=conds[i];
-    if(['specific_card_type','cards_position','must_contain_card','must_contain_player','cards_from','total_icons','total_heroes','special_cards'].includes(x.kind))parts.push(i+'m='+(_testCardMatchesCondition(c,x)?1:0));
+    if(['specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player','cards_from','total_icons','total_heroes','special_cards'].includes(x.kind))parts.push(i+'m='+(_testCardMatchesCondition(c,x)?1:0));
     else if(x.kind==='total_different'||x.kind==='max_same')parts.push(i+'v='+(x.axis==='nation'?c.nation:x.axis==='league'?leagueOf(c):c.club||''));
     else if(x.kind==='different_card_types')parts.push(i+'v='+norm(c.cardType||''));
     else if(x.kind==='team_chem')parts.push(i+'chem='+(c.type||'')+'|'+(c.nation||'')+'|'+(leagueOf(c)||'')+'|'+(c.club||''));
@@ -12127,7 +12150,7 @@ function _testWouldViolateUpper(c,pick,conds){
   const next=(pick||[]).filter(Boolean).concat(c);
   for(const x of conds){
     if(x.kind==='max_same'&&(x.op==='lte'||x.op==='eq')&&_testPartialConditionValue(next,x)>Number(x.value||0))return true;
-    if((x.op==='lte'||x.op==='eq')&&['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(x.kind)&&_testPartialConditionValue(next,x)>Number(x.value||0))return true;
+    if((x.op==='lte'||x.op==='eq')&&['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(x.kind)&&_testPartialConditionValue(next,x)>Number(x.value||0))return true;
     if((x.op==='lte'||x.op==='eq')&&(x.kind==='total_different'||x.kind==='different_card_types')&&_testPartialConditionValue(next,x)>Number(x.value||0))return true;
   }
   return false;
@@ -12156,14 +12179,14 @@ function _testCandidateList(all,slot,mode,conds,excluded,maxKeep,phase){
     // best variant per identity from the plausible team-rating band, plus chemistry hubs and a small
     // quota for active lower-bound conditions, before the ordinary absolute-strength slice.
     const teamHint=_testRtgConditionBenchmarkHint(conds),pMin=Math.max(1,...conds.filter(x=>x.kind==='player_rating'&&(x.op==='gte'||x.op==='eq')).map(x=>Number(x.value)||1)),pMax=Math.min(105,...conds.filter(x=>x.kind==='player_rating'&&(x.op==='lte'||x.op==='eq')).map(x=>Number(x.value)||105)),bandMin=Math.max(pMin,teamHint===null?pMin:teamHint-2),bandMax=Math.min(pMax,teamHint===null?pMax:teamHint+3),boostPool=_testManagerCandidates(_rtgOwnManagerExclusions(),MANAGER_DB),diagCmp=(a,b)=>{const ba=_testMaxManagerBoostValue(a,slot,null,boostPool),bb=_testMaxManagerBoostValue(b,slot,null,boostPool),af=a.fake||{},bf=b.fake||{},ad=[Number(af.atk)||0,Number(af.bal)||0,Number(af.def)||0].sort((x,y)=>y-x),bd=[Number(bf.atk)||0,Number(bf.bal)||0,Number(bf.def)||0].sort((x,y)=>y-x),ao=(ad[0]+ba)-(Number(a.rating)||0),bo=(bd[0]+bb)-(Number(b.rating)||0),ac=(ad[1]+ba)-(Number(a.rating)||0),bc=(bd[1]+bb)-(Number(b.rating)||0);return bo-ao||bc-ac||a.rating-b.rating||baseCmp(a,b);};
-    for(const cond of conds)if((cond.op==='gte'||cond.op==='eq')&&['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(cond.kind))eligible.filter(c=>_testCardMatchesCondition(c,cond)).sort(baseCmp).slice(0,10).forEach(add);
+    for(const cond of conds)if((cond.op==='gte'||cond.op==='eq')&&['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(cond.kind))eligible.filter(c=>_testCardMatchesCondition(c,cond)).sort(baseCmp).slice(0,10).forEach(add);
     const byPerson=new Map();for(const c of eligible)if(c.rating>=bandMin&&c.rating<=bandMax){const old=byPerson.get(c._person);if(!old||diagCmp(c,old)<0)byPerson.set(c._person,c);}Array.from(byPerson.values()).sort(diagCmp).slice(0,28).forEach(add);
     eligible.slice().sort((a,b)=>_testChemCandidatePotential(b,all)-_testChemCandidatePotential(a,all)||diagCmp(a,b)).slice(0,14).forEach(add);
   }
   eligible.sort(baseCmp);
   eligible.slice(0,Math.min(effectiveCap,_testIsSbcMode(mode)?Math.max(48,Math.floor(effectiveCap*.55)):48)).forEach(add);
   for(const cond of conds){
-    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(cond.kind)){
+    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(cond.kind)){
       const matching=eligible.filter(c=>_testCardMatchesCondition(c,cond));
       matching.slice(0,Math.max(30,Math.min(cap,Number(cond.value||0)*12))).forEach(add);
     }
@@ -12201,7 +12224,7 @@ function _testCandidateList(all,slot,mode,conds,excluded,maxKeep,phase){
 }
 function _testPartialConditionValue(pick,cond){
   if(cond.kind==='minimum_players')return pick.filter(Boolean).length;
-  if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(cond.kind))return pick.filter(c=>_testCardMatchesCondition(c,cond)).length;
+  if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(cond.kind))return pick.filter(c=>_testCardMatchesCondition(c,cond)).length;
   if(cond.kind==='total_different'){const a=pick.map(c=>cond.axis==='nation'?c.nation:cond.axis==='league'?leagueOf(c):c.club).filter(Boolean);return new Set(a).size;}
   if(cond.kind==='different_card_types'){const a=pick.map(c=>norm(c.cardType||'')).filter(Boolean);return new Set(a).size;}
   if(cond.kind==='max_same'){const m={};pick.forEach(c=>{const v=cond.axis==='nation'?c.nation:cond.axis==='league'?leagueOf(c):c.club;if(v)m[v]=(m[v]||0)+1;});return Math.max(0,...Object.values(m));}
@@ -12282,7 +12305,7 @@ function _testChooseNextInfo(infos,used,pick,conds,allInfos){
     const info=infos[z],candidates=_testAvailableCards(info,used,pick,conds).filter(c=>_testSymmetryAllowed(info,c,pick,allInfos));
     let scarcity=0,needKinds=0;
     for(const x of conds){const a=_testPartialConditionValue(chosen,x),t=Number(x.value)||0;if(!(x.op==='gte'||x.op==='eq')||a>=t)continue;
-      if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(x.kind)){
+      if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(x.kind)){
         const n=candidates.filter(c=>_testCardMatchesCondition(c,x)).length;if(n){needKinds++;scarcity+=1000000/Math.max(1,n);}
       }
     }
@@ -12354,7 +12377,7 @@ function _testForwardPossible(pick,remainingInfos,used,conds,stats){
   if(remaining>1&&remaining<=4){const possible=_testMaxPredicateMatching(remainingInfos,used,pick,conds,()=>true);if(possible<remaining){_testPruneStat(stats,'personHall');return false;}}
   for(const c of conds){
     const t=Number(c.value)||0,a=_testPartialConditionValue(pick,c);
-    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(c.kind)&&(c.op==='gte'||c.op==='eq')){
+    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(c.kind)&&(c.op==='gte'||c.op==='eq')){
       // Relaxed slot capacity first. When the deficit is tight, add a distinct-person Hall bound;
       // this never locks the currently selected condition cards because only final remaining capacity
       // matters, and the unfinished XI may temporarily be below the required count.
@@ -12418,7 +12441,7 @@ function _testConditionRank(pick,conds){
 function _testNeedScore(c,pick,conds){
   let v=0;
   for(const x of conds){const t=Number(x.value)||0,a=_testPartialConditionValue(pick,x);
-    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','must_contain_card','must_contain_player'].includes(x.kind)&&(x.op==='gte'||x.op==='eq')&&a<t&&_testCardMatchesCondition(c,x))v+=(t-a)*100000000;
+    if(['cards_from','total_icons','total_heroes','special_cards','specific_card_type','cards_position','rating_count','must_contain_card','must_contain_player'].includes(x.kind)&&(x.op==='gte'||x.op==='eq')&&a<t&&_testCardMatchesCondition(c,x))v+=(t-a)*100000000;
     if(x.kind==='total_different'&&(x.op==='gte'||x.op==='eq')&&a<t){const key=x.axis==='nation'?c.nation:x.axis==='league'?leagueOf(c):c.club,old=new Set(pick.map(p=>x.axis==='nation'?p.nation:x.axis==='league'?leagueOf(p):p.club).filter(Boolean));if(key&&!old.has(key))v+=50000000;}
     if(x.kind==='different_card_types'&&(x.op==='gte'||x.op==='eq')&&a<t){const key=norm(c.cardType||''),old=new Set(pick.map(p=>norm(p.cardType||'')).filter(Boolean));if(key&&!old.has(key))v+=50000000;}
   }
@@ -12707,7 +12730,7 @@ function _testRtgPrimaryChallenger(result,conds,seed,all,blocked,managerExcluded
       rows.sort((a,b)=>b.own-a.own||b.need-a.need||b.managerLink-a.managerLink||b.hub-a.hub||b.second-a.second||(Number(a.c.rating)||0)-(Number(b.c.rating)||0)||a.c._tid-b.c._tid);
       const keep=[],seen=new Set(),add=x=>{if(x&&!seen.has(x.c._tid)){seen.add(x.c._tid);keep.push(x);}};
       rows.filter(x=>x.own>=1).forEach(add);rows.slice(0,55).forEach(add);rows.slice().sort((a,b)=>(Number(a.c.rating)||0)-(Number(b.c.rating)||0)||b.own-a.own).slice(0,20).forEach(add);rows.slice().sort((a,b)=>b.hub-a.hub||b.own-a.own).slice(0,18).forEach(add);
-      for(const cond of (conds||[]))if(['cards_from','special_cards','specific_card_type','cards_position','total_icons','total_heroes','must_contain_card','must_contain_player'].includes(cond.kind))rows.filter(x=>_testCardMatchesCondition(x.c,cond)).slice(0,18).forEach(add);
+      for(const cond of (conds||[]))if(['cards_from','special_cards','specific_card_type','cards_position','rating_count','total_icons','total_heroes','must_contain_card','must_contain_player'].includes(cond.kind))rows.filter(x=>_testCardMatchesCondition(x.c,cond)).slice(0,18).forEach(add);
       const cards=keep.map(x=>x.c),rowMap=new Map(keep.map(x=>[x.c._tid,x]));return {i,slot,list:cards,rowMap,maxOwn:Math.max(-Infinity,...keep.map(x=>x.own)),minR:Math.min(Infinity,...cards.map(c=>Number(c.rating)||0)),maxR:Math.max(-Infinity,...cards.map(c=>Number(c.rating)||0))};
     });
     if(infos.some(info=>!info.list.length)){pairsSkipped++;pairStats.push({formation:form.name,manager:mgr.name,skipped:'empty slot pool'});continue;}
@@ -16456,6 +16479,7 @@ function _conditionsMet(sc,xi,conditions){
     else if(c.kind==='different_card_types')a=f.diffCardType;
     else if(c.kind==='specific_card_type')a=f.cardType[String(c.key||'').trim().toLowerCase()]||0;
     else if(c.kind==='cards_position')a=xi.filter(x=>(x.pos||[]).map(normPos).includes(normPos(c.key||''))).length;
+    else if(c.kind==='rating_count')a=xi.filter(x=>(Number(x.rating)||0)>=Math.max(1,Number(c.threshold)||1)).length;
     else if(c.kind==='must_contain_card')a=xi.filter(x=>_exactCardConditionMatches(x,c)).length;
     else if(c.kind==='must_contain_player')a=xi.filter(x=>_playerIdentityConditionMatches(x,c)).length;
     if(!_conditionCmp(Number(a)||0,c.op||'eq',Number(c.value)||0))return false;
