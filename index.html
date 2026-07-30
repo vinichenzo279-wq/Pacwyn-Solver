@@ -629,9 +629,11 @@
 <!-- v5.30.35 — REDO-EXCLUSION CARD RATINGS. The RTG/WL finalist redo-exclusion checklist now displays each exact card rating beside its name, making same-name and multi-rating variants easier to distinguish. Exclusion identity, manager rows, solver behavior and all database data are unchanged. -->
 <!-- v5.30.36 — ONE-SLOT QUICK SUB. Every RTG/WL finalist card row now has a Quick Sub action that keeps the displayed formation, manager, active Conditions, forced-card snapshot, exact-card exclusions and current displayed team rating fixed while exhaustively checking legal same-slot replacements from the solve-time card pool. Higher-rated cards are deliberately checked first because FUT rating rounding can allow them without raising the squad rating, but the final choice uses the saved RTG/WL objective and full post-chemistry/post-manager evaluation rather than rating alone. The replacement is applied only to the displayed finalist, reports chemistry/model/manager effects, and can be repeated cumulatively. This is main-thread local search and adds no worker dependency. -->
 <!-- v5.30.37 — OPTIONAL SBC-STYLE RTG FEASIBILITY SEED / CUMULATIVE QUICK-SUB EXCLUSIONS. Added an off-by-default RTG/WL pre-seed that uses the SBC solver's condition-first constructive ordering and larger feasibility slice to lock one legal XI before the ordinary Classic/Modern formation search. The seed is revalidated with the selected RTG manager rules, hard axis-depth gates, rating cap, exact exclusions and every Condition, then enters the normal finalist/repair pipeline; it does not replace later RTG optimisation and is reported separately in progress/logs. Quick Sub now adds every successfully removed exact card to the persistent RTG redo-exclusion set and the saved result snapshot, so repeated subs cannot loop back through earlier cards and any later Redo keeps all quick-subbed cards excluded. Forced or otherwise irreplaceable cards still return a clear no-sub result without adding an impossible exclusion. New feasibility helpers are included in ordinary and H2H worker dependency closures. -->
+<!-- v5.30.38 — MANAGE ACTIVE EXCLUSIONS. RTG/WL and SBC now expose an always-available Manage exclusions panel beside their build controls. It lists accumulated exact-card exclusions with individual Remove actions; RTG/WL also lists redo-manager and pre-solve-manager exclusions separately. Clear all affects only the displayed solver's active exclusion sets, preserves current completed results and solve-time provenance, and applies to later Quick Sub/Redo/build searches. Candidate type/rating filters, forced cards/managers and allowed-manager shortlists remain in their existing dedicated controls. -->
+<!-- v5.30.39 — REUSABLE EXCLUSION PRESETS / PRE-SOLVE CARD SEARCH. The RTG/WL and SBC Manage exclusions panel now remains fully usable at zero exclusions, searches the measured DB for exact physical cards that can be excluded before solving, and merges those choices with Redo and Quick Sub exclusions. Exclusion sets can be exported as portable pacwyn-exclusions JSON and imported into either solver; exact cards are rematched by key first and by stable card metadata, variant and measured stats when row order changes. RTG presets additionally preserve redo-manager and pre-solve-manager exclusions. Import merges rather than replaces, reports duplicates/unmatched entries, and active exclusions now remain in force for ordinary fresh builds until explicitly removed, while all changes retain the existing local-storage persistence and worker payloads. -->
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.30.37</title>
+<title>Pacwyn Solver v5.30.39</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -1409,6 +1411,28 @@ details.hlp p{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:1.55}
 .rtg-finalist-exclusion-grid{max-width:760px;margin:8px auto 0;text-align:left}
 .rtg-finalist-exclusion-actions{justify-content:center}
 .rtg-finalist-manager-exclude{justify-content:center}
+/* v5.30.38 — selective active-exclusion management for RTG/WL and SBC. */
+.managed-exclusion-toggle{margin-top:8px}
+.managed-exclusion-panel{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.018)}
+.managed-exclusion-section+.managed-exclusion-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.managed-exclusion-heading{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.managed-exclusion-list{display:grid;gap:6px}
+.managed-exclusion-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 9px;border:1px solid rgba(142,166,180,.2);border-radius:8px;background:rgba(255,255,255,.025);text-align:left;min-width:0}
+.managed-exclusion-row-copy{min-width:0;overflow-wrap:anywhere}
+.managed-exclusion-row-copy b{font-size:12px}
+.managed-exclusion-row-copy .meta{display:block;margin-top:2px;font-size:10px;color:var(--mut)}
+.managed-exclusion-remove{width:auto;min-width:72px;padding:7px 9px;white-space:nowrap}
+.managed-exclusion-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin-top:9px}
+@media(max-width:420px){.managed-exclusion-row{grid-template-columns:minmax(0,1fr)}.managed-exclusion-remove{width:100%}}
+.managed-exclusion-tools{margin-top:9px;padding:9px;border:1px solid rgba(142,166,180,.2);border-radius:9px;background:rgba(255,255,255,.02)}
+.managed-exclusion-tool-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:end}
+.managed-exclusion-search-results{display:grid;gap:6px;max-height:320px;overflow:auto;margin-top:7px}
+.managed-exclusion-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 9px;border:1px solid rgba(142,166,180,.2);border-radius:8px;background:rgba(255,255,255,.025);text-align:left;min-width:0}
+.managed-exclusion-search-copy{min-width:0;overflow-wrap:anywhere}
+.managed-exclusion-search-copy b{font-size:12px}
+.managed-exclusion-search-copy .meta{display:block;margin-top:2px;font-size:10px;color:var(--mut)}
+.managed-exclusion-status{margin-top:8px}
+@media(max-width:520px){.managed-exclusion-tool-grid,.managed-exclusion-search-row{grid-template-columns:minmax(0,1fr)}.managed-exclusion-search-row .btn{width:100%}}
 .rtg-h2h-dropdown,.rtg-advanced-metrics{width:100%;max-width:900px;margin:9px auto 0;text-align:center}
 .rtg-h2h-dropdown>summary,.rtg-advanced-metrics>summary{text-align:center}
 .rtg-h2h-dropdown-body,.rtg-advanced-metrics>div{max-width:820px;margin-left:auto;margin-right:auto}
@@ -8474,7 +8498,8 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.30.34 — EDIT CATALOG CONFIRMATION / PIVOT DEFAULT. Edit Card/Edit Manager accept confirmed non-empty new catalog values instead of rejecting them; Hero/Icon edits skip normal-card club validation; Pivot rank penalty default is now 5 with unchanged logic/range. -->
 <!-- v5.30.35 — REDO-EXCLUSION CARD RATINGS. Added each exact card rating to the RTG/WL redo-exclusion checklist; no exclusion or solver logic changed. -->
 <!-- v5.30.36 — ONE-SLOT QUICK SUB. Added a Quick Sub action beside every RTG/WL finalist card. It exhaustively checks legal same-position alternatives, including higher-rated cards that preserve the displayed FUT rating, then applies the best saved-objective result with the current manager and Conditions fixed. Main-thread UI/local search only; no worker dependency. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.30.37</span></h1>
+<!-- v5.30.38 — MANAGE ACTIVE EXCLUSIONS. Added always-visible RTG/WL and SBC exclusion managers with counts, per-entry removal and clear-all controls. RTG/WL groups exact cards, redo managers and pre-solve managers; SBC lists accumulated exact-card redo exclusions. -->
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.30.39</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -9267,11 +9292,13 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
       <div id="rtgPreManagerWarning" class="note" style="display:none;margin-top:8px"></div>
       <div id="rtgPreManagerList" class="type-pick-list" style="max-height:330px;margin-top:8px"></div>
     </details>
-    <div class="row" style="margin-top:10px"><button class="btn" id="rtgRunBtn" data-test-action="1" onclick="runRtgTestSolver()">Build best RTG XI</button><button class="btn sec" id="rtgFastRunBtn" data-test-action="1" onclick="runRtgFastSolver()">Fast build</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="rtgRunBtn" data-test-action="1" onclick="runRtgTestSolver(true)">Build best RTG XI</button><button class="btn sec" id="rtgFastRunBtn" data-test-action="1" onclick="runRtgFastSolver()">Fast build</button></div>
+    <button class="btn gho sm managed-exclusion-toggle" id="rtgManageExclusionsBtn" type="button" data-test-action="1" onclick="toggleManagedExclusions('rtg')">Manage exclusions · 0</button>
+    <div id="rtgManagedExclusions" class="managed-exclusion-panel" style="display:none"></div>
     <div class="tiny">Fast build aggressively narrows formation, manager, card and finalist breadth to one winner, but still runs Repair 1, both Repair 2 phases and final legality checks.</div>
     <div id="rtgWlMinRunBanner" class="note" style="display:none;margin-top:7px;border-color:var(--warn);padding:7px 9px"></div>
     <div id="rtgExcludeControls" style="display:none;margin-top:8px">
-      <div class="note"><b>Redo with exclusions</b> removes the checked exact card versions and manager. <b>Exclude all 11</b> removes all card types belonging to the eleven displayed player identities, matched by name + pidx. Redo exclusions accumulate until a fresh build.</div>
+      <div class="note"><b>Redo with exclusions</b> removes the checked exact card versions and manager. <b>Exclude all 11</b> removes all card types belonging to the eleven displayed player identities, matched by name + pidx. Redo and pre-solve exclusions remain active until removed through Manage exclusions.</div>
       <div class="row"><button class="btn sec sm" onclick="redoTestWithoutSelected('rtg')" data-test-action="1">Redo with exclusions</button><button class="btn sec sm" onclick="redoRtgExcludingAllCurrentPlayers()" data-test-action="1">Exclude all 11</button><button class="btn gho sm" onclick="clearTestExclusions('rtg')" data-test-action="1">Clear redo exclusions</button></div>
       <div id="rtgExcludeErr" class="tiny"></div>
     </div>
@@ -9527,9 +9554,11 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
       <div id="sbcCandidateFilterErr" class="tiny" style="color:var(--warn)"></div>
       <button class="btn gho sm" type="button" style="margin-top:8px" onclick="clearSbcCandidateFilters()">Clear candidate exclusions</button>
     </details>
-    <button class="btn" style="margin-top:10px" id="sbcRunBtn" data-test-action="1" onclick="runSbcTestSolver()">Build lowest-ceiling XI</button>
+    <button class="btn" style="margin-top:10px" id="sbcRunBtn" data-test-action="1" onclick="runSbcTestSolver(true)">Build lowest-ceiling XI</button>
+    <button class="btn gho sm managed-exclusion-toggle" id="sbcManageExclusionsBtn" type="button" data-test-action="1" onclick="toggleManagedExclusions('sbc')">Manage exclusions · 0</button>
+    <div id="sbcManagedExclusions" class="managed-exclusion-panel" style="display:none"></div>
     <div id="sbcExcludeControls" style="display:none;margin-top:8px">
-      <div class="note">Tick exact cards in the current result, then use <b>Redo with exclusions</b>. Only the selected physical card variant is removed; other cards for that player remain available. Exclusions accumulate across redo searches. A fresh <b>Build lowest-ceiling XI</b> clears them.</div>
+      <div class="note">Tick exact cards in the current result, then use <b>Redo with exclusions</b>. Only the selected physical card variant is removed; other cards for that player remain available. Exclusions remain active across redo and fresh builds until removed through <b>Manage exclusions</b>.</div>
       <div class="row"><button class="btn sec sm" onclick="redoTestWithoutSelected('sbc')" data-test-action="1">Redo with exclusions</button><button class="btn gho sm" onclick="clearTestExclusions('sbc')" data-test-action="1">Clear exclusions</button></div>
       <div id="sbcExcludeErr" class="tiny"></div>
     </div>
@@ -11338,7 +11367,7 @@ function _restoreTestModeState(saved){
 }
 function _renderRestoredTestModeState(){
   _lastRtgTestResult=_reconcilePersistedRtgResult(_lastRtgTestResult);
-  const nm=$('#rtgNoManagers');if(nm)nm.checked=!!RTG_NO_MANAGERS;renderRtgFormationChoices();renderRtgPreManagerExclusions();renderRtgForceOptions();renderSbcCandidateFilters();renderTestStatus();renderDraftCupManagers();if(typeof renderSbcRepairSetup==='function')renderSbcRepairSetup();if(typeof renderSbcRepairPlayerExclusions==='function')renderSbcRepairPlayerExclusions();if(_lastRtgTestResult)_renderTestResult(_lastRtgTestResult,'rtg');if(_lastSbcTestResult)_renderTestResult(_lastSbcTestResult,'sbc');if(_lastSbcRepairResult)_renderTestResult(_lastSbcRepairResult,'sbcrepair');if(_lastCupsTestResult)_renderTestResult(_lastCupsTestResult,'cups');if(_lastCupsManagerResult)_renderTestResult(_lastCupsManagerResult,'cupsmgr');const panel=$('#cupsManagerPanel');if(panel)panel.style.display=DRAFT_CUPS_LOCKED_POOL.length?'block':'none';
+  const nm=$('#rtgNoManagers');if(nm)nm.checked=!!RTG_NO_MANAGERS;renderRtgFormationChoices();renderRtgPreManagerExclusions();renderRtgForceOptions();renderSbcCandidateFilters();renderManagedExclusions('rtg');renderManagedExclusions('sbc');renderTestStatus();renderDraftCupManagers();if(typeof renderSbcRepairSetup==='function')renderSbcRepairSetup();if(typeof renderSbcRepairPlayerExclusions==='function')renderSbcRepairPlayerExclusions();if(_lastRtgTestResult)_renderTestResult(_lastRtgTestResult,'rtg');if(_lastSbcTestResult)_renderTestResult(_lastSbcTestResult,'sbc');if(_lastSbcRepairResult)_renderTestResult(_lastSbcRepairResult,'sbcrepair');if(_lastCupsTestResult)_renderTestResult(_lastCupsTestResult,'cups');if(_lastCupsManagerResult)_renderTestResult(_lastCupsManagerResult,'cupsmgr');const panel=$('#cupsManagerPanel');if(panel)panel.style.display=DRAFT_CUPS_LOCKED_POOL.length?'block':'none';
 }
 let DRAFT_CUPS_LOCKED_POOL=[],DRAFT_CUPS_HOLD_PICKS=[],DRAFT_CUPS_MANAGER_CHOICES=[];
 let TEST_SEARCH_SCALE={rtg:1,sbc:1,sbcrepair:1,cups:1,cupsmgr:1};
@@ -14758,7 +14787,7 @@ function quickSubRtgPlayer(index){
   const c=res.state.pick&&res.state.pick[index];if(status)status.innerHTML='<div class="tiny">Checking every legal '+esc((res.form&&res.form.slots&&res.form.slots[index])||'slot')+' replacement for '+esc(c&&c.label||'this card')+'… Higher-rated cards are checked first when FUT rating rounding may keep the squad rating unchanged.</div>';
   _RTG_QUICK_SUB_BUSY=true;setTimeout(()=>{try{
     const result=_findRtgQuickSub(res,index);if(result.error){const live=$('#rtgQuickSubStatus');if(live)live.innerHTML='<div class="note" style="border-color:var(--warn)"><b>No Quick Sub applied.</b><br><span class="tiny">'+esc(result.error)+(Number.isFinite(result.checked)?' Checked '+Number(result.checked)+' same-slot candidates.':'')+'</span></div>';return;}
-    const removedKey=_testExclusionCardKey(result.from),removedLabel=_testExactCardExclusionLabel(result.from);if(removedKey){RTG_TEST_EXCLUSIONS.add(removedKey);RTG_TEST_EXCLUSION_LABELS.set(removedKey,removedLabel);res.quickSubExcludedKeys=Array.from(new Set([...(res.quickSubExcludedKeys||[]),removedKey]));if(res.runSettings){res.runSettings.exactCardExclusionKeys=Array.from(new Set([...(res.runSettings.exactCardExclusionKeys||[]),removedKey]));res.runSettings.exactCardExclusions=Array.from(new Set([...(res.runSettings.exactCardExclusions||[]),removedLabel]));}res.exclusions=_testExclusionSnapshot('rtg');}
+    const removedKey=_testExclusionCardKey(result.from),removedLabel=_testExactCardExclusionLabel(result.from);if(removedKey){RTG_TEST_EXCLUSIONS.add(removedKey);RTG_TEST_EXCLUSION_LABELS.set(removedKey,removedLabel);res.quickSubExcludedKeys=Array.from(new Set([...(res.quickSubExcludedKeys||[]),removedKey]));if(res.runSettings){res.runSettings.exactCardExclusionKeys=Array.from(new Set([...(res.runSettings.exactCardExclusionKeys||[]),removedKey]));res.runSettings.exactCardExclusions=Array.from(new Set([...(res.runSettings.exactCardExclusions||[]),removedLabel]));}res.exclusions=_testExclusionSnapshot('rtg');renderManagedExclusions('rtg');}
     result.state.quickSubNotice={from:result.from,to:result.to,index:result.index,slot:result.slot,targetRating:result.targetRating,checked:result.checked,legal:result.legal,higherChecked:result.higherChecked,higherLegal:result.higherLegal,baseWin:result.baseWin,newWin:result.newWin,baseChem:result.baseChem,newChem:result.newChem,fromEval:result.fromEval,toEval:result.toEval,manager:result.manager,benchmarkMode:result.benchmarkMode};
     const meta=_rtgVisibleFinalistMeta(res),visible=Math.max(0,Math.min(meta.rows.length-1,Number(res.finalistDisplayIndex)||0)),item=meta.rows[visible]||null,rawIndex=item?item.rawIndex:-1;
     res.state=result.state;if(rawIndex>=0&&Array.isArray(res.finalists)&&res.finalists[rawIndex]){res.finalists[rawIndex]=Object.assign({},res.finalists[rawIndex],{state:result.state,quickSub:true});const after=_rtgVisibleFinalistMeta(res),newVisible=after.rows.findIndex(x=>x.rawIndex===rawIndex||x.duplicateRawIndexes&&x.duplicateRawIndexes.includes(rawIndex));res.finalistDisplayIndex=newVisible>=0?newVisible:Math.min(visible,Math.max(0,after.rows.length-1));_rtgSetVisibleFinalist(res,res.finalistDisplayIndex);}else res.quickSub=true;
@@ -14876,7 +14905,7 @@ function _renderTestResult(res,mode){
   if(mode==='rtg'&&res.localPolish&&res.localPolish.accepted){const lp=res.localPolish,changed=(lp.changedSlots||[]).length;html+='<div class="note rtg-detail" style="margin-top:9px;border-color:var(--good)"><b>Final bad-slot repair improved this finalist.</b> The post-solution phase first tested local packages, then locked the known good core and ran manager-aware DFS over every low-chem, equal or underperforming slot. It accepted '+Number(lp.accepted)+' strict improvement'+(Number(lp.accepted)===1?'':'s')+' and changed '+changed+' slot'+(changed===1?'':'s')+'.'+(Number(lp.weakCoreRoutes||0)?' Coordinated bad-slot DFS used '+Number(lp.weakCoreRoutes||0)+' manager/core route'+(Number(lp.weakCoreRoutes)===1?'':'s')+' and reduced flagged slots '+Number(lp.weakCoreBefore||0)+'→'+Number(lp.weakCoreAfter||0)+'.':'')+' Team rating remained '+Number(lp.ratingBefore||0)+'→'+Number(lp.ratingAfter||0)+'; solve-time benchmark win '+(Number(lp.matchWinBefore||0)*100).toFixed(1)+'%→'+(Number(lp.matchWinAfter||0)*100).toFixed(1)+'%.'+(lp.closeOriginalRetained?' The pre-repair XI remained inside the active primary close-call band and was retained separately.':'')+'</div>';}
   if(mode==='rtg'&&res.repair&&res.repair.improved){const rr=res.repair,before=Number(rr.matchWinBefore||0),after=Number(rr.matchWinAfter||0),changed=(rr.changedSlots||[]).length;html+='<div class="note rtg-detail" style="margin-top:9px;border-color:var(--good)"><b>Repair 1 improved this finalist.</b> Its seeded Top-N repair searched '+Number(rr.nodes||rr.checked||0).toLocaleString()+' DFS nodes across '+Number(rr.formsTried||0)+' card/formation probes and changed '+changed+' slot'+(changed===1?'':'s')+'. Modelled benchmark win '+(before*100).toFixed(1)+'%→'+(after*100).toFixed(1)+'% ('+Number(rr.winsAfter||0)+' benchmark wins / '+Number(rr.tiesAfter||0)+' ties / '+Number(rr.lossesAfter||0)+' losses)'+(Number(rr.chemAfter)!==Number(rr.chemBefore)?'; chemistry '+Number(rr.chemBefore||0)+'→'+Number(rr.chemAfter||0):'')+'.</div>';}else if(mode==='rtg'&&res.repair&&res.repair.skipped)html+='<div class="note rtg-detail" style="margin-top:9px"><b>Repair 1 '+(res.repair.timedOut?'not reached for this finalist.':'skipped.')+'</b> '+(res.repair.timedOut?'The initial repair time ceiling was reached after earlier finalists; this finalist remains its valid pre-repair DFS result.':'The faster advanced setting returned this DFS result directly; enable Repair 1 to try reshuffles and coordinated exchanges.')+'</div>';
   if(rtgLimited)html+='<div class="note rtg-detail" style="margin-top:9px;border-color:var(--warn);color:var(--warn)"><b>Selected formations only.</b> This result compared '+Number((res.search.selectedFormationNames||[]).length||res.search.formsChecked||0)+' of '+Number(res.search.totalFormsAvailable||0)+' formations. Searching one instead of all 27 can be roughly 27× faster, but any unselected formation could still produce a better XI.</div>';
-  const ex=_testExclusionSummary(mode);if(ex)html+='<div class="tiny'+(mode==='rtg'?' rtg-detail':'')+'" style="margin:7px 0">'+esc(ex)+'. Exclusions remain active for further redo searches; a fresh solve clears them.</div>';
+  const ex=_testExclusionSummary(mode);if(ex)html+='<div class="tiny'+(mode==='rtg'?' rtg-detail':'')+'" style="margin:7px 0">'+esc(ex)+'. Exclusions remain active for later builds and redo searches until removed through Manage exclusions.</div>';
   if(statMode){
     const mgr=st.mgr,positive=mgr.cards.reduce((a,x)=>a+x.positiveDelta,0),over=mgr.cards.filter(x=>x.bestDelta>0).length,bestDelta=Math.max(...mgr.cards.map(x=>x.bestDelta));
     if(mode==='cups')html+='<div class="note" style="margin-top:9px"><b style="color:var(--ink)">Manager not chosen yet</b><br>Current chemistry and low-chem penalties are evaluated without manager chemistry or stat boosts. Add the five offers below to run the final manager-aware pass.</div>';
@@ -14907,7 +14936,7 @@ function _renderTestResult(res,mode){
   if(mode==='cupsmgr')html+='<div class="tiny" style="margin-top:8px">Five offers checked: '+DRAFT_CUPS_MANAGER_CHOICES.map(m=>esc(_managerDisplayName(m,DRAFT_CUPS_MANAGER_CHOICES))).join(' · ')+'</div>';
   if(mode==='rtg')html+='<button class="btn sec sm" style="margin-top:10px" type="button" onclick="commitRtgToLivePlay()">Commit this XI to Live Play</button>';
   if(mode==='cups'||mode==='cupsmgr')html+='<button class="btn sec sm" style="margin-top:10px" type="button" onclick="commitDraftCupsToLivePlay()">Commit this XI to Live Play</button>';
-  if(mode==='sbc')html+='<div class="note" style="margin-top:10px">Select exact cards you cannot use, then use <b>Redo with exclusions</b> beneath the main solve button. Existing exclusions remain active and the new selections are added; a fresh <b>Build lowest-ceiling XI</b> clears them.</div>';
+  if(mode==='sbc')html+='<div class="note" style="margin-top:10px">Select exact cards you cannot use, then use <b>Redo with exclusions</b> beneath the main solve button. Existing exclusions remain active and the new selections are added; remove them through <b>Manage exclusions</b>.</div>';
   if(repairMode)html+='<div class="note" style="margin-top:10px">Only newly added cards have redo checkboxes. Redo exclusions never alter the original unfinished squad; they only force SBC Repair to find different replacements while still maximising retained current cards.</div>';
   html+=_testSearchButtons(mode,res)+'<button class="btn gho sm" style="margin-top:8px" onclick="downloadTestSolverLog(\''+mode+'\')">Download solver log (.txt)</button></div>';el.innerHTML=html;if(mode==='rtg')_compactRtgResultLayout(el);
 }
@@ -15005,10 +15034,10 @@ function renderRtgPreManagerExclusions(){
   if(list)list.innerHTML=rows.length?rows.map(x=>{const on=RTG_PRE_MANAGER_EXCLUSIONS.has(x.k);return '<label class="type-pick-row '+(on?'type-selected':'')+'" style="cursor:pointer;text-transform:none;letter-spacing:0;margin:0"><input type="checkbox" data-test-action="1" style="width:auto;flex:0 0 auto" '+(on?'checked ':'')+(disabled?'disabled ':'')+'onchange="toggleRtgPreManagerExclusion('+x.i+',this.checked)"><span class="nm"><b>'+esc(_managerDisplayName(x.m,MANAGER_DB))+'</b><span class="meta" style="display:block">'+esc(x.m.nation)+' · '+esc(x.m.league)+' · '+esc(_managerBoostSummary(x.m))+'</span></span></label>';}).join(''):'<div class="cnone">No managers match this search.</div>';
 }
 function toggleRtgPreManagerExclusion(i,on){
-  const m=MANAGER_DB[Number(i)];if(!m)return;const k=_testManagerKey(m);if(on){RTG_PRE_MANAGER_EXCLUSIONS.add(k);RTG_PRE_MANAGER_EXCLUSION_LABELS.set(k,_managerDisplayName(m,MANAGER_DB));}else{RTG_PRE_MANAGER_EXCLUSIONS.delete(k);RTG_PRE_MANAGER_EXCLUSION_LABELS.delete(k);}TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();saveLocal();
+  const m=MANAGER_DB[Number(i)];if(!m)return;const k=_testManagerKey(m);if(on){RTG_PRE_MANAGER_EXCLUSIONS.add(k);RTG_PRE_MANAGER_EXCLUSION_LABELS.set(k,_managerDisplayName(m,MANAGER_DB));}else{RTG_PRE_MANAGER_EXCLUSIONS.delete(k);RTG_PRE_MANAGER_EXCLUSION_LABELS.delete(k);}TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();saveLocal();renderManagedExclusions('rtg');
 }
-function excludeShownRtgManagers(){for(const x of _rtgPreManagerShownRows()){RTG_PRE_MANAGER_EXCLUSIONS.add(x.k);RTG_PRE_MANAGER_EXCLUSION_LABELS.set(x.k,_managerDisplayName(x.m,MANAGER_DB));}TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();saveLocal();}
-function clearRtgPreManagerExclusions(){RTG_PRE_MANAGER_EXCLUSIONS.clear();RTG_PRE_MANAGER_EXCLUSION_LABELS.clear();TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();saveLocal();}
+function excludeShownRtgManagers(){for(const x of _rtgPreManagerShownRows()){RTG_PRE_MANAGER_EXCLUSIONS.add(x.k);RTG_PRE_MANAGER_EXCLUSION_LABELS.set(x.k,_managerDisplayName(x.m,MANAGER_DB));}TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();saveLocal();renderManagedExclusions('rtg');}
+function clearRtgPreManagerExclusions(){RTG_PRE_MANAGER_EXCLUSIONS.clear();RTG_PRE_MANAGER_EXCLUSION_LABELS.clear();TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();saveLocal();renderManagedExclusions('rtg');}
 function setRtgNoManagers(on){RTG_NO_MANAGERS=!!on;if(RTG_NO_MANAGERS){RTG_FORCE_MANAGER_KEYS.clear();RTG_FORCE_MANAGER_LABELS.clear();_rtgSyncLegacyForcedManager();}const el=$('#rtgNoManagers');if(el)el.checked=RTG_NO_MANAGERS;renderRtgPreManagerExclusions();renderRtgForceOptions();saveLocal();}
 
 let _RTG_FORCE_CARD_CATALOG=null;
@@ -15058,7 +15087,7 @@ function setRtgForcedManager(encoded){
 function removeRtgForcedManager(encoded){const key=encoded?decodeURIComponent(encoded):'';RTG_FORCE_MANAGER_KEYS.delete(key);RTG_FORCE_MANAGER_LABELS.delete(key);_rtgSyncLegacyForcedManager();TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();renderRtgForceOptions();saveLocal();}
 function clearRtgForcedManagers(){RTG_FORCE_MANAGER_KEYS.clear();RTG_FORCE_MANAGER_LABELS.clear();_rtgSyncLegacyForcedManager();TEST_SEARCH_SCALE.rtg=1;renderRtgPreManagerExclusions();renderRtgForceOptions();saveLocal();}
 function runRtgTestSolver(preserveExclusions,fastBuild){if(_TEST_ACTIVE_RUN||_WL_MULTI_ACTIVE)return;if(RTG_WL_MODE&&!_ensureRtgWlMinimumCondition(true)){_setRtgWlMinimumRunBanner(true,'Enter PACWYN’s current minimum above. A preferred exact rating must also be valid when that option is enabled.');const err=$('#rtgExcludeErr');if(err)err.textContent='Enter a valid WL minimum and, when enabled, a valid preferred exact rating.';return;}_setRtgWlMinimumRunBanner(false);_resetRtgEscalationEffort();const forced=_rtgForceFeasibility();if(forced.issues.length){const err=$('#rtgExcludeErr');if(err)err.textContent=forced.issues.join(' ');const panel=$('#rtgForcePanel');if(panel)panel.open=true;renderRtgForceOptions();return;}if(!preserveExclusions){_clearStoredTestExclusions('rtg');const c=$('#rtgExcludeControls');if(c)c.style.display='none';renderRtgPreManagerExclusions();}TEST_SEARCH_SCALE.rtg=1;const err=$('#rtgExcludeErr');if(err)err.textContent='';_startTestSearch('rtg',TEST_SEARCH_SCALE.rtg,(fastBuild?'Fast build · ':'')+'Finding a condition-valid '+_rtgModeShortLabel()+' XI',false,!!fastBuild);}
-function runRtgFastSolver(){runRtgTestSolver(false,true);}
+function runRtgFastSolver(){runRtgTestSolver(true,true);}
 function runSbcTestSolver(preserveExclusions){if(_TEST_ACTIVE_RUN)return;if(!preserveExclusions){_clearStoredTestExclusions('sbc');const c=$('#sbcExcludeControls');if(c)c.style.display='none';}TEST_SEARCH_SCALE.sbc=1;const err=$('#sbcExcludeErr');if(err)err.textContent='';_startTestSearch('sbc',TEST_SEARCH_SCALE.sbc,'Finding a condition-valid SBC XI');}
 function runSbcRepairSolver(preserveExclusions){
   if(_TEST_ACTIVE_RUN)return;const err=$('#sbcRepairErr');if(err)err.textContent='';_syncSbcRepairFormation(SBC_TEST_FORM||_sbcTestFormationName());const refs=(SBC_REPAIR_STATE.refs||[]).filter(Boolean);if(!refs.length){if(err)err.textContent='Select or import at least one current squad card first.';return;}const people=new Set();for(const ref of refs){const c=_sbcRepairCard(ref);if(!c)continue;const k=_testPersonKey(c);if(people.has(k)){if(err)err.textContent='The current squad contains the same real player more than once.';return;}people.add(k);}SBC_REPAIR_KEEP_KEYS=new Set(refs);SBC_REPAIR_ORIGINAL_COUNT=SBC_REPAIR_KEEP_KEYS.size;if(!preserveExclusions){_clearStoredTestExclusions('sbcrepair');const c=$('#sbcRepairExcludeControls');if(c)c.style.display='none';}TEST_SEARCH_SCALE.sbcrepair=1;const ex=$('#sbcRepairExcludeErr');if(ex)ex.textContent='';_startTestSearch('sbcrepair',1,'Finding the highest-retention condition-valid repair');
@@ -15071,16 +15100,117 @@ function redoTestWithoutSelected(mode){
   if(last)for(const box of boxes){const c=last.state.pick[Number(box.value)];if(!c)continue;const k=_testExclusionCardKey(c),label=_testExactCardExclusionLabel(c);if(!k)continue;if(mode==='rtg'){RTG_TEST_EXCLUSIONS.add(k);RTG_TEST_EXCLUSION_LABELS.set(k,label);}else if(mode==='sbcrepair'){if(SBC_REPAIR_KEEP_KEYS.has(k))continue;SBC_REPAIR_EXCLUSIONS.add(k);SBC_REPAIR_EXCLUSION_LABELS.set(k,label);}else{SBC_TEST_EXCLUSIONS.add(k);SBC_TEST_EXCLUSION_LABELS.set(k,label);}added++;}
   if(mode==='rtg'&&$('#rtgExcludeManager')&&$('#rtgExcludeManager').checked&&last&&last.state.mgr){const k=_testManagerKey(last.state.mgr);RTG_TEST_MANAGER_EXCLUSIONS.add(k);RTG_TEST_MANAGER_EXCLUSION_LABELS.set(k,_managerDisplayName(last.state.mgr,MANAGER_DB));added++;}
   if(!added){if(err)err.textContent='Select at least one '+(mode==='sbcrepair'?'new replacement card':'exact card'+(mode==='rtg'?' or the manager':''))+' first.';return;}
-  saveLocal();TEST_SEARCH_SCALE[mode]=1;if(mode==='rtg')runRtgTestSolver(true);else if(mode==='sbcrepair')runSbcRepairSolver(true);else runSbcTestSolver(true);
+  saveLocal();if(mode==='rtg'||mode==='sbc')renderManagedExclusions(mode);TEST_SEARCH_SCALE[mode]=1;if(mode==='rtg')runRtgTestSolver(true);else if(mode==='sbcrepair')runSbcRepairSolver(true);else runSbcTestSolver(true);
 }
-function redoRtgExcludingAllCurrentPlayers(){if(_TEST_ACTIVE_RUN||_WL_MULTI_ACTIVE)return;const last=_lastRtgTestResult,err=$('#rtgExcludeErr');if(err)err.textContent='';if(!last||!last.state||!Array.isArray(last.state.pick)||last.state.pick.length!==11){if(err)err.textContent='Build or display a complete RTG/WL XI first.';return;}const playerIdentities=new Set(last.state.pick.map(_testPersonKey)),all=_makeTestCards(TEST_SEARCH_SEED,'rtg');let added=0;for(const c of all)if(playerIdentities.has(_testPersonKey(c))){const k=_testExclusionCardKey(c);if(!k||RTG_TEST_EXCLUSIONS.has(k))continue;RTG_TEST_EXCLUSIONS.add(k);RTG_TEST_EXCLUSION_LABELS.set(k,'All card types of '+_wlMultiCardDisplayName(c));added++;}if(!added){if(err)err.textContent='All card types of the current eleven players are already excluded.';return;}saveLocal();TEST_SEARCH_SCALE.rtg=1;runRtgTestSolver(true);}
+function redoRtgExcludingAllCurrentPlayers(){if(_TEST_ACTIVE_RUN||_WL_MULTI_ACTIVE)return;const last=_lastRtgTestResult,err=$('#rtgExcludeErr');if(err)err.textContent='';if(!last||!last.state||!Array.isArray(last.state.pick)||last.state.pick.length!==11){if(err)err.textContent='Build or display a complete RTG/WL XI first.';return;}const playerIdentities=new Set(last.state.pick.map(_testPersonKey)),all=_makeTestCards(TEST_SEARCH_SEED,'rtg');let added=0;for(const c of all)if(playerIdentities.has(_testPersonKey(c))){const k=_testExclusionCardKey(c);if(!k||RTG_TEST_EXCLUSIONS.has(k))continue;RTG_TEST_EXCLUSIONS.add(k);RTG_TEST_EXCLUSION_LABELS.set(k,'All card types of '+_wlMultiCardDisplayName(c));added++;}if(!added){if(err)err.textContent='All card types of the current eleven players are already excluded.';return;}saveLocal();renderManagedExclusions('rtg');TEST_SEARCH_SCALE.rtg=1;runRtgTestSolver(true);}
 function clearTestExclusions(mode){
   if(_TEST_ACTIVE_RUN)return;
   const err=$(mode==='rtg'?'#rtgExcludeErr':mode==='sbcrepair'?'#sbcRepairExcludeErr':'#sbcExcludeErr');if(err)err.textContent='';
-  _clearStoredTestExclusions(mode);
+  _clearStoredTestExclusions(mode);renderManagedExclusions(mode==='rtg'?'rtg':'sbc');
   if(mode==='rtg'){if(_lastRtgTestResult)_renderTestResult(_lastRtgTestResult,'rtg');}
   else if(mode==='sbcrepair'){if(_lastSbcRepairResult)_renderTestResult(_lastSbcRepairResult,'sbcrepair');}
   else{if(_lastSbcTestResult)_renderTestResult(_lastSbcTestResult,'sbc');}
+}
+/* v5.30.39 — portable exclusion presets and searchable pre-exclusion. */
+let _MANAGED_EXCLUSION_CARD_CATALOG=null,_MANAGED_EXCLUSION_SEARCH={rtg:'',sbc:''},_MANAGED_EXCLUSION_STATUS={rtg:null,sbc:null};
+function _managedExclusionCount(mode){
+  if(mode==='rtg')return RTG_TEST_EXCLUSIONS.size+RTG_TEST_MANAGER_EXCLUSIONS.size+RTG_PRE_MANAGER_EXCLUSIONS.size;
+  return SBC_TEST_EXCLUSIONS.size;
+}
+function refreshManagedExclusionButtons(){
+  const rb=$('#rtgManageExclusionsBtn'),sb=$('#sbcManageExclusionsBtn');
+  if(rb)rb.textContent='Manage exclusions · '+_managedExclusionCount('rtg');
+  if(sb)sb.textContent='Manage exclusions · '+_managedExclusionCount('sbc');
+}
+function _managedExclusionRows(mode){
+  const rows=[];
+  if(mode==='rtg'){
+    for(const k of RTG_TEST_EXCLUSIONS)rows.push({kind:'rtg-card',key:k,label:RTG_TEST_EXCLUSION_LABELS.get(k)||k,meta:'Exact card · redo / Quick Sub / pre-solve exclusion'});
+    for(const k of RTG_TEST_MANAGER_EXCLUSIONS)rows.push({kind:'rtg-manager',key:k,label:RTG_TEST_MANAGER_EXCLUSION_LABELS.get(k)||k,meta:'Manager · added from a completed result'});
+    for(const k of RTG_PRE_MANAGER_EXCLUSIONS)rows.push({kind:'rtg-pre-manager',key:k,label:RTG_PRE_MANAGER_EXCLUSION_LABELS.get(k)||k,meta:'Manager · excluded before solving'});
+  }else{
+    for(const k of SBC_TEST_EXCLUSIONS)rows.push({kind:'sbc-card',key:k,label:SBC_TEST_EXCLUSION_LABELS.get(k)||k,meta:'Exact card · redo / pre-solve exclusion'});
+  }
+  const order={'rtg-card':0,'sbc-card':0,'rtg-manager':1,'rtg-pre-manager':2};
+  rows.sort((a,b)=>(order[a.kind]||0)-(order[b.kind]||0)||String(a.label).localeCompare(String(b.label))||String(a.key).localeCompare(String(b.key)));
+  return rows;
+}
+function _managedExclusionSection(title,rows){
+  if(!rows.length)return '';
+  return '<div class="managed-exclusion-section"><div class="managed-exclusion-heading">'+esc(title)+'</div><div class="managed-exclusion-list">'+rows.map(x=>'<div class="managed-exclusion-row"><div class="managed-exclusion-row-copy"><b>'+esc(x.label)+'</b><span class="meta">'+esc(x.meta)+'</span></div><button class="btn gho sm managed-exclusion-remove" type="button" data-test-action="1" onclick="removeManagedExclusion(\''+x.kind+'\',\''+encodeURIComponent(x.key)+'\')">Remove</button></div>').join('')+'</div></div>';
+}
+function _managedExclusionCardCatalog(){
+  if(_MANAGED_EXCLUSION_CARD_CATALOG)return _MANAGED_EXCLUSION_CARD_CATALOG;
+  _MANAGED_EXCLUSION_CARD_CATALOG=_makeTestCards(1,'rtg').map(c=>{const key=_testExclusionCardKey(c),label=_testExactCardExclusionLabel(c),signature=_exactCardSignature(c),stats=c.fake?[Number(c.fake.atk)||0,Number(c.fake.bal)||0,Number(c.fake.def)||0]:[];return {key,label,signature,stats,variant:Number(c._variant)||1,search:norm([label,c.name,c.cardType,c.type,c.nation,leagueOf(c),c.club,(c.pos||[]).join(' '),stats.join(' ')].join(' ')),c};}).sort((a,b)=>a.label.localeCompare(b.label)||a.key.localeCompare(b.key));
+  return _MANAGED_EXCLUSION_CARD_CATALOG;
+}
+function _managedExclusionCardActive(mode,key){return mode==='rtg'?RTG_TEST_EXCLUSIONS.has(key):SBC_TEST_EXCLUSIONS.has(key);}
+function _managedExclusionSearchRows(mode){
+  const raw=String(_MANAGED_EXCLUSION_SEARCH[mode]||'').trim(),q=norm(raw),ratingOnly=/^\d{1,3}$/.test(raw)?Number(raw):null;
+  if(!raw||(ratingOnly===null&&raw.length<2))return [];
+  const rows=_managedExclusionCardCatalog().filter(x=>ratingOnly!==null?Number(x.c.rating)===ratingOnly:x.search.includes(q));
+  _searchSortExactFirst(rows,raw,x=>x.c.label||x.c.name,(a,b)=>Number(_managedExclusionCardActive(mode,b.key))-Number(_managedExclusionCardActive(mode,a.key))||(Number(b.c.rating)||0)-(Number(a.c.rating)||0)||a.label.localeCompare(b.label));
+  return rows.slice(0,100);
+}
+function setManagedExclusionSearch(mode,value){mode=mode==='rtg'?'rtg':'sbc';_MANAGED_EXCLUSION_SEARCH[mode]=String(value||'');renderManagedExclusionSearch(mode);}
+function renderManagedExclusionSearch(mode){
+  mode=mode==='rtg'?'rtg':'sbc';const list=$(mode==='rtg'?'#rtgManagedExclusionSearchResults':'#sbcManagedExclusionSearchResults');if(!list)return;const raw=String(_MANAGED_EXCLUSION_SEARCH[mode]||'').trim(),ratingOnly=/^\d{1,3}$/.test(raw);
+  if(!raw){list.innerHTML='<div class="tiny">Search by player, exact rating, card type, nation, league, team, position or stats.</div>';return;}
+  if(!ratingOnly&&raw.length<2){list.innerHTML='<div class="tiny">Type at least two characters, or enter an exact card rating.</div>';return;}
+  const rows=_managedExclusionSearchRows(mode);list.innerHTML=rows.length?rows.map(x=>{const c=x.c,on=_managedExclusionCardActive(mode,x.key);return '<div class="managed-exclusion-search-row"><div class="managed-exclusion-search-copy"><b>'+esc(c.label||c.name)+' '+Number(c.rating||0)+'</b><span class="meta">'+esc(c.cardType||c.type||'unlabelled')+' · '+esc(c.nation)+' · '+esc(leagueOf(c))+(c.club?' · '+esc(c.club):'')+' · '+esc((c.pos||[]).join('/'))+(c.fake?' · '+Number(c.fake.atk)+'/'+Number(c.fake.bal)+'/'+Number(c.fake.def):'')+'</span></div><button class="btn '+(on?'gho':'sec')+' sm" type="button" data-test-action="1" onclick="toggleManagedCardExclusion(\''+mode+'\',\''+encodeURIComponent(x.key)+'\')">'+(on?'Remove':'Exclude')+'</button></div>';}).join(''):'<div class="cnone">No exact cards match this search.</div>';
+}
+function _managedExclusionStatusHtml(mode){const st=_MANAGED_EXCLUSION_STATUS[mode];if(!st||!st.text)return '';return '<div class="note managed-exclusion-status" style="border-left-color:'+(st.bad?'var(--bad)':'var(--cyan-dim)')+';color:'+(st.bad?'var(--bad)':'var(--mut)')+'">'+esc(st.text)+'</div>';}
+function _managedExclusionTools(mode){
+  const prefix=mode==='rtg'?'rtg':'sbc',q=_MANAGED_EXCLUSION_SEARCH[mode]||'';
+  return '<div class="managed-exclusion-tools"><div class="managed-exclusion-heading">Pre-exclude exact cards</div><div class="tiny">Add an exact physical card before solving. These exclusions accumulate with Redo and RTG Quick Sub removals.</div><input id="'+prefix+'ManagedExclusionSearch" type="text" value="'+esc(q)+'" placeholder="Search exact card, rating, type, nation, league, team or position…" autocomplete="off" oninput="setManagedExclusionSearch(\''+mode+'\',this.value)" style="margin-top:7px"><div id="'+prefix+'ManagedExclusionSearchResults" class="managed-exclusion-search-results"></div><div class="managed-exclusion-heading" style="margin-top:10px">Reusable exclusion preset</div><div class="tiny">Export creates a portable JSON preset. Import merges matching exact cards into this solver; RTG imports its manager exclusions too. An RTG card preset can also be imported into SBC and vice versa.</div><div class="managed-exclusion-actions"><button class="btn sec sm" type="button" data-test-action="1" onclick="exportManagedExclusions(\''+mode+'\')">Export JSON</button><button class="btn gho sm" type="button" data-test-action="1" onclick="triggerManagedExclusionImport(\''+mode+'\')">Import JSON</button></div><input id="'+prefix+'ManagedExclusionImport" type="file" accept=".json,application/json" style="display:none" onchange="importManagedExclusionsFile(\''+mode+'\',this)">'+_managedExclusionStatusHtml(mode)+'</div>';
+}
+function renderManagedExclusions(mode){
+  mode=mode==='rtg'?'rtg':'sbc';refreshManagedExclusionButtons();const panel=$(mode==='rtg'?'#rtgManagedExclusions':'#sbcManagedExclusions');if(!panel)return;
+  const rows=_managedExclusionRows(mode),count=rows.length;let html='<div class="tiny">'+(count?'<b>'+count+'</b> active exclusion'+(count===1?'':'s')+'. Remove individual entries without clearing the others.':'No active '+(mode==='rtg'?'RTG/WL':'SBC')+' exclusions yet.')+' Changes affect future searches; the current result keeps its original solve-time record.</div>';
+  html+=_managedExclusionTools(mode);
+  if(mode==='rtg'){
+    html+=_managedExclusionSection('Exact cards',rows.filter(x=>x.kind==='rtg-card'));
+    html+=_managedExclusionSection('Redo managers',rows.filter(x=>x.kind==='rtg-manager'));
+    html+=_managedExclusionSection('Pre-solve managers',rows.filter(x=>x.kind==='rtg-pre-manager'));
+  }else html+=_managedExclusionSection('Exact cards',rows);
+  if(count)html+='<div class="managed-exclusion-actions"><button class="btn gho sm" type="button" data-test-action="1" onclick="clearManagedExclusions(\''+mode+'\')">Clear all '+(mode==='rtg'?'RTG/WL':'SBC')+' exclusions</button></div>';
+  panel.innerHTML=html;renderManagedExclusionSearch(mode);
+}
+function toggleManagedExclusions(mode){
+  mode=mode==='rtg'?'rtg':'sbc';const panel=$(mode==='rtg'?'#rtgManagedExclusions':'#sbcManagedExclusions');if(!panel)return;const open=panel.style.display!=='none';panel.style.display=open?'none':'block';if(!open)renderManagedExclusions(mode);
+}
+function toggleManagedCardExclusion(mode,encodedKey){
+  if(_TEST_ACTIVE_RUN)return;mode=mode==='rtg'?'rtg':'sbc';let key='';try{key=decodeURIComponent(String(encodedKey||''));}catch(e){key=String(encodedKey||'');}const row=_managedExclusionCardCatalog().find(x=>x.key===key);if(!row)return;const set=mode==='rtg'?RTG_TEST_EXCLUSIONS:SBC_TEST_EXCLUSIONS,labels=mode==='rtg'?RTG_TEST_EXCLUSION_LABELS:SBC_TEST_EXCLUSION_LABELS,on=set.has(key);if(on){set.delete(key);labels.delete(key);_MANAGED_EXCLUSION_STATUS[mode]={text:'Removed '+row.label+'.',bad:false};}else{set.add(key);labels.set(key,row.label);const forced=mode==='rtg'&&RTG_FORCE_CARD_KEYS&&RTG_FORCE_CARD_KEYS.has(key);_MANAGED_EXCLUSION_STATUS[mode]={text:'Excluded '+row.label+'.'+(forced?' It is also forced in the current RTG setup, so resolve that conflict before solving.':''),bad:false};}TEST_SEARCH_SCALE[mode]=1;saveLocal();renderManagedExclusions(mode);
+}
+function _managedExportCard(key,label){const row=_managedExclusionCardCatalog().find(x=>x.key===key);return {key:String(key||''),label:String(label||key||''),signature:row?row.signature:'',variant:row?row.variant:null,stats:row?row.stats:[]};}
+function _managedExclusionExportPayload(mode){
+  mode=mode==='rtg'?'rtg':'sbc';const set=mode==='rtg'?RTG_TEST_EXCLUSIONS:SBC_TEST_EXCLUSIONS,labels=mode==='rtg'?RTG_TEST_EXCLUSION_LABELS:SBC_TEST_EXCLUSION_LABELS,payload={format:'pacwyn-exclusions',version:1,appVersion:_APP_VERSION,sourceMode:mode,cards:Array.from(set).map(k=>_managedExportCard(k,labels.get(k)||k))};
+  if(mode==='rtg')payload.managers={redo:Array.from(RTG_TEST_MANAGER_EXCLUSIONS).map(k=>({key:k,label:RTG_TEST_MANAGER_EXCLUSION_LABELS.get(k)||k})),preSolve:Array.from(RTG_PRE_MANAGER_EXCLUSIONS).map(k=>({key:k,label:RTG_PRE_MANAGER_EXCLUSION_LABELS.get(k)||k}))};
+  return payload;
+}
+function exportManagedExclusions(mode){mode=mode==='rtg'?'rtg':'sbc';const payload=_managedExclusionExportPayload(mode);_namedDownload(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'pacwyn-'+mode+'-exclusions-'+Date.now(),'json');_MANAGED_EXCLUSION_STATUS[mode]={text:'Exported '+payload.cards.length+' exact card exclusion'+(payload.cards.length===1?'':'s')+(mode==='rtg'?' and '+((payload.managers.redo||[]).length+(payload.managers.preSolve||[]).length)+' manager exclusion'+(((payload.managers.redo||[]).length+(payload.managers.preSolve||[]).length)===1?'':'s'):'')+'.',bad:false};renderManagedExclusions(mode);}
+function triggerManagedExclusionImport(mode){mode=mode==='rtg'?'rtg':'sbc';const inp=$(mode==='rtg'?'#rtgManagedExclusionImport':'#sbcManagedExclusionImport');if(inp)inp.click();}
+function _managedResolveImportedCard(entry){
+  if(!entry||typeof entry!=='object')return null;const rows=_managedExclusionCardCatalog(),key=String(entry.key||''),sig=String(entry.signature||''),stats=Array.isArray(entry.stats)?entry.stats.map(Number):[],variant=Number(entry.variant),matchesMeta=x=>(!sig||x.signature===sig)&&(!(stats.length===3)||x.stats.length===3&&x.stats.every((v,i)=>v===stats[i]))&&(!(Number.isFinite(variant)&&variant>0)||x.variant===variant);if(key){const exact=rows.find(x=>x.key===key);if(exact&&matchesMeta(exact))return exact;}
+  if(!sig)return null;let hits=rows.filter(x=>x.signature===sig);if(stats.length===3)hits=hits.filter(x=>x.stats.length===3&&x.stats.every((v,i)=>v===stats[i]));if(Number.isFinite(variant)&&variant>0){const v=hits.filter(x=>x.variant===variant);if(v.length)hits=v;}return hits.length===1?hits[0]:null;
+}
+async function importManagedExclusionsFile(mode,input){
+  mode=mode==='rtg'?'rtg':'sbc';const file=input&&input.files&&input.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!data||data.format!=='pacwyn-exclusions'||Number(data.version)!==1)throw new Error('This is not a supported Pacwyn exclusions JSON file.');const cards=Array.isArray(data.cards)?data.cards:[],set=mode==='rtg'?RTG_TEST_EXCLUSIONS:SBC_TEST_EXCLUSIONS,labels=mode==='rtg'?RTG_TEST_EXCLUSION_LABELS:SBC_TEST_EXCLUSION_LABELS;let added=0,duplicate=0,missing=0,managers=0;for(const entry of cards){const row=_managedResolveImportedCard(entry);if(!row){missing++;continue;}if(set.has(row.key)){duplicate++;continue;}set.add(row.key);labels.set(row.key,row.label);added++;}
+    if(mode==='rtg'&&data.managers&&typeof data.managers==='object'){const managerMap=new Map((MANAGER_DB||[]).map(m=>[_testManagerKey(m),m]));for(const entry of (Array.isArray(data.managers.redo)?data.managers.redo:[])){const key=String(entry&&entry.key||'');const m=managerMap.get(key);if(!m){missing++;continue;}if(!RTG_TEST_MANAGER_EXCLUSIONS.has(key)){RTG_TEST_MANAGER_EXCLUSIONS.add(key);RTG_TEST_MANAGER_EXCLUSION_LABELS.set(key,String(entry.label||_managerDisplayName(m,MANAGER_DB)));managers++;}else duplicate++;}for(const entry of (Array.isArray(data.managers.preSolve)?data.managers.preSolve:[])){const key=String(entry&&entry.key||'');const m=managerMap.get(key);if(!m){missing++;continue;}if(!RTG_PRE_MANAGER_EXCLUSIONS.has(key)){RTG_PRE_MANAGER_EXCLUSIONS.add(key);RTG_PRE_MANAGER_EXCLUSION_LABELS.set(key,String(entry.label||_managerDisplayName(m,MANAGER_DB)));managers++;}else duplicate++;}renderRtgPreManagerExclusions();}
+    TEST_SEARCH_SCALE[mode]=1;saveLocal();_MANAGED_EXCLUSION_STATUS[mode]={text:'Imported '+added+' new exact card exclusion'+(added===1?'':'s')+(mode==='rtg'?' and '+managers+' manager exclusion'+(managers===1?'':'s'):'')+(duplicate?' · '+duplicate+' already active':'')+(missing?' · '+missing+' could not be matched to the current DB':'')+'.',bad:missing>0&&added===0&&managers===0};renderManagedExclusions(mode);
+  }catch(err){_MANAGED_EXCLUSION_STATUS[mode]={text:String(err&&err.message||err||'Could not import this exclusions file.'),bad:true};renderManagedExclusions(mode);}finally{if(input)input.value='';}
+}
+function removeManagedExclusion(kind,encodedKey){
+  if(_TEST_ACTIVE_RUN)return;let key='';try{key=decodeURIComponent(String(encodedKey||''));}catch(e){key=String(encodedKey||'');}if(!key)return;let mode='rtg';
+  if(kind==='rtg-card'){RTG_TEST_EXCLUSIONS.delete(key);RTG_TEST_EXCLUSION_LABELS.delete(key);}
+  else if(kind==='rtg-manager'){RTG_TEST_MANAGER_EXCLUSIONS.delete(key);RTG_TEST_MANAGER_EXCLUSION_LABELS.delete(key);}
+  else if(kind==='rtg-pre-manager'){RTG_PRE_MANAGER_EXCLUSIONS.delete(key);RTG_PRE_MANAGER_EXCLUSION_LABELS.delete(key);renderRtgPreManagerExclusions();}
+  else if(kind==='sbc-card'){mode='sbc';SBC_TEST_EXCLUSIONS.delete(key);SBC_TEST_EXCLUSION_LABELS.delete(key);}
+  else return;
+  TEST_SEARCH_SCALE[mode]=1;_MANAGED_EXCLUSION_STATUS[mode]=null;saveLocal();renderManagedExclusions(mode);
+}
+function clearManagedExclusions(mode){
+  if(_TEST_ACTIVE_RUN)return;mode=mode==='rtg'?'rtg':'sbc';if(mode==='rtg'){RTG_TEST_EXCLUSIONS.clear();RTG_TEST_EXCLUSION_LABELS.clear();RTG_TEST_MANAGER_EXCLUSIONS.clear();RTG_TEST_MANAGER_EXCLUSION_LABELS.clear();RTG_PRE_MANAGER_EXCLUSIONS.clear();RTG_PRE_MANAGER_EXCLUSION_LABELS.clear();renderRtgPreManagerExclusions();TEST_SEARCH_SCALE.rtg=1;}else{SBC_TEST_EXCLUSIONS.clear();SBC_TEST_EXCLUSION_LABELS.clear();TEST_SEARCH_SCALE.sbc=1;}_MANAGED_EXCLUSION_STATUS[mode]={text:'All '+(mode==='rtg'?'RTG/WL':'SBC')+' exclusions cleared.',bad:false};saveLocal();renderManagedExclusions(mode);
 }
 // Backward-compatible names retained for any stale UI or saved-page calls.
 function redoSbcWithoutSelected(){redoTestWithoutSelected('sbc');}
@@ -24681,7 +24811,7 @@ function _renderPivotDbFreshness(){
   el.style.display=stale?'block':'none';
   el.textContent=stale?'⚠ Player DB changed since pivots were last analyzed. Re-analyze before trusting these rankings.':'';
 }
-function _pivMarkDbChanged(){_RTG_BEST_PLAYER_BASE_CACHE=null;_LIVE_CARD_CACHE=null;_LIVE_CARD_MAP=null;_CAL_RARITY_CTX_CACHE=null;try{renderCalTypeExclusions();}catch(e){}_renderPivotDbFreshness();}
+function _pivMarkDbChanged(){_RTG_BEST_PLAYER_BASE_CACHE=null;_RTG_FORCE_CARD_CATALOG=null;_MANAGED_EXCLUSION_CARD_CATALOG=null;_LIVE_CARD_CACHE=null;_LIVE_CARD_MAP=null;_CAL_RARITY_CTX_CACHE=null;try{renderCalTypeExclusions();}catch(e){}_renderPivotDbFreshness();}
 function runPivotAnalysis(){
   if(_PIVOT_AUTO_TIMER!==null){clearTimeout(_PIVOT_AUTO_TIMER);_PIVOT_AUTO_TIMER=null;}
   const box=$('#pivotResult');if(!box)return;
@@ -26148,6 +26278,7 @@ function _restoreMainSolveState(saved){
 function saveLocal(){
   try{const d=JSON.stringify({...buildState(),mainSolveState:_mainSolveStateForSave(),_v:_APP_VERSION});localStorage.setItem(_SAVE_KEY,d);sessionStorage.setItem(_SAVE_KEY,d);}catch(e){}
   if(typeof _wlMultiRefreshStaleState==='function')_wlMultiRefreshStaleState();
+  if(typeof refreshManagedExclusionButtons==='function')refreshManagedExclusionButtons();
 }
 function _cardsFromSaved(list){
   const used=new Set();
