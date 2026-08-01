@@ -202,13 +202,12 @@
         not mean no other bug could possibly exist — it's just guidance for what to check first.
      ================================================================================================ -->
 
-<!-- HANDOFF CHECKPOINT — v5.32.1
-     COMPLETED: repaired the WL/RTG separation at the actual payload boundary. WL now reads its own minimum directly, ignores the RTG Conditions list and forced-manager/formation state, and never silently falls back to the legacy RTG-compatible team-set route. A blank WL minimum stops before launching any worker with a direct “Enter the current WL minimum rating” message.
-     HARD BAND: Balanced WL uses an end-to-end hard player-rating band around each exact team target. Defaults are target -0 through target +1; the existing maximum control now defaults to +1 and the new minimum-below-target control defaults to 0. Initial cores, Repairs 1–3, manager switching, clash reruns and final rendering all fail closed if a non-probe XI leaves its assigned band. There is no widening fallback. Optional paired outside-band probes are off by default and require both a below-band and an above-band card in the same exact-rating portfolio.
-     SEARCH SPEEDS: WL now exposes Fast / Normal / Slow. Normal is the former Fast route; Slow is the former Full route; the new Fast route uses a much smaller finalist/core/formation slice while retaining one pooled Repair 1 plus Repairs 2–3. Stop asks for confirmation and prints any completed independent teams or allocated set found so far, clearly marked as partial and not necessarily overlap-free.
-     WL-ONLY MANAGERS: manager exclusions are now WL-local and visible outside the advanced team-set dropdown. The capability ladder and every worker/switch route use the WL-only exclusion set. RTG Conditions, forced manager, no-manager choice and formation scope remain untouched.
-     BENCHMARK: added the 33.9-second forced RTG [90,91] Del Bosque 4-4-2 result as the canonical WL-90 synthetic search anchor. Its 89.867% model win, 7.594 expected duel points, 11-0 simple benchmark and clean Emma Ramirez 90 -> 91/91/91 budget slot are the minimum structural shape the unrestricted WL search should recover or improve unless cross-team card allocation requires a justified replacement.
-     NEXT: run Fast Balanced WL with minimum 87 automatic and exact 90. Verify every printed card is inside its assigned hard band before judging manager-family/core quality. Then compare the rating-90 result against the new synthetic anchor and the three screenshot-backed WL benchmarks.
+<!-- HANDOFF CHECKPOINT — v5.32.6
+     COMPLETED: retained the v5.32.5 WL execution/preset/repair cleanup and fixed the last WL-only persistence hole. The final objective/reset wrappers now write the hard-band and WL-manager-exclusion stores directly instead of attempting to call the private _wl32Save closure from outside its scope.
+     PRESET / QUALITY: default WL ranking is Overperformance → expected score gap → best-axis balance → modelled win probability. Manager Mode is a separate WL-only score-gap/balance preset. Better disjoint same-target XIs cannot be displaced merely to preserve manager-family variety outside Manager Mode.
+     REPAIR / 3+1: allocated core teams and the frozen reserve run unused-player repair by default. Other completed teams remain fixed; only Balance all 4 may redistribute cards. A reserve failure is explicit rather than silently deleting the set.
+     RATINGS / UI: automatic ratings use the strongest suggestion with +1 and −1, or +1/+2 when −1 is below the minimum; high-minimum targets remain finite. Previous results hide immediately during a new search and return only through Stop.
+     NEXT: rerun the reported auto 89/88/90 + reserve case and export it. Final unused-player repair should be enabled with nonzero checks. Any surviving own-edge ≤0 or low-chem card should then have a recorded no-improvement result rather than having escaped repair entirely.
 -->
 
 <!-- RELEASE CHECKPOINT — v1.7.0
@@ -836,7 +835,7 @@
 
 <!-- VERSION: bump this AND the matching v-number in the <h1><span> below on every patch, however
      small — see the longer note next to the <h1> for why this matters. -->
-<title>Pacwyn Solver v5.32.1</title>
+<title>Pacwyn Solver v5.32.6</title>
 <!-- ABOUT THIS APP / DATA SOURCE:
      This tool is for PACWYN, a game that heavily parallels EA FC but is NOT FC — it uses FC's
      real player cards as a base and adds its own exclusive cards on top. That's why FC data is a
@@ -9101,7 +9100,11 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
 <!-- v5.32.0 — STANDALONE WL WORKFLOW / INDEPENDENT CORE ALLOCATION / CAPABILITY MANAGER LADDER. Balanced score extraction now searches each requested team rating independently from the full pool, preserves manager-family representatives, then chooses the strongest disjoint set across every target order; only clashing teams receive bounded exclusion reruns, so build order no longer decides contested cards and duplicate rating targets can use distinct cores. Default manager selection is capability-driven after active exclusions: nation/dual first, then club/league, then position, then remaining no-boost managers, while dual managers are ranked by actual eligible player/formation opportunity rather than rule count. Added a WL-tab manager-exclusion editor backed by the existing RTG/WL exclusion sets. RTG paths are unchanged. -->
 <!-- v5.31.29 — HARD BALANCED-WL RATING BANDS / AUTOMATIC ADJACENT TARGETS / INDEPENDENT CORE DEFAULT. Balanced score extraction now resolves blank core ratings to an adjacent target spread (minimum 87 defaults to 90/91/89) and hard-enforces each target through target+1 across initial search, Repairs 1–3, manager switching and optional cross-team rebalance; higher-cap probes are disabled. Fixed the prior cap-marker removal that allowed 93s into exact-90 teams. Cross-team unused-player rebalance is now off by default for Balanced WL but remains optional and is enabled by Maximum win certainty. Display as current XI opens the WL tab and scrolls to the XI. RTG logic/settings are unchanged. -->
 <!-- v5.32.1 — WL HARD-BAND WIRING / CONDITION ISOLATION / THREE SPEEDS / PARTIAL STOP. Fixed the standalone WL tab still falling through the legacy RTG-compatible path whenever old RTG Conditions remained active. WL now ignores RTG Conditions, forced-manager/no-manager state and RTG formation limits; a blank minimum stops before launch. Balanced WL hard-enforces configurable target-minus / target-plus card bands end-to-end, defaults to 0/+1, removes silent widening, and adds optional paired below+above probes. Added Fast/Normal/Slow routes, WL-only manager exclusions outside advanced options, partial results on confirmed Stop, and the 33.9-second Del Bosque [90,91] synthetic WL-90 anchor. RTG behavior is unchanged. -->
-<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.32.1</span></h1>
+<!-- v5.32.3 — WL CUSTOM ORDER / ADAPTIVE 3+1 RESERVE / FINAL-ATTEMPT MINI-GAMES. Added a WL-only up/down editor for the selected completed-XI comparison preset, persisted separately per preset and applied without changing RTG settings. The 3+1 route now freezes teams 1–3 and searches several feasible hard rating bands derived from the unused exact-card-type pool instead of forcing the reserve into the core teams’ median band; only Balance all 4 may reallocate across all four teams. Kick Word and Hidden Player now hide the pool splitter when one attempt remains, while keeping the highest-rated possible answer. Updated title and visible version to v5.32.3. -->
+<!-- v5.32.4 — WL PRESET / ALLOCATION / REPAIR AUDIT. Made Overperformance → score gap → best-axis balance → win probability the default WL order while keeping a WL-only Manager Mode alternative. Removed the RTG-preset write on WL tab changes; made independent allocation keep a better disjoint target XI instead of rewarding manager diversity; enabled unused-player cleanup by default for allocated cores and the frozen reserve; fixed automatic adjacent ratings, objective-gated hard bands, high-minimum finite targets, progress, running-result visibility, WL reset/persistence and centred manager exclusions. The Custom panel now augments rather than replaces its original controls, and the stale appendix snapshot is explicitly archival. -->
+<!-- v5.32.5 — WL EXECUTION/PRESET CLEANUP. Removed the historical v5.32.2 appendix patch that was still executing before the live tail and could reintroduce stale grid/UI/objective behavior. A new WL run now clears the previous result panel immediately; Stop remains the route that restores the prior completed set. Retained the v5.32.4 default Overperformance → score gap → balance → win order, disjoint same-target quality lock, default unused-player repair, objective-gated hard bands, adjacent automatic ratings and WL-only persistence/reset. -->
+<!-- v5.32.6 — WL-LOCAL PERSISTENCE CLOSURE FIX. The final WL objective and reset wrappers now persist the below/above rating-band values, paired-probe settings and WL-only manager exclusions through their actual localStorage keys. This removes the false external _wl32Save call, so changing presets or resetting WL cannot allow stale band/exclusion values to reappear after reload. No RTG settings are written or reset. -->
+<h1 class="cap">&#11041; Pacwyn Solver <span style="font-size:11px;opacity:.65;font-weight:500;letter-spacing:0">v5.32.6</span></h1>
   <div class="cap sub">pacwyn optimiser</div>
   <div class="headerCredits">Created by <b style="color:var(--ink)">Chenzo</b><span class="thanks">Special thanks to BWFCPackfan, Pacyswaz and PW_Alextrat</span></div>
 </header>
@@ -9657,7 +9660,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
         <div class="wl-objective-box">
           <label>Weekend League preset
             <select id="rtgWlObjective" onchange="setRtgWlObjective(this.value)" aria-describedby="rtgWlObjectiveStatus">
-              <option value="score" selected>Balanced score extraction · recommended</option>
+              <option value="score" selected>Overperformance first · recommended</option>
               <option value="certainty">Maximum win certainty · 30-win safety</option>
               <option value="custom">Custom Advanced settings</option>
             </select>
@@ -9752,7 +9755,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
             </label>
             <label>Cross-team unused-player rebalance
               <select id="rtgWlMultiFinalRepairEnabled" onchange="setRtgWlMultiFinalRepairEnabled(this.value)">
-                <option value="0" selected>Off · recommended for Balanced WL</option><option value="1">On · rebalance across completed teams</option>
+                <option value="0">Off</option><option value="1" selected>On · repair weak/equal slots from unused cards</option>
               </select>
             </label>
             <label>Accepted repair packages
@@ -9815,6 +9818,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
       </details>
 
       <div id="rtgWlMultiOut" class="rtg-wl-multi-output"></div>
+      <div id="wlCurrentXiPanel" class="panel wl-current-xi-panel" style="display:none;margin-top:12px"><h2>Current WL XI</h2><div class="tiny">WL-local squad display and substitution tools. RTG results remain in the RTG tab.</div><div id="wlCurrentXiOut" style="margin-top:10px"></div></div>
     </div>
   </div>
 </div>
@@ -10366,7 +10370,7 @@ END RTG/WL SEARCH MODEL CONCEPT NOTE -->
   <div class="mg-game" id="mg-word">
     <div class="panel">
       <h2>Kick Word</h2>
-      <div class="tiny">Set the answer length, enter each past guess, then tap letters to cycle Gray → Yellow → Green. Tap any saved guess to edit it. The default name pool requires a base Gold/Silver/Bronze card or an Icon/Hero identity; promo-only normal names are excluded because the game does not consistently accept them.</div>
+      <div class="tiny">Set the answer length, enter each past guess, then tap letters to cycle Gray → Yellow → Green. Tap any saved guess to edit it. Uses men’s normal-player names only. A base Gold/Silver/Bronze rating is used when that identity has one; otherwise its lowest normal special is used. Icons and Heroes are excluded.</div>
       <label class="mg-inline-toggle"><input id="mgWordIncludePromoOnly" type="checkbox" onchange="_mgWordPoolModeChanged()"> Include promo-only normal names for manual fallback</label>
       <div class="row" style="margin:9px 0"><button class="btn gho sm" type="button" onclick="_mgOcrPick('word')">📷 Import Kick Word board</button><input id="mgWordOcrFile" type="file" accept="image/*" style="display:none" onchange="_mgWordOcrFile(this.files&&this.files[0])"></div><div id="mgWordOcrReview"></div><div class="tiny">PACWYN may mark a duplicate letter yellow even when the answer contains only one copy.</div>
       <div class="mg-grid2">
@@ -11686,7 +11690,7 @@ function _wlMultiDisplayProgress(message,detail,routeProgress,routeMessage){
   const out=$('#rtgWlMultiOut');if(!out)return;const run=_WL_MULTI_ACTIVE,elapsed=run?((Date.now()-run.started)/1000).toFixed(1):'0.0',previous=run&&run.previousSet,whole=_wlMultiWholeProgress(message,detail,routeProgress,run),routeLine=_wlMultiCurrentTeamStatus(routeMessage),wholeLine='<br><b>Whole WL set estimate:</b> ≈ '+Math.max(0,Math.min(99,Math.round(Number(whole)||0)))+'% <span style="color:var(--mut)">· conservative outer-stage estimate across team searches, balancing and final repair.</span>',summary=[];
   if(!routeLine&&detail)summary.push(esc(detail));
   if(run){summary.push(run.searches+' completed route'+(run.searches===1?'':'s'));summary.push(run.candidateRows.size+' unique availability-set candidate'+(run.candidateRows.size===1?'':'s'));summary.push(elapsed+' seconds elapsed');}
-  const retained=previous?'<div class="note" style="margin-top:9px"><b>Previous completed set retained while rebuilding.</b><br><span class="tiny">It remains available below. It will be replaced only after the new set finishes successfully; Stop or a failed route restores it unchanged.</span></div>'+_wlMultiDisplayHtml(previous):'';
+  const retained='';
   out.innerHTML='<div class="note" style="border-color:var(--cyan)"><b>'+esc(message)+'</b><br><span class="tiny">'+summary.join(' · ')+wholeLine+routeLine+'</span></div>'+retained;
 }
 function _wlMultiClonePayload(base,all,excludedSignature,config,variant){
@@ -31949,7 +31953,7 @@ const oldReset20=window._mgLinksReset;window._mgLinksReset=function(){if(typeof 
 let RTG_WL_MULTI_RATING_PLAN='direct',RTG_WL_MULTI_RATING_SAME=90,RTG_WL_MULTI_RATING_VALUES=[null,null,null],RTG_WL_MULTI_RATING_CENTER=90;
 let _WL25_ACTIVE_PLAN=null,_WL25_MULTI_LAUNCHING=false;
 const _WL25_RATING_KEY='pacwyn_wl_rating_plan_v1';
-function _wl25SetModeFromTab(enabled){RTG_WL_MODE=!!enabled;if(!RTG_WL_MODE){_setRtgWlMinimumRunBanner(false);_setRtgWlMultiMinimumRunBanner(false);}_saveRtgWlMode();applyRtgModelPreset(RTG_WL_MODE?'win':'winfirst');renderRtgModeUi();}
+function _wl25SetModeFromTab(enabled){RTG_WL_MODE=!!enabled;if(!RTG_WL_MODE){_setRtgWlMinimumRunBanner(false);_setRtgWlMultiMinimumRunBanner(false);}_saveRtgWlMode();renderRtgModeUi();}
 function _wl25ClampRating(value,fallback){const n=Math.round(Number(value));return Number.isFinite(n)?Math.max(1,Math.min(105,n)):fallback;}
 function _wl26OptionalRating(value){if(value==null||String(value).trim()==='')return null;const n=Math.round(Number(value));return Number.isFinite(n)?Math.max(1,Math.min(105,n)):null;}
 function _wl25SaveRatingPlan(){try{localStorage.setItem(_WL25_RATING_KEY,JSON.stringify({plan:'direct',values:RTG_WL_MULTI_RATING_VALUES.slice(0,3)}));}catch(e){}}
@@ -32065,7 +32069,7 @@ _wl25RetargetSafetyCap=function(payload,target){return _wl29ApplyBalancedBand(_w
 const _wl29OldTargetForLabel=_wl25TargetForSearchLabel;
 _wl25TargetForSearchLabel=function(label){const target=_wl29OldTargetForLabel(label);if(Number.isFinite(target)||RTG_WL_OBJECTIVE!=='score')return target;const p=_WL25_ACTIVE_PLAN;if(p&&/independent fourth reserve|reserve team 4|leftover|stage\s+4\s+of\s+4/i.test(String(label||''))&&Number.isFinite(p.fourthTarget))return p.fourthTarget;return target;};
 const _wl29OldSearchJob=_wlMultiSearchJob;
-_wlMultiSearchJob=async function(excluded,label){const record=await _wl29OldSearchJob(excluded,label),target=_wl25TargetForSearchLabel(label);if(record&&Number.isFinite(target)){record.rows=(record.rows||[]).filter(row=>_wl29BandOk(row,target));if(!record.rows.length&&!record.error){const b=_wl29BandForTarget(target);record.error='No XI remained inside the hard Balanced WL player band '+b.min+'–'+b.max+'.';}}return record;};
+_wlMultiSearchJob=async function(excluded,label){const record=await _wl29OldSearchJob(excluded,label),target=_wl25TargetForSearchLabel(label);if(record&&RTG_WL_OBJECTIVE==='score'&&Number.isFinite(target)){record.rows=(record.rows||[]).filter(row=>_wl29BandOk(row,target));if(!record.rows.length&&!record.error){const b=_wl29BandForTarget(target);record.error='No XI remained inside the hard WL player band '+b.min+'–'+b.max+'.';}}return record;};
 
 const _wl29OldSetObjective=setRtgWlObjective;
 setRtgWlObjective=function(value){const v=['score','certainty','custom'].includes(String(value))?String(value):'score';_wl29OldSetObjective(v);if(v==='score'){RTG_WL_MULTI_FINAL_REPAIR_ENABLED=false;_wl27ApplyGuardDefaults('score');}else if(v==='certainty'){RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true;_wl27ApplyGuardDefaults('certainty');}_saveRtgWlMultiSettings();renderRtgWlMultiUi();_wlMultiRefreshStaleState();};
@@ -32128,17 +32132,16 @@ window.clearWlManagerExclusions=function(){
 
 function _wl30ManagerKey(row){return _testManagerKey(row&&row.state&&row.state.mgr||{});}
 function _wl30CoreRows(rows,config){
-  const sorted=(rows||[]).slice().sort(_wlMultiStateCmp),limit=Math.max(3,Math.min(sorted.length,config.quick?5:config.style==='fast'?12:20)),byManager=new Map();
-  for(const row of sorted){const key=_wl30ManagerKey(row)||'none';if(!byManager.has(key))byManager.set(key,row);}
-  const reps=Array.from(byManager.values()).sort(_wlMultiStateCmp),chosen=[],seen=new Set();
-  for(const row of reps){if(chosen.length>=limit)break;chosen.push(row);seen.add(row.availabilitySig);}
+  const sorted=(rows||[]).slice().sort(_wlMultiStateCmp),limit=Math.max(3,Math.min(sorted.length,config.quick?5:config.style==='fast'?12:20)),qualityKeep=Math.min(limit,config.quick?3:config.style==='fast'?7:12),chosen=sorted.slice(0,qualityKeep),seen=new Set(chosen.map(r=>r.availabilitySig)),seenManagers=new Set(chosen.map(_wl30ManagerKey));
+  for(const row of sorted){if(chosen.length>=limit)break;const key=_wl30ManagerKey(row)||'none';if(seen.has(row.availabilitySig)||seenManagers.has(key))continue;chosen.push(row);seen.add(row.availabilitySig);seenManagers.add(key);}
   const remaining=sorted.filter(r=>!seen.has(r.availabilitySig)),diverse=_wlMultiSelectDiverseRows(remaining,Math.max(0,limit-chosen.length));
   return chosen.concat(diverse).slice(0,limit);
 }
 function _wl30ManagerDiversity(rows){return new Set((rows||[]).map(_wl30ManagerKey)).size;}
 function _wl30SetBetter(a,b){
   if(!a)return false;if(!b)return true;if(_wlMultiSetBetter(a,b))return true;if(_wlMultiSetBetter(b,a))return false;
-  const ad=_wl30ManagerDiversity(a.rows),bd=_wl30ManagerDiversity(b.rows);if(ad!==bd)return ad>bd;
+  let managerMode=false;try{managerMode=RTG_WL_OBJECTIVE==='custom'&&localStorage.getItem('pacwyn_wl_local_model_preset_v1')==='manager';}catch(_e){}
+  if(managerMode){const ad=_wl30ManagerDiversity(a.rows),bd=_wl30ManagerDiversity(b.rows);if(ad!==bd)return ad>bd;}
   return _wlMultiSetSignature(a.rows)<_wlMultiSetSignature(b.rows);
 }
 function _wl30SetBeam(states,limit){
@@ -32166,7 +32169,9 @@ async function _wl30AllocateIndependent(lists,run,total){
     }
     complete.push(...states.filter(s=>s.rowsBySlot.every(Boolean)));
   }
-  const best=_wl30SetBeam(complete,1)[0];return best?{rows:best.rowsBySlot}:null;
+  const best=_wl30SetBeam(complete,1)[0];if(!best)return null;const rows=best.rowsBySlot.slice(),restored=[];
+  for(let pass=0;pass<lists.length;pass++){let changed=false;for(let slot=0;slot<rows.length;slot++){const current=rows[slot],others=rows.filter((_,i)=>i!==slot);for(let rank=0;rank<(lists[slot]||[]).length;rank++){const candidate=lists[slot][rank];if(!candidate||_wlMultiStateCmp(candidate,current)>=0||!_wl30RowDisjointFrom(candidate,others))continue;rows[slot]=candidate;restored.push({team:slot+1,rank:rank+1});changed=true;break;}}if(!changed)break;}
+  run.wlIndependentRestores=restored;return{rows};
 }
 
 async function _wl30RunBalanced(style,plan){
@@ -32178,7 +32183,7 @@ async function _wl30RunBalanced(style,plan){
   const mode=RTG_WL_MULTI_FOURTH_MODE;let base;const oldFormationLimit=RTG_FORMATION_LIMIT_ENABLED;try{RTG_FORMATION_LIMIT_ENABLED=false;base=_testBuildWorkerPayload('rtg',1);}finally{RTG_FORMATION_LIMIT_ENABLED=oldFormationLimit;}if(base.error){if(out)out.innerHTML='<div class="note" style="border-color:var(--bad)">'+esc(base.error)+'</div>';return;}
   base.conds=[];base.forms=FORMS.slice();base.rtgFormationScope={enabled:false,names:[]};base.rtgForceManagerKey='';base.rtgNoManagers=false;base.managerExcluded=Array.from(typeof _wl32OwnManagerExclusions==='function'?_wl32OwnManagerExclusions():[]);base.rtgModelSettings=_wl27ObjectiveSettings(base.rtgModelSettings,RTG_WL_OBJECTIVE);
   const runSettings=_rtgRunSettingsSnapshot(base),ctx={conds:(base.conds||[]).slice(),runSettings,searchModel:String(base.rtgModelSettings&&base.rtgModelSettings.searchModel||'classic')},run={started:Date.now(),worker:null,rejectCurrent:null,base,config,ctx,mode,searchStyle,wlFreePurpose:true,cache:new Map(),candidateRows:new Map(),searches:0,wholeProgress:0,cancelled:false,previousSet:_WL_MULTI_LAST,snapshot:_wlMultiCurrentSnapshot(),ratingPlan:p,wlObjective:RTG_WL_OBJECTIVE,wlIndependentCoreAllocation:true,partialRows:[],completedTeams:[]};
-  _WL_MULTI_TERMINAL_HTML='';_WL_MULTI_ACTIVE=run;_setTestBusy(true);renderRtgWlMultiUi();const cancelled=()=>run.cancelled||run!==_WL_MULTI_ACTIVE,total=mode==='balanced'?4:3;
+  _WL_MULTI_TERMINAL_HTML='';_WL_MULTI_ACTIVE=run;if(out)out.innerHTML='';_setTestBusy(true);renderRtgWlMultiUi();const cancelled=()=>run.cancelled||run!==_WL_MULTI_ACTIVE,total=mode==='balanced'?4:3;
   try{
     const lists=[];for(let slot=0;slot<total;slot++){
       _wlMultiDisplayProgress('Independent core '+(slot+1)+'/'+total,'Searching this exact rating from the full eligible pool; no earlier team has consumed cards.');if(slot===0)_wlMultiScrollProgressIntoView();
@@ -32186,13 +32191,13 @@ async function _wl30RunBalanced(style,plan){
     }
     _wlMultiDisplayProgress('Allocating independent cores','Resolving exact card-type clashes across every target order. Only an unresolved clashing team is rerun against occupied cards.');
     let best=await _wl30AllocateIndependent(lists,run,total);if(cancelled())throw new Error('cancelled');if(!best||best.rows.length!==total)throw new Error('No disjoint WL set could be allocated from the independent cores at this effort.');
-    run.completedTeams=best.rows.slice();const mainCount=mode==='balanced'?4:3,mainRows=best.rows.slice(0,mainCount),switchResult=await _wlMultiManagerSwitchRepair(mainRows,mode==='balanced'?'balanced':'skip',run,{stageLabel:'Independent cores manager-switch repair'});if(cancelled())throw new Error('cancelled');let teams=switchResult.teams.slice();run.completedTeams=teams.slice();
-    run.wlUnusedRepair=_wlMultiCombineRepairMeta([]);run.wlManagerSwitch=_wlMultiCombineManagerSwitchMeta([switchResult.meta]);run.wlAllocation={independent:true,targets:(p.targets||[]).slice(),managerFamilies:new Set(teams.map(_wl30ManagerKey)).size};
+    run.completedTeams=best.rows.slice();const mainCount=mode==='balanced'?4:3,mainRows=best.rows.slice(0,mainCount),mainRepair=await _wlMultiFinalUnusedPlayerRepair(mainRows,mode==='balanced'?'balanced':'skip',run,{stageLabel:mode==='balanced'?'Allocated teams 1–4 unused-player repair':'Allocated main teams 1–3 unused-player repair'});if(cancelled())throw new Error('cancelled');const switchResult=await _wlMultiManagerSwitchRepair(mainRepair.teams,mode==='balanced'?'balanced':'skip',run,{stageLabel:'Independent cores manager-switch repair'});if(cancelled())throw new Error('cancelled');let teams=switchResult.teams.slice();run.completedTeams=teams.slice();
+    run.wlUnusedRepair=_wlMultiCombineRepairMeta([mainRepair.meta]);run.wlManagerSwitch=_wlMultiCombineManagerSwitchMeta([switchResult.meta]);run.wlAllocation={independent:true,targets:(p.targets||[]).slice(),managerFamilies:new Set(teams.map(_wl30ManagerKey)).size,restoredBetterDisjoint:(run.wlIndependentRestores||[]).slice()};
     if(mode!=='balanced'){
       run._wl27CoreTeams=teams.slice(0,3);run._wl27CoreRepairMeta=run.wlUnusedRepair;run._wl27CoreSwitchMeta=run.wlManagerSwitch;
       if(mode==='leftover'){
-        _wlMultiDisplayProgress('Stage 4 of 4 · quick reserve from allocated leftovers','The completed main three are frozen. The reserve receives the configured quick/deep reserve route only from unused exact card types.');
-        const reserveJob=await _wlMultiSearchJob(_wlMultiUnionAvailability(teams),'Stage 4 of 4 · independent fourth reserve from allocated-core leftovers');if(cancelled())throw new Error('cancelled');const reserve=(reserveJob.rows||[])[0];if(reserve){const reserveSwitch=await _wlMultiManagerSwitchRepair([reserve],'skip',run,{stageLabel:'Reserve team 4 manager-switch repair',fixedRows:teams,teamOffset:3});if(cancelled())throw new Error('cancelled');teams.push(reserveSwitch.teams[0]);run.completedTeams=teams.slice();run.wlManagerSwitch=_wlMultiCombineManagerSwitchMeta([switchResult.meta,reserveSwitch.meta]);}
+        _wlMultiDisplayProgress('Stage 4 of 4 · reserve from allocated leftovers','The completed main three are frozen. The reserve searches and repairs only unused exact card types.');
+        const reserveJob=await _wlMultiSearchJob(_wlMultiUnionAvailability(teams),'Stage 4 of 4 · independent fourth reserve from allocated-core leftovers');if(cancelled())throw new Error('cancelled');const reserve=(reserveJob.rows||[])[0];if(reserve){const reserveRepair=await _wlMultiFinalUnusedPlayerRepair([reserve],'skip',run,{stageLabel:'Reserve team 4 unused-player repair',fixedRows:teams,teamOffset:3});if(cancelled())throw new Error('cancelled');const reserveSwitch=await _wlMultiManagerSwitchRepair(reserveRepair.teams,'skip',run,{stageLabel:'Reserve team 4 manager-switch repair',fixedRows:teams,teamOffset:3});if(cancelled())throw new Error('cancelled');teams.push(reserveSwitch.teams[0]);run.completedTeams=teams.slice();run.wlUnusedRepair=_wlMultiCombineRepairMeta([mainRepair.meta,reserveRepair.meta]);run.wlManagerSwitch=_wlMultiCombineManagerSwitchMeta([switchResult.meta,reserveSwitch.meta]);}else run.wlReserveFailure=reserveJob.error||'No valid reserve XI was found from unused cards.';
       }
     }
     _wlMultiRenderResult(teams,mode,run);
@@ -32252,7 +32257,7 @@ _wlMultiClonePayload=function(base,all,excludedSignature,config,variant){const p
 
 // Optional paired probe: widen both sides together and keep only portfolios that actually use both sides.
 const _wl32OldSearchJob=_wlMultiSearchJob;
-_wlMultiSearchJob=async function(excludedAvailability,label){const baseRecord=await _wl32OldSearchJob(excludedAvailability,label),run=_WL_MULTI_ACTIVE,target=_wl25TargetForSearchLabel(label),depth=Math.max(0,Math.min(3,Number(RTG_WL_HIGH_GUARD_PROBE_DEPTH)||0));if(!run||!Number.isFinite(target)||!depth)return baseRecord;run.wlPairedProbeCache=run.wlPairedProbeCache||new Map();const sig=_wlMultiAvailabilitySignature(excludedAvailability)+'|'+target+'|'+depth+'|'+label;if(run.wlPairedProbeCache.has(sig)){const extra=await run.wlPairedProbeCache.get(sig);return _wl32MergeProbeRows(baseRecord,extra);}const task=(async()=>{const rows=[];for(let d=1;d<=depth;d++){if(run.cancelled||run!==_WL_MULTI_ACTIVE)throw new Error('cancelled');const all=run.base.all.filter(c=>!excludedAvailability.has(_wlMultiAvailabilityKey(c))),payload=_wlMultiClonePayload(run.base,all,_wlMultiAvailabilitySignature(excludedAvailability),Object.assign({},run.config,{effort:Math.max(1,Number(RTG_WL_HIGH_GUARD_PROBE_EFFORT)||1)}),{teamRating:target,tag:'paired-band-'+d}),b=_wl32BandForTarget(target,d);payload.conds=(payload.conds||[]).filter(c=>!(c&&(c._wl29BalancedBand||c._rtgWlSafetyCap||c._wl27BalancedFloor)));payload.conds.push({id:'wl-paired-min-'+target+'-'+d,kind:'player_rating',op:'gte',value:b.min,_rtgOwnOnly:true,_wl29BalancedBand:true,_wl32PairedProbe:true});payload.conds.push({id:'wl-paired-max-'+target+'-'+d,kind:'player_rating',op:'lte',value:b.max,_rtgOwnOnly:true,_wl29BalancedBand:true,_wl32PairedProbe:true});const m=await _wlMultiRunWorker(payload,label+' · paired outside-band probe '+d+'/'+depth,run);const found=_wlMultiRowsFromResult(m&&m.res,run.ctx);for(const row of found){const ratings=(row.state.pick||[]).map(c=>Number(c.rating));if(!ratings.some(r=>r<b.baseMin)||!ratings.some(r=>r>b.baseMax))continue;row.wlTargetRating=target;row.wlBandProbe={distance:d,baseMin:b.baseMin,baseMax:b.baseMax,min:b.min,max:b.max};row.conds=payload.conds.map(c=>Object.assign({},c));rows.push(row);const key=row.availabilitySig+'|rating:'+target+'|paired:'+d,old=run.candidateRows.get(key);if(!old||_wlMultiStateCmp(row,old)<0)run.candidateRows.set(key,row);}}return rows.sort(_wlMultiStateCmp);})();run.wlPairedProbeCache.set(sig,task);return _wl32MergeProbeRows(baseRecord,await task);};
+_wlMultiSearchJob=async function(excludedAvailability,label){const baseRecord=await _wl32OldSearchJob(excludedAvailability,label),run=_WL_MULTI_ACTIVE,target=_wl25TargetForSearchLabel(label),depth=Math.max(0,Math.min(3,Number(RTG_WL_HIGH_GUARD_PROBE_DEPTH)||0));if(!run||RTG_WL_OBJECTIVE!=='score'||!Number.isFinite(target)||!depth)return baseRecord;run.wlPairedProbeCache=run.wlPairedProbeCache||new Map();const sig=_wlMultiAvailabilitySignature(excludedAvailability)+'|'+target+'|'+depth+'|'+label;if(run.wlPairedProbeCache.has(sig)){const extra=await run.wlPairedProbeCache.get(sig);return _wl32MergeProbeRows(baseRecord,extra);}const task=(async()=>{const rows=[];for(let d=1;d<=depth;d++){if(run.cancelled||run!==_WL_MULTI_ACTIVE)throw new Error('cancelled');const all=run.base.all.filter(c=>!excludedAvailability.has(_wlMultiAvailabilityKey(c))),payload=_wlMultiClonePayload(run.base,all,_wlMultiAvailabilitySignature(excludedAvailability),Object.assign({},run.config,{effort:Math.max(1,Number(RTG_WL_HIGH_GUARD_PROBE_EFFORT)||1)}),{teamRating:target,tag:'paired-band-'+d}),b=_wl32BandForTarget(target,d);payload.conds=(payload.conds||[]).filter(c=>!(c&&(c._wl29BalancedBand||c._rtgWlSafetyCap||c._wl27BalancedFloor)));payload.conds.push({id:'wl-paired-min-'+target+'-'+d,kind:'player_rating',op:'gte',value:b.min,_rtgOwnOnly:true,_wl29BalancedBand:true,_wl32PairedProbe:true});payload.conds.push({id:'wl-paired-max-'+target+'-'+d,kind:'player_rating',op:'lte',value:b.max,_rtgOwnOnly:true,_wl29BalancedBand:true,_wl32PairedProbe:true});const m=await _wlMultiRunWorker(payload,label+' · paired outside-band probe '+d+'/'+depth,run);const found=_wlMultiRowsFromResult(m&&m.res,run.ctx);for(const row of found){const ratings=(row.state.pick||[]).map(c=>Number(c.rating));if(!ratings.some(r=>r<b.baseMin)||!ratings.some(r=>r>b.baseMax))continue;row.wlTargetRating=target;row.wlBandProbe={distance:d,baseMin:b.baseMin,baseMax:b.baseMax,min:b.min,max:b.max};row.conds=payload.conds.map(c=>Object.assign({},c));rows.push(row);const key=row.availabilitySig+'|rating:'+target+'|paired:'+d,old=run.candidateRows.get(key);if(!old||_wlMultiStateCmp(row,old)<0)run.candidateRows.set(key,row);}}return rows.sort(_wlMultiStateCmp);})();run.wlPairedProbeCache.set(sig,task);return _wl32MergeProbeRows(baseRecord,await task);};
 function _wl32MergeProbeRows(record,extra){const map=new Map();for(const row of [].concat(record&&record.rows||[],extra||[])){const key=row.availabilitySig||_wlMultiAvailabilitySignature(row.availability||_wlMultiAvailabilitySet(row)),old=map.get(key);if(!old||_wlMultiStateCmp(row,old)<0)map.set(key,row);}const rows=Array.from(map.values()).sort(_wlMultiStateCmp);return Object.assign({},record||{},{rows,error:rows.length?'':String(record&&record.error||'')});}
 
 // Manager switch is allowed only if the switched XI remains legal for the assigned WL band.
@@ -32261,7 +32266,7 @@ _wlMultiManagerSwitchRepair=async function(teams,mode,run,options){const before=
 
 // Fail closed at the final output boundary. No fallback squad may be printed outside the requested band.
 const _wl32OldRenderResult=_wlMultiRenderResult;
-_wlMultiRenderResult=function(teams,mode,run){if(run&&['score','certainty','custom'].includes(String(run.wlObjective||''))){const bad=[];(teams||[]).forEach((row,i)=>{const target=Number(row&&row.wlTargetRating);if(!Number.isFinite(target)||!_wl32BandOk(row,target,true)){const b=Number.isFinite(target)?_wl32BandForTarget(target,0):null;bad.push('team '+(i+1)+(b?' expected '+b.min+'–'+b.max:''));}});if(bad.length){const out=document.getElementById('rtgWlMultiOut');_WL_MULTI_TERMINAL_HTML='<div class="note" style="border-color:var(--bad)"><b>WL hard-band validation failed.</b><br><span class="tiny">'+esc(bad.join(' · '))+'. No fallback or widened squad was saved. Please export/report this diagnostic.</span></div>';if(out)out.innerHTML=_WL_MULTI_TERMINAL_HTML;return;}}return _wl32OldRenderResult(teams,mode,run);};
+_wlMultiRenderResult=function(teams,mode,run){if(run&&String(run.wlObjective||'')==='score'){const bad=[];(teams||[]).forEach((row,i)=>{const target=Number(row&&row.wlTargetRating);if(!Number.isFinite(target)||!_wl32BandOk(row,target,true)){const b=Number.isFinite(target)?_wl32BandForTarget(target,0):null;bad.push('team '+(i+1)+(b?' expected '+b.min+'–'+b.max:''));}});if(bad.length){const out=document.getElementById('rtgWlMultiOut');_WL_MULTI_TERMINAL_HTML='<div class="note" style="border-color:var(--bad)"><b>WL hard-band validation failed.</b><br><span class="tiny">'+esc(bad.join(' · '))+'. No fallback or widened squad was saved. Please export/report this diagnostic.</span></div>';if(out)out.innerHTML=_WL_MULTI_TERMINAL_HTML;return;}}return _wl32OldRenderResult(teams,mode,run);};
 
 window._wl32StoppedPartialHtml=function(run){const rows=(run&&run.completedTeams&&run.completedTeams.length?run.completedTeams:run&&run.partialRows||[]).filter(Boolean);if(!rows.length)return '<div class="note" style="border-color:var(--warn)"><b>WL search stopped.</b><br><span class="tiny">No team had completed before the active worker was stopped.</span></div>';return '<div class="note" style="border-color:var(--warn)"><b>WL search stopped · '+rows.length+' completed team'+(rows.length===1?'':'s')+' shown below.</b><br><span class="tiny">These are the best completed teams available at the stop point. Before allocation finishes they may overlap and are not a completed WL set.</span></div><div class="rtg-wl-multi-grid">'+rows.map((r,i)=>_wlMultiTeamCard(r,i,'skip')).join('')+'</div>';};
 const _wl32OldStop=stopRtgWlMultiTeamSolver;
@@ -32279,5 +32284,325 @@ resetRtgWlDefaults=function(){_wl32OldReset();window.RTG_WL_LOW_GUARD_GAP=0;RTG_
 _wl32Load();RTG_WL_HIGH_GUARD_ENABLED=true;if(RTG_WL_OBJECTIVE==='score'&&!localStorage.getItem(_WL32_BAND_KEY)){window.RTG_WL_LOW_GUARD_GAP=0;RTG_WL_HIGH_GUARD_GAP=1;RTG_WL_HIGH_GUARD_PROBE_DEPTH=0;}_wl32Save();renderRtgWlMultiUi();
 })();
 </script>
+
+<style id="patch5322Style">
+/* v5.32.2 — final WL/minigame UI polish. */
+#v-wl .rtg-wl-quick-row{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;align-items:flex-end!important;gap:9px!important}
+#v-wl .rtg-wl-quick-row>label{flex:1 1 100%;max-width:280px;text-align:center}
+#v-wl .rtg-wl-quick-row>.btn{flex:0 1 220px;width:min(100%,220px)!important;min-height:46px}
+#v-wl #rtgWlMultiStopBtn{margin-inline:auto}
+#v-wl .wl-current-xi-panel{scroll-margin-top:88px}
+#v-wl .wl-local-preset-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:8px}
+#v-wl .wl-local-preset-priority{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:rgba(255,255,255,.025)}
+#v-wl .wl-local-preset-priority b{color:var(--cyan)}
+#mg-word .mg-inline-toggle[data-obsolete-kick-word-toggle="1"]{display:none!important}
+.mg-final-guess-note{color:var(--warn);text-align:center;margin:5px 0 10px}
+.mg-dual-suggestions.mg-final-answer-only{grid-template-columns:minmax(0,1fr)!important;max-width:520px;margin-inline:auto}
+@media(max-width:520px){#v-wl .rtg-wl-quick-row>.btn{flex-basis:100%;max-width:280px}#v-wl .rtg-wl-quick-row>label{max-width:280px}}
+</style>
+
+<script id="patch5322">
+/* v5.32.2 — WL workflow completion and mini-game regression fixes. */
+(function(){
+'use strict';
+const q=id=>document.getElementById(id);
+const htmlEsc=v=>typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+
+/* ---------------- WL-local preset and current-XI workflow ---------------- */
+const WL_LOCAL_PRESET_KEY='pacwyn_wl_local_model_preset_v1';
+let WL_LOCAL_MODEL_PRESET='balanced';
+let WL_CURRENT_XI_MODE=false;
+const WL_PRESET_LABELS={
+  wl:'Score gap first',balanced:'Overperformance first',winfirst:'Win first · optimized opponents',manager:'Manager coverage / axis depth',win:'Maximum win certainty',rating:'Prefer lower team rating',ratingHigh:'Prefer higher team rating',chem:'Chemistry safety'
+};
+function loadWlLocalPreset(){try{const v=localStorage.getItem(WL_LOCAL_PRESET_KEY);if(v&&WL_PRESET_LABELS[v])WL_LOCAL_MODEL_PRESET=v;}catch(_e){}}
+function saveWlLocalPreset(){try{localStorage.setItem(WL_LOCAL_PRESET_KEY,WL_LOCAL_MODEL_PRESET);}catch(_e){}}
+function wlPresetOrderText(){const p=(typeof _RTG_MODEL_PRESETS!=='undefined'&&_RTG_MODEL_PRESETS[WL_LOCAL_MODEL_PRESET])||null;if(!p)return'';return (p.order||[]).map((id,i)=>(i+1)+'. '+((typeof _RTG_CRITERIA_LABELS!=='undefined'&&_RTG_CRITERIA_LABELS[id])||id)).join(' · ');}
+window.setWlLocalModelPreset=function(value){value=String(value||'balanced');WL_LOCAL_MODEL_PRESET=WL_PRESET_LABELS[value]?value:'balanced';saveWlLocalPreset();renderWlLocalPresetUi();if(typeof _saveRtgWlMultiSettings==='function')_saveRtgWlMultiSettings();};
+function ensureWlLocalUi(){
+  const panel=q('wlCustomAdvancedPanel');if(panel){
+    const body=panel.querySelector('.rtg-wl-option-body');
+    if(body&&!q('wlLocalModelPreset')){
+      const block=document.createElement('div');block.id='wlLocalModelPresetBlock';block.innerHTML='<div class="tiny">Choose the completed-XI comparison preset used only by WL. Hard rating bands, WL manager exclusions, independent team allocation and WL Repairs 1–3 remain active. RTG settings and Conditions are not changed.</div>'+
+      '<div class="wl-local-preset-grid"><label>WL comparison preset<select id="wlLocalModelPreset" onchange="setWlLocalModelPreset(this.value)">'+
+      Object.entries(WL_PRESET_LABELS).map(([v,l])=>'<option value="'+v+'">'+htmlEsc(l)+'</option>').join('')+'</select></label>'+
+      '<div id="wlLocalPresetPriority" class="wl-local-preset-priority tiny"></div></div>';
+      body.insertBefore(block,body.firstChild);
+    }
+  }
+  const toggle=q('mgWordIncludePromoOnly');if(toggle){const lab=toggle.closest('label');if(lab)lab.dataset.obsoleteKickWordToggle='1';toggle.checked=false;toggle.disabled=true;}
+}
+function renderWlLocalPresetUi(){ensureWlLocalUi();const sel=q('wlLocalModelPreset');if(sel)sel.value=WL_LOCAL_MODEL_PRESET;const pri=q('wlLocalPresetPriority');if(pri)pri.innerHTML='<b>'+htmlEsc(WL_PRESET_LABELS[WL_LOCAL_MODEL_PRESET])+'</b><br>'+htmlEsc(wlPresetOrderText());}
+loadWlLocalPreset();
+
+const oldObjectiveSettings=typeof _wl27ObjectiveSettings==='function'?_wl27ObjectiveSettings:null;
+if(oldObjectiveSettings){
+  _wl27ObjectiveSettings=function(raw,kind){
+    if(String(kind)!=='custom')return oldObjectiveSettings(raw,kind);
+    let s=_normaliseRtgModelSettings(Object.assign({},raw||{}));
+    const p=(typeof _RTG_MODEL_PRESETS!=='undefined'&&_RTG_MODEL_PRESETS[WL_LOCAL_MODEL_PRESET])||_RTG_MODEL_PRESETS.balanced;
+    const keys=['order','ratingDirection','coverageEnabled','draftCupsGentle','opponentModel','winBoundEnabled'];
+    for(const k of keys)if(Object.prototype.hasOwnProperty.call(p,k))s[k]=Array.isArray(p[k])?p[k].slice():p[k];
+    if(WL_LOCAL_MODEL_PRESET==='manager'){
+      for(const k of ['axisDepthHardEnabled','axisDepthMinAtk','axisDepthMinBal','axisDepthMinDef','axisDepthRatingMinAtk','axisDepthRatingMinBal','axisDepthRatingMinDef','axisDepthPlusOneMinAtk','axisDepthPlusOneMinBal','axisDepthPlusOneMinDef'])if(Object.prototype.hasOwnProperty.call(p,k))s[k]=p[k];
+    }
+    s.preset='custom';
+    return _normaliseRtgModelSettings(s);
+  };
+}
+
+/* Blank ratings use the actual top-three suggestion analysis. The adjacent spread remains an explicit button. */
+const oldResolvePlan=typeof _wl25ResolveRatingPlan==='function'?_wl25ResolveRatingPlan:null;
+if(oldResolvePlan){
+  _wl25ResolveRatingPlan=function(){
+    const minimum=typeof _wl25Minimum==='function'?_wl25Minimum():NaN;
+    if(!Number.isFinite(minimum))return {error:'Enter the current WL minimum rating first.'};
+    const entered=(RTG_WL_MULTI_RATING_VALUES||[]).slice(0,3).map(v=>typeof _wl26OptionalRating==='function'?_wl26OptionalRating(v):(Number.isFinite(Number(v))?Number(v):null));
+    for(const n of entered)if(Number.isFinite(n)&&n<minimum)return {error:'An entered exact rating cannot be below the current minimum '+minimum+'.'};
+    const suggested=typeof _wl25Suggested==='function'?_wl25Suggested(minimum):[minimum],rawCenter=Math.round(Number(suggested&&suggested[0])),center=Math.max(minimum,Math.min(105,Number.isFinite(rawCenter)?rawCenter:minimum));
+    let automaticTargets=center-1>=minimum?[center,Math.min(105,center+1),center-1]:[center,Math.min(105,center+1),Math.min(105,center+2)];
+    automaticTargets=automaticTargets.map(n=>Math.max(minimum,Math.min(105,Math.round(Number(n)||minimum))));
+    const targets=entered.map((n,i)=>Number.isFinite(n)?n:automaticTargets[i]);
+    if(targets.some(n=>!Number.isFinite(n)||n<minimum||n>105))return {error:'The automatic WL rating plan could not resolve three finite targets between '+minimum+' and 105.'};
+    const bands=targets.map(t=>typeof _wl32BandForTarget==='function'?_wl32BandForTarget(t,0):(typeof _wl29BandForTarget==='function'?_wl29BandForTarget(t):{min:t,max:t+1}));
+    const autoCount=entered.filter(n=>!Number.isFinite(n)).length,allSame=targets.every(n=>n===targets[0]),bandText=RTG_WL_OBJECTIVE==='score'?' · hard player bands '+bands.map(b=>b.min+(b.max===b.min?'':'–'+b.max)).join(' / '):'';
+    const label=(autoCount===3?'Automatic adjacent ratings ':autoCount?'Mixed entered/automatic ratings ':'')+targets.join(' / ')+(allSame?' · shared exact target':'')+bandText;
+    const sorted=targets.slice().sort((a,b)=>a-b),fourthTarget=sorted[Math.floor(sorted.length/2)];
+    return {mode:'direct',minimum,targets,fourthTarget,label,bands,balancedHardBand:RTG_WL_OBJECTIVE==='score',automaticTargets,autoCount};
+  };
+}
+window.fillRtgWlMinimumSpread=function(){
+  const minimum=typeof _wl25Minimum==='function'?_wl25Minimum():NaN;if(!Number.isFinite(minimum)){if(typeof _toast==='function')_toast('Enter the current WL minimum rating first.');return;}
+  const suggested=typeof _wl25Suggested==='function'?_wl25Suggested(minimum):[minimum],center=Math.max(minimum,Number(suggested[0])||minimum);
+  let rows=[center,Math.min(105,center+1),Math.max(minimum,center-1)];
+  if(new Set(rows).size<3){rows=[];for(let n=minimum;rows.length<3&&n<=105;n++)rows.push(n);}
+  RTG_WL_MULTI_RATING_VALUES=rows;_wl25SaveRatingPlan();_saveRtgWlMultiSettings();renderRtgWlMultiUi();
+};
+
+const baseOutputEl=typeof _testOutputEl==='function'?_testOutputEl:null;
+if(baseOutputEl){_testOutputEl=function(mode){if(mode==='rtg'&&WL_CURRENT_XI_MODE)return q('wlCurrentXiOut')||baseOutputEl(mode);return baseOutputEl(mode);};}
+window.displayRtgWlMultiTeam=function(index){
+  const set=_WL_MULTI_LAST,row=typeof _wlMultiStoredTeams==='function'?_wlMultiStoredTeams(set)[index]:null;if(!row)return;
+  WL_CURRENT_XI_MODE=true;_lastRtgTestResult=_wlMultiRowAsResult(row);
+  const panel=q('wlCurrentXiPanel'),out=q('wlCurrentXiOut');if(panel)panel.style.display='block';if(out)out.innerHTML='';
+  _renderTestResult(_lastRtgTestResult,'rtg');saveLocal();if(typeof _goView==='function')_goView('v-wl');
+  setTimeout(()=>{const el=q('wlCurrentXiPanel');if(el)try{el.scrollIntoView({behavior:'smooth',block:'start'});}catch(_e){el.scrollIntoView(true);}},40);
+};
+for(const name of ['runRtgTestSolver','runRtgFastSolver']){const old=window[name];if(typeof old==='function')window[name]=function(){WL_CURRENT_XI_MODE=false;return old.apply(this,arguments);};}
+
+const oldRenderMulti=typeof renderRtgWlMultiUi==='function'?renderRtgWlMultiUi:null;
+if(oldRenderMulti){
+  renderRtgWlMultiUi=function(){oldRenderMulti();ensureWlLocalUi();renderWlLocalPresetUi();const summary=q('rtgWlMultiOptionsSummary');if(summary)summary.textContent='Team-set options';const info=q('rtgWlMultiSettingsSummary');if(info)info.style.display='none';};
+}
+
+/* ---------------- Kick Word / Hidden Player ---------------- */
+const BASE_NORMAL_TYPES=new Set(['raregold','nonraregold','raresilver','nonraresilver','rarebronze','nonrarebronze']);
+function miniNorm(v){let s=String(v||'').toLowerCase().replace(/æ/g,'ae').replace(/œ/g,'oe').replace(/ø/g,'o').replace(/ł/g,'l').replace(/[đð]/g,'d').replace(/þ/g,'th').replace(/ı/g,'i').replace(/ß/g,'ss');try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(_e){}return s.replace(/[^a-z0-9]+/g,'');}
+function miniRowTypes(p){const out=[];if(p&&p.cardType)out.push(p.cardType);for(const v of (p&&p.variants||[]))if(v&&v.cardType)out.push(v.cardType);return out.map(miniNorm);}
+window._mgWordBuildPool=function(){
+  const source=_mgSource()||[],identities=new Map(),categories=new Map();
+  for(const p of source){
+    if(!p||!p.name||(typeof _mgIsWomen==='function'&&_mgIsWomen(p)))continue;
+    const key=typeof _mgPersonKey==='function'?_mgPersonKey(p):miniNorm(p.name)+'|'+(p.pidx==null?'':p.pidx);let set=categories.get(key);if(!set){set=new Set();categories.set(key,set);}set.add(String(p.type||'normal'));
+  }
+  for(const p of source){
+    if(!p||p.type!=='normal'||!p.name||(typeof _mgIsWomen==='function'&&_mgIsWomen(p)))continue;
+    const key=typeof _mgPersonKey==='function'?_mgPersonKey(p):miniNorm(p.name)+'|'+(p.pidx==null?'':p.pidx),cats=categories.get(key)||new Set();if(cats.has('icon')||cats.has('hero'))continue;const base=miniRowTypes(p).some(t=>BASE_NORMAL_TYPES.has(t));
+    let row=identities.get(key);if(!row){row={key,name:p.name,base:[],special:[]};identities.set(key,row);} (base?row.base:row.special).push(p);
+  }
+  const byName=new Map();
+  for(const row of identities.values()){
+    const pool=row.base.length?row.base:row.special;if(!pool.length)continue;
+    const chosen=pool.slice().sort((a,b)=>row.base.length?(Number(b.rating)-Number(a.rating)||String(a.name).localeCompare(String(b.name))):(Number(a.rating)-Number(b.rating)||String(a.name).localeCompare(String(b.name))))[0];
+    const nk=miniNorm(chosen.name),rep={key:'word:'+nk,name:chosen.name,rating:Number(chosen.rating)||0,nation:chosen.nation||'',league:chosen.league||'',club:chosen.club||'',type:'normal',pidx:chosen.pidx==null?null:chosen.pidx,baseBacked:!!row.base.length};
+    const old=byName.get(nk);if(!old||rep.rating>old.rating||(rep.rating===old.rating&&rep.baseBacked&&!old.baseBacked))byName.set(nk,rep);
+  }
+  return Array.from(byName.values()).sort((a,b)=>b.rating-a.rating||a.name.localeCompare(b.name));
+};
+window._mgWordPoolModeChanged=function(){_MG_WORD_POOL=_mgWordBuildPool();if(typeof _mgWordRender==='function')_mgWordRender();};
+
+const oldHiddenPick=window._mgHiddenPick;
+window._mgHiddenPick=function(key){if(typeof oldHiddenPick==='function')oldHiddenPick(key);setTimeout(()=>{const grid=document.querySelector('#mg-hidden .mg-feedback-grid');if(grid)try{grid.scrollIntoView({behavior:'smooth',block:'center'});}catch(_e){grid.scrollIntoView(true);}},30);};
+const oldWordSuggestion=window._mgWordUseSuggestion;
+window._mgWordUseSuggestion=function(key){if(typeof oldWordSuggestion==='function')oldWordSuggestion(key);setTimeout(()=>{const ed=q('mgWordEditor');if(ed)try{ed.scrollIntoView({behavior:'smooth',block:'center'});}catch(_e){ed.scrollIntoView(true);}},30);};
+window._mgHiddenAllWrong=function(){
+  ['mgHiddenNation','mgHiddenLeague','mgHiddenClub','mgHiddenRole'].forEach(id=>{const el=q(id);if(el)el.value='different';});
+  if(typeof _mgHiddenAddClue==='function')_mgHiddenAddClue();
+};
+function finalGuessPost(rootId,count,limit){const root=q(rootId);if(!root||count<limit)return;const box=root.querySelector('.mg-dual-suggestions');if(!box)return;const cards=box.querySelectorAll('.mg-suggestion-card');for(let i=1;i<cards.length;i++)cards[i].remove();box.classList.add('mg-final-answer-only');if(!root.querySelector('.mg-final-guess-note'))box.insertAdjacentHTML('afterend','<div class="tiny mg-final-guess-note">Final guess: information probes are disabled; choose the highest-rated remaining possible answer.</div>');}
+const oldHiddenRender=window._mgHiddenRender;
+window._mgHiddenRender=function(){if(typeof oldHiddenRender==='function')oldHiddenRender();finalGuessPost('mgHiddenOut',(_MG_HIDDEN_CLUES||[]).length,8);};
+const oldWordRender=window._mgWordRender;
+window._mgWordRender=function(){if(typeof oldWordRender==='function')oldWordRender();finalGuessPost('mgWordOut',(_MG_WORD_GUESSES||[]).length,7);};
+
+/* ---------------- Player Links fixed-grid OCR ---------------- */
+let tess5322Promise=null;
+async function tess5322(){if(window.Tesseract&&typeof window.Tesseract.recognize==='function')return window.Tesseract;if(tess5322Promise)return tess5322Promise;const urls=['https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js'];tess5322Promise=new Promise((resolve,reject)=>{let i=0;const next=()=>{if(window.Tesseract&&typeof window.Tesseract.recognize==='function')return resolve(window.Tesseract);if(i>=urls.length)return reject(new Error('OCR library failed to load. Check the internet connection.'));const sc=document.createElement('script');sc.src=urls[i++];sc.async=true;sc.crossOrigin='anonymous';sc.onload=()=>window.Tesseract&&typeof window.Tesseract.recognize==='function'?resolve(window.Tesseract):(sc.remove(),next());sc.onerror=()=>{sc.remove();next();};document.head.appendChild(sc);};next();});tess5322Promise.catch(()=>{tess5322Promise=null;});return tess5322Promise;}
+async function image5322(file){const url=URL.createObjectURL(file);try{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=()=>no(new Error('Could not read screenshot.'));im.src=url;});return im;}finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}}
+function rowBands5322(im){
+  const sw=Math.min(520,Math.max(1,im.width)),sh=Math.max(1,Math.round(im.height*sw/im.width)),c=document.createElement('canvas');c.width=sw;c.height=sh;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,sw,sh);const d=g.getImageData(0,0,sw,sh).data,frac=new Float32Array(sh),x0=Math.floor(sw*.03),x1=Math.ceil(sw*.97);
+  for(let y=0;y<sh;y++){let dark=0,n=0;for(let x=x0;x<x1;x++){const i=(y*sw+x)*4,lum=.299*d[i]+.587*d[i+1]+.114*d[i+2];if(lum<100)dark++;n++;}frac[y]=n?dark/n:0;}
+  const runs=[];let start=-1;for(let y=0;y<=sh;y++){const on=y<sh&&frac[y]>.18;if(on&&start<0)start=y;if(start>=0&&(!on||y===sh)){const end=y,h=end-start;if(h>sh*.04&&h<sh*.16&&start>sh*.10&&end<sh*.88)runs.push({start,end,h,cy:(start+end)/2});start=-1;}}
+  let best=null;for(let i=0;i+3<runs.length;i++){const seq=runs.slice(i,i+4),hs=seq.map(x=>x.h),gaps=[seq[1].cy-seq[0].cy,seq[2].cy-seq[1].cy,seq[3].cy-seq[2].cy],mean=a=>a.reduce((q,v)=>q+v,0)/a.length,sd=a=>{const m=mean(a);return Math.sqrt(mean(a.map(v=>(v-m)*(v-m))));},score=sd(hs)/Math.max(1,mean(hs))*5+sd(gaps)/Math.max(1,mean(gaps))*4;if(!best||score<best.score)best={score,seq};}
+  if(best)return best.seq.map(x=>({y:x.start/sh*im.height,h:x.h/sh*im.height}));
+  const phone=im.width/im.height<.6,ys=phone?[.181,.274,.367,.460]:[.334,.485,.636,.787],hf=phone?.084:.125;return ys.map(y=>({y:(y-hf/2)*im.height,h:hf*im.height}));
+}
+function grid5322(im){const phone=im.width/im.height<.6,xs=phone?[.155,.385,.615,.845]:[.23,.41,.59,.77],wf=phone?.18:.14,rows=rowBands5322(im);return rows.flatMap((row,r)=>xs.map((x,c)=>({r,c,x:(x-wf/2)*im.width,y:row.y,w:wf*im.width,h:row.h})));}
+function darkFraction5322(im,cell){const c=document.createElement('canvas'),w=Math.max(10,Math.round(cell.w*.76)),h=Math.max(10,Math.round(cell.h*.84));c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,cell.x+cell.w*.12,cell.y+cell.h*.08,cell.w*.76,cell.h*.84,0,0,w,h);const d=g.getImageData(0,0,w,h).data;let dark=0,n=0;for(let i=0;i<d.length;i+=4){const lum=.299*d[i]+.587*d[i+1]+.114*d[i+2];if(lum<100)dark++;n++;}return n?dark/n:0;}
+function wordBox5322(w){const b=w&&w.bbox||{};return{x0:+b.x0||0,y0:+b.y0||0,x1:+b.x1||0,y1:+b.y1||0,cx:((+b.x0||0)+(+b.x1||0))/2,cy:((+b.y0||0)+(+b.y1||0))/2,text:String(w&&w.text||'').trim(),confidence:Number(w&&w.confidence)||0};}
+const POS5322=new Set(['GK','LB','CB','RB','LWB','RWB','CDM','CM','CAM','LM','RM','LW','RW','ST','CF','LF','RF']);
+const NOISE5322=new Set(['attempts','left','player','players','links','submit','deselect','information','level','lvl']);
+function cleanWord5322(w){let t=String(w.text||'').replace(/[^\p{L}.'’\-]/gu,'').trim();if(!t||w.confidence<45||t.length<2||POS5322.has(t.toUpperCase())||/^(GK|LB|CB|RB|CDM|CM|CAM|LM|RM|LW|RW|ST)[A-Z0-9|]{0,3}$/i.test(t)||NOISE5322.has(miniNorm(t)))return'';return t;}
+function cellName5322(words,cell){const rows=[];for(const raw of words||[]){const w=wordBox5322(raw);if(w.cx<cell.x-cell.w*.08||w.cx>cell.x+cell.w*1.08||w.cy<cell.y+cell.h*.42||w.cy>cell.y+cell.h*.95)continue;const t=cleanWord5322(w);if(t)rows.push({...w,text:t});}rows.sort((a,b)=>a.cy-b.cy||a.x0-b.x0);const lines=[];for(const w of rows){let line=lines.find(x=>Math.abs(x.cy-w.cy)<Math.max(8,cell.h*.10));if(!line){line={cy:w.cy,words:[]};lines.push(line);}line.words.push(w);line.cy=line.words.reduce((s,z)=>s+z.cy,0)/line.words.length;}return lines.sort((a,b)=>a.cy-b.cy).map(l=>l.words.sort((a,b)=>a.x0-b.x0).map(x=>x.text).join(' ')).join(' ').replace(/\s+/g,' ').trim();}
+function lev5322(a,b){a=miniNorm(a);b=miniNorm(b);const d=Array(b.length+1);for(let j=0;j<=b.length;j++)d[j]=j;for(let i=1;i<=a.length;i++){let prev=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const old=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}}return d[b.length];}
+function sim5322(a,b){a=miniNorm(a);b=miniNorm(b);if(!a||!b)return 0;if(a===b)return 1;return 1-lev5322(a,b)/Math.max(a.length,b.length);}
+function choices5322(){if(!Array.isArray(window._MG_LINK_NAME_CHOICES)||!window._MG_LINK_NAME_CHOICES.length){try{if(window._mgLinksVariantEngine&&typeof window._mgLinksVariantEngine.rebuildChoices==='function')window._mgLinksVariantEngine.rebuildChoices();}catch(_e){}}return window._MG_LINK_NAME_CHOICES||[];}
+function alternatives5322(raw){const q=miniNorm(raw),ranked=[];for(const c of choices5322()){const score=sim5322(raw,c.name);if(score>=.42)ranked.push({c,score});}ranked.sort((a,b)=>b.score-a.score||(Number(b.c.rankRating)||0)-(Number(a.c.rankRating)||0)||String(a.c.name).localeCompare(String(b.c.name)));const exact=ranked.filter(x=>miniNorm(x.c.name)===q),alts=ranked.slice(0,12);let selected='';if(exact.length===1)selected=exact[0].c.key;else if(!exact.length&&alts.length&&alts[0].score>=.84&&(!alts[1]||alts[0].score-alts[1].score>=.10))selected=alts[0].c.key;return{alts:alts.map(x=>x.c),selected,ambiguous:!selected};}
+window._mgLinksOcrFile=async function(file){
+  const root=q('mgLinksOcrReview');if(!root||!file)return;root.innerHTML='<div class="mg-ocr-busy" role="status"><span class="mg-ocr-spinner"></span><div><b>Screenshot OCR is running</b><span>Reading the fixed 4×4 Player Links grid…</span><small>Positions and every other screen label are ignored.</small></div></div>';
+  try{
+    if(!_MG_LINK_POOL.length)_MG_LINK_POOL=_mgLinkBuildPool();if(window._mgLinksVariantEngine&&typeof window._mgLinksVariantEngine.rebuildChoices==='function')window._mgLinksVariantEngine.rebuildChoices();
+    const im=await image5322(file),cells=grid5322(im).map(c=>({...c,dark:darkFraction5322(im,c)})),occupied=cells.filter(c=>c.dark>.10);
+    let count=occupied.length;
+    if(count===12){const rows=[0,1,2,3].map(r=>occupied.filter(c=>c.r===r).length);const missingWhole=rows.findIndex(n=>n===0);if(missingWhole>=0&&rows.filter(n=>n===4).length===3){occupied.splice(0,occupied.length,...cells);count=16;}}
+    if(![8,12,16].includes(count))throw new Error('The fixed grid found '+count+' occupied cards. Use a full Player Links screenshot containing 8, 12 or 16 cards.');
+    const countEl=q('mgLinksCount');if(countEl&&Number(countEl.value)!==count){countEl.value=String(count);if(typeof _mgLinksCountChanged==='function')_mgLinksCountChanged();}
+    const T=await tess5322(),res=await T.recognize(im,'eng',{logger:()=>{},tessedit_pageseg_mode:6,preserve_interword_spaces:'1'}),words=res&&res.data&&res.data.words||[];
+    occupied.sort((a,b)=>a.r-b.r||a.c-b.c);const rows=occupied.map(c=>{const raw=cellName5322(words,c);return{raw,...alternatives5322(raw)};});root._rows=rows;
+    root.innerHTML='<div class="mg-result mg-ocr-review"><h3>Review '+count+' imported players</h3><div class="tiny">The fixed 4×4 grid found '+count+' occupied cards. A missing OCR row is never treated as an intentional gap; names are read from their grid cells and position labels are ignored.</div>'+rows.map((r,i)=>'<div class="mg-clue mg-ocr-review-row"><div class="txt" style="width:100%"><b>'+(i+1)+'. OCR: '+htmlEsc(r.raw||'unreadable')+'</b> '+(r.ambiguous?'<span class="mg-ocr-review-needed">Review name</span>':'<span class="mg-ocr-review-ok">name accepted</span>')+'<select data-li="'+i+'" style="width:100%;margin-top:7px"><option value="">Choose manually</option>'+r.alts.map(c=>'<option value="'+htmlEsc(c.key)+'" '+(c.key===r.selected?'selected':'')+'>'+htmlEsc(c.name+' · solver chooses card/identity profile')+'</option>').join('')+'</select></div></div>').join('')+'<div class="mg-ocr-actions"><button class="btn" type="button" onclick="_mgLinksOcrApply()">Fill reviewed names</button></div></div>';
+    window._mgLinksLastOcrDebug={count,names:rows.map(r=>r.raw),cells:cells.map(c=>({row:c.r,column:c.c,dark:+c.dark.toFixed(3),occupied:occupied.includes(c)}))};
+  }catch(err){root.innerHTML='<div class="tiny" style="color:var(--bad);text-align:center">'+htmlEsc(err&&err.message||err)+'</div>';}
+};
+
+function init5322(){ensureWlLocalUi();renderWlLocalPresetUi();_MG_WORD_POOL=_mgWordBuildPool();if(typeof _mgWordRender==='function')_mgWordRender();if(typeof _mgHiddenRender==='function')_mgHiddenRender();if(typeof renderRtgWlMultiUi==='function')renderRtgWlMultiUi();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init5322,0),{once:true});else setTimeout(init5322,0);
+})();
+</script>
+
+
+<style id="patch5323Style">
+/* v5.32.3 — WL-local priority ordering, adaptive 3+1 reserve bands and final-attempt mini-game guidance. */
+#v-wl .wl-local-priority-editor{display:grid;gap:6px;margin-top:8px}
+#v-wl .wl-local-priority-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#v-wl .wl-local-priority-row{display:grid;grid-template-columns:28px minmax(0,1fr) 40px 40px;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:6px 7px;background:rgba(255,255,255,.025)}
+#v-wl .wl-local-priority-row .num{font-weight:800;color:var(--cyan);text-align:center}
+#v-wl .wl-local-priority-row .label{min-width:0;text-align:left;text-transform:none;letter-spacing:0;color:var(--ink)}
+#v-wl .wl-local-priority-row .btn{width:40px;min-width:40px;padding:6px 0}
+#v-wl .wl-local-priority-reset{width:auto!important;min-width:0!important;padding:6px 10px!important}
+@media(max-width:420px){#v-wl .wl-local-priority-row{grid-template-columns:24px minmax(0,1fr) 36px 36px;padding-inline:5px}#v-wl .wl-local-priority-row .btn{width:36px;min-width:36px}}
+</style>
+
+<script id="patch5323">
+/* v5.32.3 — WL-local priority ordering, adaptive 3+1 reserve bands and final-attempt mini-game guidance. */
+(function(){
+'use strict';
+const D=document,W=window,$=id=>D.getElementById(id),e=v=>typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+
+/* ---------------- WL-local comparison-order editor ---------------- */
+const ORDER_KEY='pacwyn_wl_local_model_orders_v1',PRESET_KEY='pacwyn_wl_local_model_preset_v1';
+let customOrders={};
+function presetName(){const sel=$('wlLocalModelPreset'),v=String(sel&&sel.value||'');if(v&&typeof _RTG_MODEL_PRESETS!=='undefined'&&_RTG_MODEL_PRESETS[v])return v;try{const s=localStorage.getItem(PRESET_KEY);if(s&&_RTG_MODEL_PRESETS[s])return s;}catch(_e){}return 'balanced';}
+function baseOrder(name){if(name==='balanced')return ['overperformance','scoregap','balance','win','coverage','axisdepth','chemistry','rating'];if(name==='manager')return ['scoregap','balance','overperformance','coverage','axisdepth','win','chemistry','rating'];const p=typeof _RTG_MODEL_PRESETS!=='undefined'&&_RTG_MODEL_PRESETS[name];return p&&Array.isArray(p.order)?p.order.slice():(typeof _RTG_CRITERIA_IDS!=='undefined'?_RTG_CRITERIA_IDS.slice():[]);}
+function validOrder(order,name){const base=baseOrder(name);return Array.isArray(order)&&order.length===base.length&&new Set(order).size===base.length&&base.every(x=>order.includes(x));}
+function loadOrders(){try{const x=JSON.parse(localStorage.getItem(ORDER_KEY)||'{}');if(x&&typeof x==='object')for(const [name,order] of Object.entries(x))if(typeof _RTG_MODEL_PRESETS!=='undefined'&&_RTG_MODEL_PRESETS[name]&&validOrder(order,name))customOrders[name]=order.slice();}catch(_e){customOrders={};}}
+function saveOrders(){try{localStorage.setItem(ORDER_KEY,JSON.stringify(customOrders));}catch(_e){}}
+function activeOrder(name){name=name||presetName();return validOrder(customOrders[name],name)?customOrders[name].slice():baseOrder(name);}
+function criterionLabel(id){return typeof _RTG_CRITERIA_LABELS!=='undefined'&&_RTG_CRITERIA_LABELS[id]||id;}
+function renderOrderEditor(){const root=$('wlLocalPresetPriority');if(!root)return;const name=presetName(),order=activeOrder(name),label=W.WL_PRESET_LABELS&&W.WL_PRESET_LABELS[name]||({wl:'Score gap first',balanced:'Overperformance first',winfirst:'Win first · optimized opponents',manager:'Manager coverage / axis depth',win:'Maximum win certainty',rating:'Prefer lower team rating',ratingHigh:'Prefer higher team rating',chem:'Chemistry safety'}[name]||name),changed=validOrder(customOrders[name],name);root.innerHTML='<div class="wl-local-priority-editor"><div class="wl-local-priority-head"><div><b>'+e(label)+'</b><div class="tiny">'+(changed?'Custom WL-only order':'Preset order')+' · use the arrows to change which completed-XI criterion breaks ties first.</div></div><button class="btn gho sm wl-local-priority-reset" type="button" onclick="resetWlLocalPriorityOrder()" '+(changed?'':'disabled')+'>Reset order</button></div>'+order.map((id,i)=>'<div class="wl-local-priority-row"><span class="num">'+(i+1)+'</span><span class="label">'+e(criterionLabel(id))+(id==='rating'?' · '+e((typeof _RTG_MODEL_PRESETS!=='undefined'&&_RTG_MODEL_PRESETS[name]&&_RTG_MODEL_PRESETS[name].ratingDirection)==='higher'?'higher first':'lower first'):'')+'</span><button class="btn gho sm" type="button" '+(i?'':'disabled')+' onclick="moveWlLocalPriorityOrder('+i+',-1)" aria-label="Move '+e(criterionLabel(id))+' up">↑</button><button class="btn gho sm" type="button" '+(i<order.length-1?'':'disabled')+' onclick="moveWlLocalPriorityOrder('+i+',1)" aria-label="Move '+e(criterionLabel(id))+' down">↓</button></div>').join('')+'</div>';}
+W.moveWlLocalPriorityOrder=function(index,delta){if(_TEST_ACTIVE_RUN||_WL_MULTI_ACTIVE)return;const name=presetName(),order=activeOrder(name),i=Number(index),j=i+Number(delta);if(!Number.isInteger(i)||j<0||j>=order.length)return;[order[i],order[j]]=[order[j],order[i]];customOrders[name]=order;saveOrders();renderOrderEditor();if(typeof _wlMultiRefreshStaleState==='function')_wlMultiRefreshStaleState();};
+W.resetWlLocalPriorityOrder=function(){if(_TEST_ACTIVE_RUN||_WL_MULTI_ACTIVE)return;const name=presetName();delete customOrders[name];saveOrders();renderOrderEditor();if(typeof _wlMultiRefreshStaleState==='function')_wlMultiRefreshStaleState();};
+loadOrders();
+const oldSetPreset=W.setWlLocalModelPreset;W.setWlLocalModelPreset=function(value){const r=typeof oldSetPreset==='function'?oldSetPreset.apply(this,arguments):undefined;setTimeout(renderOrderEditor,0);return r;};
+if(typeof _wl27ObjectiveSettings==='function'){const oldObjectiveSettings=_wl27ObjectiveSettings;_wl27ObjectiveSettings=function(raw,kind){let s=oldObjectiveSettings(raw,kind);if(String(kind)==='custom'){s=Object.assign({},s,{order:activeOrder(),preset:'custom'});if(typeof _normaliseRtgModelSettings==='function')s=_normaliseRtgModelSettings(s);}return s;};}
+
+/* ---------------- 3+1 reserve: freeze the main three and search its own unused rating bands ---------------- */
+function isReserveLabel(label){return /stage\s+4\s+of\s+4|independent fourth reserve|reserve team 4|allocated-core leftovers/i.test(String(label||''));}
+function reserveMinimum(run){const p=run&&run.ratingPlan||{};const n=Math.round(Number(p.minimum));if(Number.isFinite(n))return Math.max(1,Math.min(105,n));const m=Math.round(Number(RTG_WL_MIN_RATING));return Number.isFinite(m)?Math.max(1,Math.min(105,m)):1;}
+function cardEdge(c){return Math.max(Number(c&&c.atk)||0,Number(c&&c.bal)||0,Number(c&&c.def)||0)-(Number(c&&c.rating)||0);}
+function reserveTargetStats(excluded,run){const all=(run&&run.base&&Array.isArray(run.base.all)?run.base.all:[]).filter(c=>!excluded.has(_wlMultiAvailabilityKey(c))),minimum=reserveMinimum(run),stats=[];for(let t=minimum;t<=105;t++){const b=typeof _wl32BandForTarget==='function'?_wl32BandForTarget(t,0):{min:t,max:Math.min(105,t+1)},people=new Map();for(const c of all){const r=Number(c&&c.rating);if(!Number.isFinite(r)||r<b.min||r>b.max)continue;const k=_testPersonKey(c),old=people.get(k),row={edge:cardEdge(c),atOrBelow:r<=t,exact:r===t};if(!old||row.edge>old.edge||(row.edge===old.edge&&Number(row.exact)>Number(old.exact)))people.set(k,row);else{old.atOrBelow=old.atOrBelow||row.atOrBelow;old.exact=old.exact||row.exact;}}if(people.size<11)continue;const rows=Array.from(people.values()),atOrBelow=rows.filter(x=>x.atOrBelow).length,exact=rows.filter(x=>x.exact).length;if(!atOrBelow)continue;const topEdge=rows.map(x=>x.edge).sort((a,b)=>b-a).slice(0,11).reduce((s,n)=>s+n,0),score=people.size*20+exact*7+atOrBelow*3+topEdge;stats.push({target:t,people:people.size,exact,atOrBelow,topEdge,score,band:b});}stats.sort((a,b)=>b.score-a.score||b.exact-a.exact||b.people-a.people||a.target-b.target);return stats;}
+const oldTargetForLabel=typeof _wl25TargetForSearchLabel==='function'?_wl25TargetForSearchLabel:null;
+if(oldTargetForLabel){_wl25TargetForSearchLabel=function(label){const run=_WL_MULTI_ACTIVE;if(run&&run.mode==='leftover'&&isReserveLabel(label)){if(Number.isFinite(Number(run._wl533ReserveTarget)))return Number(run._wl533ReserveTarget);return null;}return oldTargetForLabel(label);};}
+const oldSearchJob=typeof _wlMultiSearchJob==='function'?_wlMultiSearchJob:null;
+if(oldSearchJob){_wlMultiSearchJob=async function(excluded,label){const run=_WL_MULTI_ACTIVE;if(!run||run.mode!=='leftover'||!isReserveLabel(label)||run._wl533ReserveInside)return oldSearchJob(excluded,label);const stats=reserveTargetStats(excluded,run),deep=String(RTG_WL_RESERVE_DEPTH)==='deep',successGoal=deep?4:1,tried=[],success=[],rowsBySig=new Map(),errors=[];let firstSuccessAttempt=-1;if(!stats.length)return{rows:[],error:'No unused hard player-rating band contains 11 distinct eligible identities.'};run._wl533ReserveInside=true;try{for(let i=0;i<stats.length;i++){if(run.cancelled||run!==_WL_MULTI_ACTIVE)throw new Error('cancelled');const st=stats[i];run._wl533ReserveTarget=st.target;tried.push(st.target);if(typeof _wlMultiDisplayProgress==='function')_wlMultiDisplayProgress('Stage 4 of 4 · reserve rating '+st.target,'Teams 1–3 are frozen. Searching unused exact card types inside the reserve\'s own '+st.band.min+'–'+st.band.max+' player band ('+(i+1)+'/'+stats.length+').');let rec;try{rec=await oldSearchJob(excluded,String(label||'Reserve team 4')+' · own unused rating band '+st.target);}catch(err){if(String(err&&err.message||err)==='cancelled')throw err;errors.push('rating '+st.target+': '+String(err&&err.message||err));continue;}const valid=(rec&&rec.rows||[]).filter(row=>{const set=typeof _wlMultiAvailabilitySet==='function'?_wlMultiAvailabilitySet(row):row&&row.availability;return !(set&&Array.from(set).some(k=>excluded.has(k)));});if(valid.length){if(firstSuccessAttempt<0)firstSuccessAttempt=i;success.push(st.target);for(const row of valid){row.wlReserveOwnBand=true;row.wlReserveBandRank=i+1;const key=row.availabilitySig||_wlMultiAvailabilitySignature(_wlMultiAvailabilitySet(row)),old=rowsBySig.get(key);if(!old||_wlMultiStateCmp(row,old)<0)rowsBySig.set(key,row);}}else if(rec&&rec.error)errors.push('rating '+st.target+': '+rec.error);if(deep&&success.length>=successGoal)break;if(!deep&&firstSuccessAttempt>=0&&i>=firstSuccessAttempt+2)break;}}finally{delete run._wl533ReserveTarget;run._wl533ReserveInside=false;}const rows=Array.from(rowsBySig.values()).sort(_wlMultiStateCmp);run.wlReserveBandSearch={tried:tried.slice(),successful:success.slice(),selectedTarget:rows[0]&&Number(rows[0].wlTargetRating),frozenMainTeams:true};return{rows,error:rows.length?'':('No reserve XI was found after trying unused rating bands '+tried.join(', ')+(errors.length?'. '+errors.slice(0,3).join(' | '):'.')),routeErrors:errors,reserveBands:run.wlReserveBandSearch};};}
+
+/* Report the isolation contract and the chosen reserve band without changing the balanced-four route. */
+if(typeof _wlMultiRenderResult==='function'){const oldRenderResult=_wlMultiRenderResult;_wlMultiRenderResult=function(teams,mode,run){const r=oldRenderResult.apply(this,arguments);if(mode==='leftover'&&run&&run.wlReserveBandSearch&&_WL_MULTI_LAST){const m=run.wlReserveBandSearch,note='<b>3+1 reserve:</b> teams 1–3 were frozen before team 4. The reserve searched only unused exact card types across its own feasible rating bands'+(m.tried&&m.tried.length?' ('+m.tried.join(' / ')+')':'')+(Number.isFinite(Number(m.selectedTarget))?' and selected exact '+Number(m.selectedTarget):'')+'. Only <i>Balance all 4</i> may reallocate cards across all four teams. ';_WL_MULTI_LAST.html=String(_WL_MULTI_LAST.html||'').replace('<span class="tiny">','<span class="tiny">'+note);const out=$('rtgWlMultiOut');if(out&&typeof _wlMultiDisplayHtml==='function')out.innerHTML=_wlMultiDisplayHtml(_WL_MULTI_LAST);if(typeof saveLocal==='function')saveLocal();}return r;};}
+
+/* ---------------- Kick Word / Hidden Player: hide the information probe before the final attempt ---------------- */
+function finalAttemptPost(rootId,count,limit){const root=$(rootId);if(!root)return;const box=root.querySelector('.mg-dual-suggestions'),last=Number(count)>=Number(limit)-1;if(!box)return;if(last){const cards=box.querySelectorAll('.mg-suggestion-card');for(let i=1;i<cards.length;i++)cards[i].remove();box.classList.add('mg-final-answer-only');let note=root.querySelector('.mg-final-guess-note');if(!note){note=D.createElement('div');note.className='tiny mg-final-guess-note';box.insertAdjacentElement('afterend',note);}note.textContent='Final attempt: the pool splitter is hidden because there is no later guess that can use the information.';}else{box.classList.remove('mg-final-answer-only');const note=root.querySelector('.mg-final-guess-note');if(note)note.remove();}}
+const hiddenRender=W._mgHiddenRender;W._mgHiddenRender=function(){const r=typeof hiddenRender==='function'?hiddenRender.apply(this,arguments):undefined;finalAttemptPost('mgHiddenOut',(typeof _MG_HIDDEN_CLUES!=='undefined'?_MG_HIDDEN_CLUES:[]).length,8);return r;};
+const wordRender=W._mgWordRender;W._mgWordRender=function(){const r=typeof wordRender==='function'?wordRender.apply(this,arguments):undefined;finalAttemptPost('mgWordOut',(typeof _MG_WORD_GUESSES!=='undefined'?_MG_WORD_GUESSES:[]).length,7);return r;};
+
+/* Keep the new editor/status present after every existing WL render wrapper. */
+if(typeof renderRtgWlMultiUi==='function'){const oldRenderUi=renderRtgWlMultiUi;renderRtgWlMultiUi=function(){const r=oldRenderUi.apply(this,arguments);renderOrderEditor();const status=$('rtgWlMultiRatingPlanStatus');if(status&&RTG_WL_MULTI_FOURTH_MODE==='leftover'&&!status.querySelector('.wl533-reserve-note'))status.insertAdjacentHTML('beforeend','<br><span class="wl533-reserve-note" style="color:var(--mut)"><b>3+1 isolation:</b> the first three teams stay frozen; the reserve chooses its own feasible unused rating band. Only Balance all 4 can move cards between teams.</span>');return r;};}
+function init(){renderOrderEditor();if(typeof renderRtgWlMultiUi==='function')renderRtgWlMultiUi();if(typeof W._mgHiddenRender==='function')W._mgHiddenRender();if(typeof W._mgWordRender==='function')W._mgWordRender();}
+if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',()=>setTimeout(init,0),{once:true});else setTimeout(init,0);
+
+/* Small public diagnostics used by the in-file smoke harness and future audits. */
+W._wl533ReserveTargetStats=reserveTargetStats;W._wl533ActiveOrder=activeOrder;W._wl533FinalAttemptPost=finalAttemptPost;
+})();
+</script>
+
+
+
+<style id="patch5326Style">
+/* v5.32.6 — WL quality/persistence/execution audit. */
+#v-wl #wlManagerExcludePanel>summary{text-align:center}
+#v-wl #wlManagerExcludeSummary{text-align:center}
+#v-wl #wlManagerExcludeList .type-pick-row{text-align:left}
+#v-wl .wl-running-old-set-hidden{display:none!important}
+</style>
+<script id="patch5326">
+(function(){
+'use strict';
+const W=window,D=document,$=id=>D.getElementById(id),SCORE_ORDER=['overperformance','scoregap','balance','win','coverage','axisdepth','chemistry','rating'],MANAGER_ORDER=['scoregap','balance','overperformance','coverage','axisdepth','win','chemistry','rating'],MIG='pacwyn_wl_5324_defaults_v1';
+const WL_BAND_STORE='pacwyn_wl_hard_band_v2',WL_MANAGER_STORE='pacwyn_wl_manager_exclusions_v1';
+function saveWlBandManagers5326(){try{localStorage.setItem(WL_BAND_STORE,JSON.stringify({below:Math.max(0,Math.min(20,Math.round(Number(W.RTG_WL_LOW_GUARD_GAP)||0))),above:Math.max(0,Math.min(20,Math.round(Number(RTG_WL_HIGH_GUARD_GAP)||0))),probe:Math.max(0,Math.min(3,Math.round(Number(RTG_WL_HIGH_GUARD_PROBE_DEPTH)||0))),probeEffort:[1,3,9].includes(Number(RTG_WL_HIGH_GUARD_PROBE_EFFORT))?Number(RTG_WL_HIGH_GUARD_PROBE_EFFORT):1}));localStorage.setItem(WL_MANAGER_STORE,JSON.stringify(Array.from(W.WL_MANAGER_EXCLUSIONS||[])));return true;}catch(_e){return false;}}
+W._wl536SaveBandManagers=saveWlBandManagers5326;
+function stripBands(conds){return(conds||[]).filter(c=>!(c&&(c._wl29BalancedBand||c._wl27BalancedFloor||c._rtgWlSafetyCap||c._wl32PairedProbe)));}
+function localPreset(){const el=$('wlLocalModelPreset');if(el&&el.value)return String(el.value);try{return localStorage.getItem('pacwyn_wl_local_model_preset_v1')||'balanced';}catch(_e){return'balanced';}}
+function normalise(s){return typeof _normaliseRtgModelSettings==='function'?_normaliseRtgModelSettings(s):s;}
+
+/* The default WL comparator is rating-band appropriate; Custom's explicit Manager preset is score-gap/balance led. */
+const objective5324=_wl27ObjectiveSettings;
+_wl27ObjectiveSettings=function(raw,kind){let s=objective5324(raw,kind),mode=String(kind||'score');if(mode==='score'){Object.assign(s,{preset:'custom',order:SCORE_ORDER.slice(),opponentModel:'optimized',coverageEnabled:true,repairEnabled:true,closeCallEnabled:true,ratingCapEnabled:true,ratingCapAbove:Math.max(0,Number(RTG_WL_HIGH_GUARD_GAP)||1),ratingExchangeCompactRating:true,ratingExchangeMaxAbove:Math.max(0,Number(RTG_WL_HIGH_GUARD_GAP)||1),ratingExchangeMaxSacrifices:0,ratingExchangeMaxLowCards:0,ratingExchangeMaxPremiumCards:11});}else if(mode==='custom'&&localPreset()==='manager'){Object.assign(s,{preset:'custom',opponentModel:'optimized',coverageEnabled:true,repairEnabled:true});}return normalise(s);};
+
+/* Hard player bands belong only to the default score path. */
+_wl25RetargetSafetyCap=function(payload,target){if(!payload)return payload;payload.rtgModelSettings=_wl27ObjectiveSettings(payload.rtgModelSettings,RTG_WL_OBJECTIVE);payload.conds=stripBands(payload.conds);delete payload.wlBalancedBand;payload.wlObjective=RTG_WL_OBJECTIVE;if(RTG_WL_OBJECTIVE!=='score'||!Number.isFinite(Number(target)))return payload;const b=_wl32BandForTarget(target,0);payload.conds.push({id:'wl5324-min-'+b.target,kind:'player_rating',op:'gte',value:b.min,_rtgOwnOnly:true,_wl29BalancedBand:true,_wl29BandSide:'min'});payload.conds.push({id:'wl5324-max-'+b.target,kind:'player_rating',op:'lte',value:b.max,_rtgOwnOnly:true,_wl29BalancedBand:true,_wl29BandSide:'max',_rtgWlSafetyCap:true,_rtgWlCapAnchor:b.target,_rtgWlCapGap:b.max-b.target});payload.wlBalancedBand=b;return payload;};
+
+/* Every visible search label resolves its target; the 3+1 reserve may temporarily supply its own band target. */
+_wl25TargetForSearchLabel=function(label){const run=_WL_MULTI_ACTIVE,p=run&&run.ratingPlan||_WL25_ACTIVE_PLAN;if(!p)return null;const text=String(label||'');if(run&&run.mode==='leftover'&&/stage\s+4\s+of\s+4|independent fourth reserve|reserve team 4|allocated-core leftovers|own unused rating band/i.test(text)&&Number.isFinite(Number(run._wl533ReserveTarget)))return Number(run._wl533ReserveTarget);let m;if((m=text.match(/team\s+(\d+)\s*\/\s*[34]/i))){const i=Math.max(0,Number(m[1])-1);return Number(i<3?p.targets&&p.targets[i]:p.fourthTarget);}if(/stage\s+1\b|first-team|independent core 1\//i.test(text))return Number(p.targets&&p.targets[0]);if(/stage\s+2\b|second-team|independent core 2\//i.test(text))return Number(p.targets&&p.targets[1]);if(/stage\s+3\b|third-team|independent core 3\//i.test(text))return Number(p.targets&&p.targets[2]);if(/stage\s+4\b|fourth-team|reserve/i.test(text))return Number(p.fourthTarget);return null;};
+
+/* Objective changes are WL-local and the weak/equal-slot unused-player pass is on by default. */
+W.setRtgWlObjective=function(value){RTG_WL_OBJECTIVE=['score','certainty','custom'].includes(String(value))?String(value):'score';if(RTG_WL_OBJECTIVE==='score'){RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true;W.RTG_WL_LOW_GUARD_GAP=0;RTG_WL_HIGH_GUARD_GAP=1;RTG_WL_HIGH_GUARD_PROBE_DEPTH=0;RTG_WL_HIGH_GUARD_ENABLED=true;}if(typeof _wl27Save==='function')_wl27Save();if(typeof _saveRtgWlMultiSettings==='function')_saveRtgWlMultiSettings();saveWlBandManagers5326();if(typeof _wlMultiRefreshStaleState==='function')_wlMultiRefreshStaleState();if(typeof renderRtgWlMultiUi==='function')renderRtgWlMultiUi();};
+
+/* Adjacent auto fill uses the strongest suggestion, then +1/-1 (or +1/+2 below the minimum). */
+function adjacentTargets(minimum){const s=typeof _wl25Suggested==='function'?_wl25Suggested(minimum):[minimum],r=Math.round(Number(s&&s[0])),c=Math.max(minimum,Math.min(105,Number.isFinite(r)?r:minimum));return(c-1>=minimum?[c,Math.min(105,c+1),c-1]:[c,Math.min(105,c+1),Math.min(105,c+2)]).map(n=>Math.max(minimum,Math.min(105,n)));}
+W.fillRtgWlSuggestedRatings=function(){const minimum=_wl25Minimum();if(!Number.isFinite(minimum)){if(typeof _toast==='function')_toast('Enter the current WL minimum rating first.');return;}RTG_WL_MULTI_RATING_VALUES=adjacentTargets(minimum);_wl25SaveRatingPlan();_saveRtgWlMultiSettings();renderRtgWlMultiUi();if(typeof _toast==='function')_toast('Filled the strongest suggested rating with its adjacent WL targets.');};
+
+/* Independent-route progress uses the path that is actually running. */
+const whole5324=_wlMultiWholeProgress;
+_wlMultiWholeProgress=function(message,detail,routeProgress,run){if(!run)return 0;const label=String(message||''),route=Math.max(0,Math.min(1,Number(routeProgress||0)/100)),range=(a,b,f)=>a+(b-a)*Math.max(0,Math.min(1,f)),m=label.match(/independent core\s+(\d+)\/(\d+)/i)||label.match(/stage\s+(\d+)\s+of\s+(\d+).*independent/i);let pct;if(m){const i=Math.max(1,Number(m[1])),n=Math.max(1,Number(m[2]));pct=range(0,60,((i-1)+route)/n);}else if(/allocating independent cores|clash-resolution|fully repaired clash/i.test(label))pct=range(60,70,route);else if(/allocated (main )?teams?.*unused-player repair/i.test(label))pct=range(70,82,route);else if(/independent cores manager-switch repair/i.test(label))pct=range(82,88,route);else if(/stage\s+4\s+of\s+4|reserve rating|reserve from allocated leftovers/i.test(label))pct=range(88,95,route);else if(/reserve team 4.*unused-player repair|reserve team 4 manager-switch repair/i.test(label))pct=range(95,99,route);if(Number.isFinite(pct)){run.wholeProgress=Math.max(Number(run.wholeProgress)||0,Math.min(99,pct));return run.wholeProgress;}return whole5324(message,detail,routeProgress,run);};
+
+/* Stop restores the previous completed set while still showing any genuinely completed new teams. */
+W._wl32StoppedPartialHtml=function(run){const rows=(run&&run.completedTeams&&run.completedTeams.length?run.completedTeams:run&&run.partialRows||[]).filter(Boolean),old=run&&run.previousSet,partial=rows.length?'<div class="note" style="border-color:var(--warn)"><b>WL search stopped · '+rows.length+' new completed team'+(rows.length===1?'':'s')+'.</b><br><span class="tiny">These are stop-point results and may not be a complete overlap-free set.</span></div><div class="rtg-wl-multi-grid">'+rows.map((r,i)=>_wlMultiTeamCard(r,i,'skip')).join('')+'</div>':'<div class="note" style="border-color:var(--warn)"><b>WL search stopped.</b><br><span class="tiny">No new team completed before the active worker stopped.</span></div>',previous=old?'<div class="note" style="margin-top:10px"><b>Previous completed set restored.</b></div>'+_wlMultiDisplayHtml(old):'';return partial+previous;};
+
+/* Complete reset of every WL-local persistence domain; shared RTG settings are untouched. */
+W.resetRtgWlDefaults=function(){if(!confirm('Reset every WL-only setting to its defaults? Shared RTG settings and RTG Conditions will be kept.'))return;RTG_WL_MODE=true;RTG_WL_MIN_RATING='';RTG_WL_PREFERRED_RATING_ENABLED=false;RTG_WL_PREFERRED_RATING='';_RTG_WL_RATING_SUGGEST_SHOW_ALL=false;_RTG_WL_RATING_SUGGEST_CACHE=null;RTG_WL_MULTI_EFFORT=1;RTG_WL_MULTI_FOURTH_MODE='leftover';RTG_WL_MULTI_MANAGER_SCOPE='contenders';RTG_WL_MULTI_MANAGER_SWITCH_ENABLED=true;RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true;RTG_WL_MULTI_FINAL_REPAIR_MAX_PACKAGES=0;RTG_WL_MULTI_FINAL_REPAIR_BREADTH=1;RTG_WL_MULTI_RATING_VALUES=[null,null,null];RTG_WL_OBJECTIVE='score';RTG_WL_RESERVE_DEPTH='fast';W.RTG_WL_LOW_GUARD_GAP=0;RTG_WL_HIGH_GUARD_GAP=1;RTG_WL_HIGH_GUARD_PROBE_DEPTH=0;RTG_WL_HIGH_GUARD_PROBE_EFFORT=1;RTG_WL_HIGH_GUARD_ENABLED=true;RTG_WL_HIGH_RATING_CORRECTION_ENABLED=false;RTG_WL_HIGH_RATING_CORRECTION_THRESHOLD=92;if(W.WL_MANAGER_EXCLUSIONS)W.WL_MANAGER_EXCLUSIONS.clear();try{localStorage.removeItem('pacwyn_wl_local_model_orders_v1');localStorage.setItem('pacwyn_wl_local_model_preset_v1','balanced');}catch(_e){}if(typeof W.setWlLocalModelPreset==='function')W.setWlLocalModelPreset('balanced');_saveRtgWlMode();_saveRtgWlMinimum();_saveRtgWlPreferredRating();_saveRtgWlMultiSettings();_saveRtgWlHighRatingGuard();_wl25SaveRatingPlan();if(typeof _wl27Save==='function')_wl27Save();saveWlBandManagers5326();renderRtgModeUi();renderRtgWlMultiUi();if(typeof saveLocal==='function')saveLocal();if(typeof _toast==='function')_toast('All WL-only settings reset. RTG settings were not changed.');};
+
+/* One-time migration from the 5.32.2 score default that disabled cleanup. */
+try{if(!localStorage.getItem(MIG)){RTG_WL_MULTI_FINAL_REPAIR_ENABLED=true;localStorage.setItem(MIG,'1');_saveRtgWlMultiSettings();}}catch(_e){}
+
+/* UI wording/order, original custom controls, explicit reserve failure and isolation diagnostics. */
+const render5324=renderRtgWlMultiUi;
+renderRtgWlMultiUi=function(){const r=render5324.apply(this,arguments),obj=$('rtgWlObjective'),repair=$('rtgWlMultiFinalRepairEnabled'),status=$('rtgWlObjectiveStatus'),summary=$('rtgWlMultiSettingsSummary');if(obj){for(const o of obj.options){if(o.value==='score')o.textContent='Overperformance first · recommended';}obj.value=RTG_WL_OBJECTIVE;}if(repair){for(const o of repair.options){if(o.value==='0')o.textContent='Off';if(o.value==='1')o.textContent='On · repair weak/equal slots from unused cards';}repair.value=RTG_WL_MULTI_FINAL_REPAIR_ENABLED?'1':'0';}if(status&&RTG_WL_OBJECTIVE==='score')status.innerHTML='<b>Default WL ranking:</b> Stat overperformance → expected score gap → best-axis balance → modelled win probability. Every completed team is then checked against unused cards for a strict whole-XI improvement.';if(summary)summary.style.display='';const sel=$('wlLocalModelPreset');if(sel){const wanted=['balanced','manager','wl','winfirst','win','rating','ratingHigh','chem'];for(const key of wanted){const op=Array.from(sel.options).find(x=>x.value===key);if(op)sel.appendChild(op);}const b=Array.from(sel.options).find(x=>x.value==='balanced'),m=Array.from(sel.options).find(x=>x.value==='manager');if(b)b.textContent='Overperformance first · recommended';if(m)m.textContent='Manager Mode · score gap / balance';}return r;};
+
+const result5324=_wlMultiRenderResult;
+_wlMultiRenderResult=function(teams,mode,run){const r=result5324.apply(this,arguments);if(_WL_MULTI_LAST&&run){const restores=run.wlAllocation&&run.wlAllocation.restoredBetterDisjoint||[],reserveFail=run.wlReserveFailure||'';let note='';if(restores.length)note+='<b>Independent target lock:</b> '+restores.map(x=>'team '+x.team+' restored rank '+x.rank).join(' · ')+'. ';if(reserveFail)note+='<b>Reserve unavailable:</b> '+esc(reserveFail)+' ';if(note){_WL_MULTI_LAST.html=String(_WL_MULTI_LAST.html||'').replace('<span class="tiny">','<span class="tiny">'+note);const out=$('rtgWlMultiOut');if(out)out.innerHTML=_wlMultiDisplayHtml(_WL_MULTI_LAST);if(typeof saveLocal==='function')saveLocal();}}return r;};
+
+if(typeof renderRtgWlMultiUi==='function')renderRtgWlMultiUi();
+})();
+</script>
+
 </body>
 </html>
